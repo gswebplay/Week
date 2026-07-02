@@ -104,7 +104,8 @@
   main{ max-width:1400px; margin:0 auto; padding:20px; }
 
   .grid-wrap{
-    overflow-x:auto;
+    overflow:auto; /* 가로, 세로 스크롤 모두 허용 */
+    max-height:calc(100vh - var(--header-h, 64px) - 40px); /* 화면 크기에 맞춰 테이블 높이 제한 */
     border:1px solid var(--line);
     border-radius:var(--radius);
     background:#fff;
@@ -129,7 +130,8 @@
 
   thead th{
     background:#fff;
-    position:sticky; top:var(--header-h, 64px); z-index:10;
+    position:sticky; top:0; /* 64px만큼 아래로 밀리던 현상 해결 */
+    z-index:10;
     padding:0;
   }
   .emp-head{
