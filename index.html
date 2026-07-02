@@ -1322,7 +1322,7 @@ function openDayModal(emp, date){
         <button class="item-remove" data-remove="${idx}" title="삭제">✕</button>
         <div class="field">
           <label>타이틀</label>
-          <input type="text" data-field="title" data-idx="${idx}" value="${escapeHtml(it.title || '')}" placeholder="예: A, 링스1" />
+          <input type="text" data-field="title" data-idx="${idx}" value="${escapeHtml(it.title || '')}" placeholder="예: GS-W805, 주_25031" />
         </div>
         <div class="field">
           <label>내용</label>
@@ -1393,10 +1393,11 @@ function openDayModal(emp, date){
 
   // [기능] "저장" 버튼을 눌렀을 때: 해당 인원/날짜의 기존 항목을 전부 지우고, 새 목록을 다시 저장함
   // (가장 단순하고 안전한 방식 - 항목이 몇 개든 통째로 지웠다가 다시 넣음)
-  // [수정됨] 이제 "타이틀"이 항목을 구분하는 핵심 이름표이므로, 타이틀이 비어있는 항목은 저장하지 않음.
-  //          (내용은 그날그날 비어있어도 괜찮도록 허용함)
+  // [버그 수정] 예전엔 "타이틀이 비어있으면 통째로 저장 안 함"이었는데, 그러면 타이틀 없이
+  // 내용에만 "연차" 같은 글자를 적었을 때 그 항목이 통째로 사라져버리는 문제가 있었음.
+  // -> 이제 "타이틀 또는 내용 둘 중 하나라도" 채워져 있으면 저장되도록 바꿈.
   async function persistDay() {
-    const validItems = items.filter(it => (it.title || '').trim() !== '');
+    const validItems = items.filter(it => (it.title || '').trim() !== '' || (it.content || '').trim() !== '');
     try {
       await sb(`work_logs?employee_id=eq.${emp.id}&log_date=eq.${dateStr}`, 'DELETE'); // 기존 항목 전체 삭제
 
@@ -1404,7 +1405,7 @@ function openDayModal(emp, date){
         const payload = validItems.map((it, i) => ({
           employee_id: emp.id,
           log_date: dateStr,
-          title: it.title.trim(),
+          title: (it.title || '').trim() || null,   // 타이틀이 비어있으면 null로 저장 (내용만 있는 경우 허용)
           content: (it.content || '').trim() || null,
           progress: it.progress,
           sort_order: i // 이 순서 번호가 항목이 화면에 나열되는 순서를 정함
