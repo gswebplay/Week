@@ -903,14 +903,17 @@ async function loadEmployees(){
 /* ============================================================
    프로젝트/작업단계 옵션
    - stages        : 부서 전체가 공유하는 단계 이름 목록 (예: ["제작모델링","제작도면","매뉴얼체크리스트"])
-   - projectStages : [추가됨] 프로젝트별로 "이 프로젝트는 몇 단계짜리인지" 딱 한 번 등록해두는 곳.
+   - projectStages : 프로젝트별로 "이 프로젝트는 몇 단계짜리인지" 딱 한 번 등록해두는 곳.
                      예) { "GS-W805": ["제작모델링","제작도면","매뉴얼체크리스트"], "GS-806": ["제작모델링","제작도면"] }
                      이렇게 등록해두면, 그 프로젝트의 진행률 분모(n)가 항상 이 등록된 개수로 고정되고,
                      아직 입력 안 한 단계는 0%로 계산됩니다 (예: 1단계만 80% -> 4단계 중 하나면 20%).
                      한 번 등록하면 다음부터 그 프로젝트명을 적을 때 자동으로 기억되어, 매번 다시 고를 필요 없음.
+   - recentProjectsByEmployee : [수정됨] 인원마다 하는 일이 달라서, "최근에 입력한 프로젝트명" 자동완성 기록도
+                     인원별로 따로 저장됩니다. { "인원ID": ["최근이름1","최근이름2",...] } 형태이며,
+                     각 인원당 최근 5개까지만 저장됩니다.
    부서(department)마다 이 데이터가 한 줄(row)씩 project_options 테이블에 저장됨.
    ============================================================ */
-let projectOptions = { stages: [], projectStages: {} }; // 서버에서 불러오기 전 기본값(빈 목록)
+let projectOptions = { stages: [], projectStages: {}, recentProjectsByEmployee: {} }; // 서버에서 불러오기 전 기본값(빈 목록)
 
 // 이 부서의 작업단계 목록을 서버에서 불러옴
 async function loadProjectOptions(){
@@ -921,6 +924,7 @@ async function loadProjectOptions(){
       // 예전(프로젝트별 객체) 형식으로 저장된 데이터가 있으면, 새 형식(배열)으로 안전하게 맞춰줌
       if(!Array.isArray(projectOptions.stages)) projectOptions.stages = [];
       if(!projectOptions.projectStages || typeof projectOptions.projectStages !== 'object') projectOptions.projectStages = {};
+      if(!projectOptions.recentProjectsByEmployee || typeof projectOptions.recentProjectsByEmployee !== 'object') projectOptions.recentProjectsByEmployee = {};
     }
   } catch(e){
     console.error(e);
@@ -1473,6 +1477,12 @@ function openModal({ title, bodyHtml, footerHtml, onMount }){
     const primaryBtn = overlay.querySelector('.modal-footer .btn.primary');
     if(primaryBtn) primaryBtn.click(); // Enter 키 = 파란색 주요 버튼 클릭과 동일하게 처리
   });
+  // ESC 키를 누르면 팝업을 닫음 (바깥 클릭으로는 안 닫히지만, ESC는 "취소"와 같은 의미로 허용함)
+  document.addEventListener('keydown', function escHandler(e){
+    if(e.key !== 'Escape') return;
+    document.removeEventListener('keydown', escHandler); // 한 번 닫히면 이 리스너는 스스로 정리함 (중복 등록 방지)
+    close();
+  });
   if(onMount) onMount(close); // 팝업이 화면에 뜬 직후 실행할 코드(버튼 이벤트 연결 등)를 실행
   return close;
 }
@@ -1513,8 +1523,8 @@ function openDayModal(emp, date){
         <button class="item-remove" data-remove="${idx}" title="삭제">✕</button>
 
         <div class="field">
-          <label>프로젝트 (선택)</label>
-          <input type="text" data-field="title" data-idx="${idx}" value="${escapeHtml(it.title || '')}" placeholder="예: GS-W805, 주_25031" />
+          <label>프로젝트 타이틀</label>
+          <input type="text" data-field="title" data-idx="${idx}" value="${escapeHtml(it.title || '')}" placeholder="예: GS-W805, 주_25031" list="projectNamesDatalist" autocomplete="off" />
         </div>
 
         <div class="field">
@@ -1560,6 +1570,14 @@ function openDayModal(emp, date){
   const close = openModal({
     title,
     bodyHtml: `
+      <!-- 프로젝트 타이틀 자동완성 후보 목록 - 이 인원(${escapeHtml(emp.name)})이 최근에 사용했던 프로젝트명(최대 5개)만 후보로 뜸.
+           인원마다 하는 일이 다르니, 다른 사람의 프로젝트명은 안 섞여서 나옵니다. -->
+      <datalist id="projectNamesDatalist">
+        ${((projectOptions.recentProjectsByEmployee && projectOptions.recentProjectsByEmployee[emp.id]) || []).map(p => `<option value="${escapeHtml(p)}">`).join('')}
+      </datalist>
+      <div style="display:flex; justify-content:flex-end; margin-bottom:6px;">
+        <button type="button" class="manage-btn" id="clearRecentProjectsBtn">최근 자동완성 기록 지우기</button>
+      </div>
       <div id="itemsContainer">${itemsHtml()}</div>
       <button class="add-item-btn" id="addItemBtn">+ 항목 추가</button>
       <div class="hint-text">프로젝트/내용은 비워둬도 저장됩니다. 작업단계 버튼을 누르면 선택되고,
@@ -1574,6 +1592,16 @@ function openDayModal(emp, date){
       document.getElementById('addItemBtn').addEventListener('click', () => {
         items.push({ title: '', stages: [], content: '', progress: null, _isNew: true });
         refreshItemsContainer();
+      });
+      // "최근 자동완성 기록 지우기" - 이 인원의 최근 프로젝트명 기록만 지움 (실제 업무 기록은 안 지워짐)
+      document.getElementById('clearRecentProjectsBtn').addEventListener('click', async () => {
+        if(!confirm(`${emp.name}님의 최근 프로젝트 자동완성 기록을 전부 지울까요? (저장된 업무 기록 자체는 지워지지 않습니다)`)) return;
+        if(!projectOptions.recentProjectsByEmployee) projectOptions.recentProjectsByEmployee = {};
+        projectOptions.recentProjectsByEmployee[emp.id] = [];
+        await saveProjectOptions();
+        const dl = document.getElementById('projectNamesDatalist');
+        if(dl) dl.innerHTML = ''; // 화면에서도 즉시 후보 목록을 비움
+        showToast('최근 자동완성 기록을 지웠습니다');
       });
       document.getElementById('cancelDayBtn').addEventListener('click', close);
       document.getElementById('saveDayBtn').addEventListener('click', async () => {
@@ -1797,6 +1825,22 @@ function openDayModal(emp, date){
         }));
         await sb('work_logs', 'POST', payload); // 새 항목들을 한꺼번에 저장
       }
+
+      // [수정됨] 이번에 입력한 프로젝트명을, "이 인원(emp.id)"의 최근 자동완성 기록에 추가함.
+      // 이미 있던 이름이면 맨 앞(최신)으로 옮기고, 항상 최근 5개까지만 남김.
+      let recentChanged = false;
+      if(!projectOptions.recentProjectsByEmployee) projectOptions.recentProjectsByEmployee = {};
+      validItems.forEach(it => {
+        const t = (it.title || '').trim();
+        if(!t) return;
+        let list = projectOptions.recentProjectsByEmployee[emp.id] || [];
+        list = list.filter(name => name !== t); // 이미 있으면 일단 빼고
+        list.unshift(t);                         // 맨 앞(가장 최근)에 넣음
+        list = list.slice(0, 5);                 // 최근 5개까지만 유지
+        projectOptions.recentProjectsByEmployee[emp.id] = list;
+        recentChanged = true;
+      });
+      if(recentChanged) await saveProjectOptions();
 
       // [버그 수정] 예전엔 여기서 편집 중이던 items(수정 전 stage 값이 남아있을 수 있음)를 그대로 화면 캐시에 넣어서,
       // 저장 직후엔 "새로 고른 작업단계"가 반영 안 되고 새로고침을 해야만 제대로 보이는 문제가 있었음.
