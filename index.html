@@ -24,7 +24,7 @@
     --ink:#1A2332;
     --muted:#64748B;
     --amber:#B9781F;
-    --amber-bg:#FBEEDA;
+    --amber-bg:#FDF6EC; /* 기존 #FBEEDA 에서 더 밝게 화사한 톤으로 수정 */
     --amber-line:#E8C08B;
     --danger:#C0392B;
     --radius:10px;
@@ -150,10 +150,10 @@
   }
   .day-cell-label .dow{ display:block; font-size:11px; color:var(--muted); font-weight:500; margin-top:1px; }
   
-  /* 주말 색상 변경 (휴가와 동일하게 처리) */
+  /* 주말 색상 변경 (휴가와 동일하게 처리, 날짜 라벨칸 포함) */
   tr.weekend .day-cell-label{ color:var(--muted); }
-  tr.weekend td:not(.day-label-col){ background:var(--amber-bg); }
-  tr.weekend td.day-cell:hover{ background:#F6E3C2; }
+  tr.weekend td { background:var(--amber-bg); } /* 날짜 칸(.day-label-col)까지 포함하여 배경색 적용 */
+  tr.weekend td.day-cell:hover{ background:#FBEEDA; } /* 호버 시 색상도 밝게 수정 */
 
   tr.is-today .day-label-col{ background:var(--blueprint); color:#fff; }
   tr.is-today .day-cell-label{ color:#fff; }
@@ -165,7 +165,7 @@
   }
   .day-cell:hover{ background:var(--blueprint-bg); }
   .day-cell.is-leave{ background:var(--amber-bg); }
-  .day-cell.is-leave:hover{ background:#F6E3C2; }
+  .day-cell.is-leave:hover{ background:#FBEEDA; } /* 호버 시 색상 밝게 수정 */
 
   .log-item{
     font-size:12.5px; line-height:1.5; margin-bottom:4px;
@@ -829,197 +829,4 @@ function openDayModal(emp, date){
     });
     document.querySelectorAll('[data-remove]').forEach(el => {
       el.addEventListener('click', () => {
-        items.splice(Number(el.dataset.remove), 1);
-        refreshItemsContainer();
-      });
-    });
-  }
-
-  function refreshItemsContainer(){
-    document.getElementById('itemsContainer').innerHTML = itemsHtml();
-    bindItemEvents();
-  }
-
-  async function persistDay(){
-    const cleanItems = items.map(it => ({ ...it, content: (it.content || '').trim() }))
-                             .filter(it => it.content.length > 0);
-    try {
-      await sb(`work_logs?employee_id=eq.${emp.id}&log_date=eq.${dateStr}`, 'DELETE');
-
-      if(cleanItems.length > 0){
-        const insertPayload = cleanItems.map((it, idx) => ({
-          employee_id: emp.id,
-          log_date: dateStr,
-          content: it.content,
-          progress: it.progress,
-          sort_order: idx
-        }));
-        await sb('work_logs', 'POST', insertPayload);
-      }
-
-      await loadMonthData();
-      render();
-      showToast('저장했습니다');
-    } catch(e){ console.error(e); showToast('저장 중 오류가 발생했습니다'); }
-  }
-}
-
-/* ============================================================
-   모달: 인원 추가
-   ============================================================ */
-function openAddEmployeeModal(){
-  const close = openModal({
-    title: '인원 추가',
-    bodyHtml: `
-      <div class="field">
-        <label>이름</label>
-        <input type="text" id="newEmpName" placeholder="예: 김태훈" />
-      </div>
-      <div class="field">
-        <label>직급 (선택)</label>
-        <input type="text" id="newEmpPos" placeholder="예: 주임" />
-      </div>
-    `,
-    footerHtml: `
-      <button class="btn" id="cancelAddEmp">취소</button>
-      <button class="btn primary" id="saveAddEmp">추가</button>
-    `,
-    onMount: (close) => {
-      document.getElementById('newEmpName').focus();
-      document.getElementById('cancelAddEmp').addEventListener('click', close);
-      document.getElementById('saveAddEmp').addEventListener('click', async () => {
-        const name = document.getElementById('newEmpName').value.trim();
-        const pos = document.getElementById('newEmpPos').value.trim();
-        if(!name){ showToast('이름을 입력해주세요'); return; }
-        const sortOrder = employees.length;
-        try {
-          await sb('employees', 'POST', { name, position: pos || null, sort_order: sortOrder, active: true });
-          close();
-          await refreshAll();
-          showToast(`${name}님을 추가했습니다`);
-        } catch(e){ console.error(e); showToast('추가 실패'); }
-      });
-    }
-  });
-}
-
-/* ============================================================
-   모달: 인원 관리 (이름 수정 / 삭제)
-   ============================================================ */
-function openEmployeeMenu(emp){
-  const close = openModal({
-    title: `${emp.name} 관리`,
-    bodyHtml: `
-      <div class="field">
-        <label>이름</label>
-        <input type="text" id="editEmpName" value="${escapeHtml(emp.name)}" />
-      </div>
-      <div class="field">
-        <label>직급</label>
-        <input type="text" id="editEmpPos" value="${escapeHtml(emp.position || '')}" />
-      </div>
-      <div class="hint-text">삭제 시 해당 인원의 컬럼은 사라지지만, 기존 업무 기록은 보존됩니다.</div>
-    `,
-    footerHtml: `
-      <button class="btn danger" id="deleteEmpBtn">삭제</button>
-      <button class="btn" id="cancelEditEmp">취소</button>
-      <button class="btn primary" id="saveEditEmp">저장</button>
-    `,
-    onMount: (close) => {
-      document.getElementById('cancelEditEmp').addEventListener('click', close);
-      document.getElementById('saveEditEmp').addEventListener('click', async () => {
-        const name = document.getElementById('editEmpName').value.trim();
-        const pos = document.getElementById('editEmpPos').value.trim();
-        if(!name){ showToast('이름을 입력해주세요'); return; }
-        try {
-          await sb(`employees?id=eq.${emp.id}`, 'PATCH', { name, position: pos || null });
-          close();
-          await refreshAll();
-          showToast('저장했습니다');
-        } catch(e){ console.error(e); showToast('저장 실패'); }
-      });
-      document.getElementById('deleteEmpBtn').addEventListener('click', () => {
-        confirmDeleteEmployee(emp, close);
-      });
-    }
-  });
-}
-
-function confirmDeleteEmployee(emp, parentClose){
-  openModal({
-    title: '인원 삭제',
-    bodyHtml: `<p style="margin:0;font-size:13.5px;">"${escapeHtml(emp.name)}" 님을 목록에서 삭제할까요?<br>업무 기록은 삭제되지 않고 보존됩니다.</p>`,
-    footerHtml: `
-      <button class="btn" id="cancelDelete">취소</button>
-      <button class="btn danger" id="confirmDelete">삭제</button>
-    `,
-    onMount: (closeThis) => {
-      document.getElementById('cancelDelete').addEventListener('click', closeThis);
-      document.getElementById('confirmDelete').addEventListener('click', async () => {
-        try {
-          await sb(`employees?id=eq.${emp.id}`, 'PATCH', { active: false });
-          closeThis();
-          parentClose();
-          await refreshAll();
-          showToast(`${emp.name}님을 삭제했습니다`);
-        } catch(e){ console.error(e); showToast('삭제 실패'); }
-      });
-    }
-  });
-}
-
-/* ============================================================
-   이벤트 바인딩 & 초기화
-   ============================================================ */
-document.getElementById('prevYearBtn').addEventListener('click', async () => {
-  currentYear -= 1;
-  await loadMonthData(); render();
-});
-document.getElementById('nextYearBtn').addEventListener('click', async () => {
-  currentYear += 1;
-  await loadMonthData(); render();
-});
-
-document.getElementById('prevMonthBtn').addEventListener('click', async () => {
-  currentMonth -= 1;
-  if (currentMonth < 1) {
-    currentMonth = 12;
-    currentYear -= 1;
-  }
-  await loadMonthData(); 
-  render();
-});
-document.getElementById('nextMonthBtn').addEventListener('click', async () => {
-  currentMonth += 1;
-  if (currentMonth > 12) {
-    currentMonth = 1;
-    currentYear += 1;
-  }
-  await loadMonthData(); 
-  render();
-});
-
-document.getElementById('todayBtn').addEventListener('click', async () => {
-  const changed = (currentYear !== TODAY.getFullYear()) || (currentMonth !== TODAY.getMonth()+1);
-  currentYear = TODAY.getFullYear();
-  currentMonth = TODAY.getMonth() + 1;
-  if(changed) await loadMonthData();
-  render();
-  setTimeout(() => {
-    const todayStr = toDateStr(TODAY);
-    const row = document.querySelector(`tr[data-date="${todayStr}"]`);
-    if(row) row.scrollIntoView({ block:'center', behavior:'smooth' });
-  }, 30);
-});
-function syncHeaderHeight(){
-  const header = document.querySelector('header.app-header');
-  if(header) document.documentElement.style.setProperty('--header-h', header.offsetHeight + 'px');
-}
-window.addEventListener('resize', syncHeaderHeight);
-
-document.getElementById('addEmployeeBtn').addEventListener('click', openAddEmployeeModal);
-
-refreshAll().then(syncHeaderHeight);
-</script>
-</body>
-</html>
+        items.splice(Number(el.dataset.remove),
