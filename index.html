@@ -400,8 +400,10 @@
   }
   .log-item .dot{ color:var(--blueprint); flex-shrink:0; }  /* 항목 앞의 "·" 점 색깔 = 파란색 */
   .log-item .txt{
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:150px;
-    /* 업무 내용 글자가 너무 길면 칸을 넘어가지 않도록 "..." 으로 줄여서 표시 (최대 150px 폭까지만) */
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    flex:1; min-width:0; /* [수정됨] 고정폭(150px) 대신, 실제 칸이 넓어지면 글자 표시 영역도 함께 늘어나도록 변경.
+       flex:1 = 옆의 "·" 점과 "50%" 글자가 차지하는 만큼을 뺀 "남는 공간"을 전부 차지함.
+       min-width:0 = flex 안에서 ellipsis(...) 축약이 정상적으로 동작하려면 반드시 필요한 설정. */
   }
   .log-item .pct{
     font-family:var(--mono); font-size:11px; color:var(--muted); flex-shrink:0;
@@ -542,7 +544,7 @@
     .header-row{ align-items:flex-start; }
     .emp-head{ min-width:140px; padding:10px; }  /* 인원 이름 칸 최소 폭을 190px -> 140px 로 줄임 */
     .day-cell{ min-width:140px; }                 /* 업무 칸 최소 폭도 190px -> 140px 로 줄임 */
-    .log-item .txt{ max-width:100px; }             /* 업무 내용 글자가 잘리는 기준 폭도 150px -> 100px 로 줄임 */
+    /* .log-item .txt는 이제 flex:1로 칸 너비에 맞춰 자동으로 늘어나므로, 여기서 따로 폭을 지정할 필요가 없어짐 */
   }
 </style>
 </head>
@@ -581,7 +583,7 @@
   <!-- ★ 부서명 타이틀 - 어느 부서의 업무일지인지 한눈에 보이도록 날짜 이동 버튼 바로 위에 표시.
        글자를 바꾸고 싶으면 아래 "기술전략부" 부분만 수정하면 되고,
        생김새(크기/색/간격)를 바꾸고 싶으면 CSS의 .dept-title 규칙을 수정하면 됩니다. -->
-  <div class="dept-title">기술전략부</div>
+  <div class="dept-title" id="deptTitle">기술전략부</div>
 
   <!-- 연/월 이동 버튼 + "+ 인원 추가" 버튼 - 두 탭(주간일지/월간일지) 모두에서 공통으로 쓰입니다 -->
   <div class="toolbar-nav">
@@ -675,6 +677,29 @@
    ============================================================ */
 const SUPABASE_URL = 'https://zrhwdvuehaelintkfoqn.supabase.co'; // 우리 Supabase 프로젝트의 주소
 const SUPABASE_KEY = 'sb_publishable_oQ7F4Q9KRS22lpiE9uILFA_zN7n2V4V'; // 우리 프로젝트에 접속하기 위한 공개용 열쇠(키)
+
+/* ============================================================
+   ★★★ 부서 구분 - 이 파일이 어느 부서용인지 정하는 값 (2개로 분리) ★★★
+   Supabase 프로젝트(테이블)는 5개 부서가 전부 함께 쓰지만, 이 값들 덕분에
+   이 파일은 항상 "기술전략부" 데이터만 불러오고/저장합니다.
+
+   - DEPARTMENT_ID    : 실제로 서버에 데이터를 요청/저장할 때 쓰는 값.
+                         다른 사람이 URL만 보고 다른 부서 값을 유추하기 어렵도록
+                         짧은 임의 문자열을 씁니다. (화면에는 보이지 않음)
+   - DEPARTMENT_LABEL : 화면에 실제로 보이는 부서 이름 (예: "기술전략부").
+                         이건 사람이 보기 좋은 글자를 그대로 써도 안전합니다.
+
+   다른 부서용 파일은 이 두 값만 다르고 나머지 코드는 전부 동일합니다.
+   ============================================================ */
+const DEPARTMENT_ID = '기술전략부';   // 서버 필터용 값 (기술전략부는 원래 쓰던 주소를 그대로 유지하기 위해 이름을 그대로 둠)
+const DEPARTMENT_LABEL = '기술전략부'; // 화면에 보이는 이름
+
+// URL 안에 한글이 그대로 들어가면 깨질 수 있어서, 필터에 쓸 때는 항상 이 인코딩된 값을 사용함
+const DEPT_Q = encodeURIComponent(DEPARTMENT_ID);
+
+// 화면의 부서 타이틀 글자와 브라우저 탭 제목을, 위 DEPARTMENT_LABEL 값으로 자동으로 맞춰줌
+document.getElementById('deptTitle').textContent = DEPARTMENT_LABEL;
+document.title = `업무일지 · ${DEPARTMENT_LABEL}`;
 
 // Supabase에게 데이터를 "달라"(GET) 또는 "저장해라"(POST/PATCH/DELETE) 라고 요청하는 공통 함수.
 // SDK(외부 라이브러리)를 쓰지 않고 fetch()로 직접 요청을 보내는 방식 - 다른 코드와 변수명이 겹치는 문제를 피하기 위함.
@@ -783,7 +808,7 @@ function showToast(msg){
 // 활성 상태인(삭제되지 않은) 인원 목록을 정해진 순서대로 불러옴
 async function loadEmployees(){
   try {
-    employees = await sb('employees?active=eq.true&order=sort_order.asc');
+    employees = await sb(`employees?department=eq.${DEPT_Q}&active=eq.true&order=sort_order.asc`);
   } catch(e){ console.error(e); showToast('인원 목록을 불러오지 못했습니다'); }
 }
 
@@ -800,7 +825,7 @@ async function loadMonthData(){
   // 업무 기록(work_logs)을 불러와서 "인원ID_날짜" 형태의 이름표를 붙여 정리해둠
   logsByEmpDate = {};
   try {
-    const logs = await sb(`work_logs?log_date=gte.${startStr}&log_date=lte.${endStr}&order=sort_order.asc`);
+    const logs = await sb(`work_logs?department=eq.${DEPT_Q}&log_date=gte.${startStr}&log_date=lte.${endStr}&order=sort_order.asc`);
     logs.forEach(l => {
       const key = `${l.employee_id}_${l.log_date}`;
       if(!logsByEmpDate[key]) logsByEmpDate[key] = [];
@@ -811,7 +836,7 @@ async function loadMonthData(){
   // 주간정리(weekly_summaries)도 같은 방식으로 불러와서 정리해둠
   summariesByEmp = {};
   try {
-    const summaries = await sb(`weekly_summaries?week_start=gte.${startStr}&week_start=lte.${endStr}`);
+    const summaries = await sb(`weekly_summaries?department=eq.${DEPT_Q}&week_start=gte.${startStr}&week_start=lte.${endStr}`);
     summaries.forEach(s => { summariesByEmp[`${s.employee_id}_${s.week_start}`] = s; });
   } catch(e){ console.error(e); }
 }
@@ -1142,6 +1167,7 @@ async function saveSummary(empId, weekStartStr, text){
   const payload = {
     employee_id: empId,
     week_start: weekStartStr,
+    department: DEPARTMENT_ID, // 이 부서 소속임을 표시 (다른 부서 화면에서는 이 값 때문에 안 보임)
     summary_text: text || null,
     is_manual: !!text,
     updated_at: new Date().toISOString()
@@ -1161,7 +1187,7 @@ async function saveSummary(empId, weekStartStr, text){
 // 사람이 직접 쓴 주간정리를 지우고, 다시 "자동 계산 요약"으로 되돌리는 함수
 async function resetSummaryToAuto(empId, weekStartStr, td){
   try {
-    await sb(`weekly_summaries?employee_id=eq.${empId}&week_start=eq.${weekStartStr}`, 'DELETE');
+    await sb(`weekly_summaries?department=eq.${DEPT_Q}&employee_id=eq.${empId}&week_start=eq.${weekStartStr}`, 'DELETE');
     delete summariesByEmp[`${empId}_${weekStartStr}`];
     const emp = employees.find(e => e.id === empId);
     renderSummaryCell(td, emp, weekStartStr);
@@ -1399,12 +1425,13 @@ function openDayModal(emp, date){
   async function persistDay() {
     const validItems = items.filter(it => (it.title || '').trim() !== '' || (it.content || '').trim() !== '');
     try {
-      await sb(`work_logs?employee_id=eq.${emp.id}&log_date=eq.${dateStr}`, 'DELETE'); // 기존 항목 전체 삭제
+      await sb(`work_logs?department=eq.${DEPT_Q}&employee_id=eq.${emp.id}&log_date=eq.${dateStr}`, 'DELETE'); // 기존 항목 전체 삭제
 
       if (validItems.length > 0) {
         const payload = validItems.map((it, i) => ({
           employee_id: emp.id,
           log_date: dateStr,
+          department: DEPARTMENT_ID, // 이 부서 소속임을 표시 (다른 부서 화면에서는 이 값 때문에 안 보임)
           title: (it.title || '').trim() || null,   // 타이틀이 비어있으면 null로 저장 (내용만 있는 경우 허용)
           content: (it.content || '').trim() || null,
           progress: it.progress,
@@ -1524,7 +1551,7 @@ document.addEventListener('DOMContentLoaded', () => {
           const pos = document.getElementById('newEmpPos').value.trim();
           if (!name) return showToast('이름을 입력하세요');
           try {
-            await sb('employees', 'POST', { name, position: pos, sort_order: employees.length, active: true });
+            await sb('employees', 'POST', { name, position: pos, department: DEPARTMENT_ID, sort_order: employees.length, active: true });
             await refreshAll();
             close();
           } catch(e) { console.error(e); showToast('추가 실패'); }
