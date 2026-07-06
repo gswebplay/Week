@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>업무기록</title>
+<!-- 즐겨찾기/브라우저 탭에 표시되는 아이콘(파비콘). 이모지(📝)를 그대로 아이콘 이미지로 사용하는 방식입니다.
+     다른 이모지로 바꾸고 싶으면 아래 코드에서 %F0%9F%93%9D 부분(이게 📝 이모지를 URL로 표현한 것)만
+     원하는 이모지로 교체하면 됩니다. -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%93%9D</text></svg>">
+
+<!-- 아래 4줄은 글씨체(폰트)를 인터넷에서 가져오는 부분입니다.
+     Pretendard = 한글 본문 글씨체, JetBrains Mono = 숫자/날짜용 글씨체(자릿수가 달라도 폭이 일정함) -->
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+/* ============================================================================
+   [이 파일 사용법 - 아주 쉽게 설명]
+
+   이 안의 style(스타일) 태그 사이는 전부 "CSS"라는 것으로,
+   화면에 보이는 글자/버튼/칸의 "생김새"(크기, 색깔, 위치, 여백)를 정하는 부분입니다.
+   (글자 내용 자체나 버튼을 눌렀을 때 동작은 CSS가 아니라 훨씬 아래쪽 script(스크립트) 안의
+    JS(자바스크립트) 코드가 담당합니다.)
+
+   CSS 규칙은 항상 이런 모양으로 생겼습니다:
+
+     .어떤이름{
+       속성이름: 값;
+       속성이름: 값;
+     }
+
+   자주 나오는 속성 이름 뜻 (이것만 알아도 대부분 찾아 고칠 수 있어요):
+   - font-size    : 글자 크기 (숫자가 클수록 글자가 커짐, 단위는 px = 픽셀)
+   - font-weight  : 글자 굵기 (400=보통, 600~700=진하게/볼드)
+   - color        : 글자 색깔
+   - background   : 배경 색깔 (글자 뒤 칸/버튼의 색)
+   - padding      : "안쪽" 여백 (테두리와 글자 사이 간격)
+   - margin       : "바깥쪽" 여백 (이 요소와 다른 요소 사이 간격)
+   - gap          : 여러 요소를 나란히 배치할 때, 요소들 사이의 간격
+   - border       : 테두리 선 (굵기, 종류, 색)
+   - border-radius: 테두리 모서리를 얼마나 둥글게 깎을지 (숫자가 클수록 더 둥글어짐)
+   - width/height : 가로/세로 크기
+   - position     : 화면에서 어떻게 배치할지 (sticky=스크롤해도 붙어있음, fixed=화면에 고정)
+   - text-align   : 글자를 왼쪽/가운데/오른쪽 중 어디로 정렬할지
+   - display:flex : 안에 있는 요소들을 가로 또는 세로로 나란히 줄세우는 방법
+
+   ★ 어떤 CSS 규칙이 화면의 어떤 글자인지 찾는 가장 쉬운 방법 ★
+   1) 크롬 브라우저에서 고치고 싶은 글자(예: "업무기록")를 마우스 오른쪽 버튼으로 클릭
+   2) "검사(Inspect)" 클릭
+   3) 화면 오른쪽에 파란색으로 강조되는 class 이름(예: class="dept-title")이 뜸
+   4) 그 이름을 이 파일에서 Ctrl+F(찾기)로 검색하면 (예: .dept-title) 바로 그 CSS 규칙으로 이동함
+   ============================================================================ */
+
+  /* ----------------------------------------------------------------------
+     :root { ... } 는 "색상 이름표 모음"입니다.
+     예를 들어 --blueprint 라는 이름표에 초록색을 붙여놓고,
+     아래에서는 var(--blueprint) 라고 적으면 그 색이 그대로 사용됩니다.
+     장점: 여기 있는 색상 코드 하나만 바꾸면, 그 색을 쓰는 화면의 모든 곳(버튼, 탭, 숫자 등)이
+     한꺼번에 같이 바뀝니다. (지금은 "그린" 계열로 맞춰져 있음 - 기존 업무일지/주간일지 앱은
+     블루 계열이라서, 이 앱만 색을 다르게 해서 한눈에 구분되도록 한 것)
+     ---------------------------------------------------------------------- */
+  :root{
+    --navy:#0B1220;          /* 예비용 색상 (현재 코드에서 직접 쓰이는 곳은 없음) */
+    --blueprint:#1F9D55;     /* ★ 앱의 메인 포인트 색(초록색). 버튼, 탭 활성 색, 순번 숫자 색 등에 쓰임.
+                                 이 값 하나만 바꾸면 앱 전체의 "테마 색"이 통째로 바뀝니다. */
+    --blueprint-strong:#157A3F; /* 포인트색보다 더 진한 초록색. 버튼에 마우스를 올렸을 때(hover) 색 */
+    --blueprint-bg:#E6F6EC;  /* 아주 연한 민트색. 표 행에 마우스를 올렸을 때 배경, 입력칸 포커스 배경 등에 쓰임 */
+    --line:#D7E4DC;          /* 표의 테두리 선 색깔 (연한 초록빛 회색) */
+    --paper:#F5F8F6;         /* 전체 페이지 배경색 (아주 연한 회색, 살짝 초록빛) */
+    --ink:#1A2332;           /* 일반 글자 색 (거의 검정에 가까운 남색) */
+    --muted:#64748B;         /* 덜 중요한 글자(요청일자, 안내문구 등)에 쓰는 흐린 회색 글자색 */
+    --danger:#C0392B;        /* 오류/실패 메시지에 쓰이는 빨간색 */
+    --success:#34A853;       /* "연결됨" 초록색 점 등, 정상/성공 상태를 나타낼 때 쓰는 초록색 */
+    --warning:#FBBC04;       /* "동기화중" 노란색 점 등, 진행 중/주의 상태를 나타낼 때 쓰는 노란색 */
+    --radius:10px;           /* 표 전체 테두리의 둥근 정도 (숫자를 키우면 모서리가 더 둥글어짐) */
+    --sans:'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif; /* 기본 글씨체(일반 텍스트용) */
+    --mono:'JetBrains Mono', 'D2Coding', monospace; /* 숫자/날짜용 글씨체 (글자 폭이 일정해서 숫자 정렬이 깔끔함) */
+  }
+
+  /* 모든 요소에 대해 "padding과 border를 width/height 계산에 포함시킨다"는 기술적 설정.
+     보통 건드릴 필요 없는 부분입니다. */
+  *{ box-sizing:border-box; }
+
+  /* 페이지의 기본 여백을 0으로 만듦 (브라우저마다 기본으로 약간의 여백이 있는데 그걸 없애는 것) */
+  html,body{ margin:0; padding:0; }
+
+  /* body = 웹페이지 전체 바탕화면.
+     여기서 페이지 전체의 "기본 배경색"과 "기본 글자색", "기본 글씨체"를 정함. */
+  body{
+    background:var(--paper);   /* 페이지 전체 바탕 배경색 = 위 --paper 색상(연회색) */
+    color:var(--ink);          /* 페이지 전체 기본 글자색 */
+    font-family:var(--sans);   /* 페이지 전체 기본 글씨체 */
+    -webkit-font-smoothing:antialiased; /* 글자를 좀 더 부드럽게(안티앨리어싱) 보이게 하는 설정 */
+  }
+
+  /* ========================================================================
+     ▣ 상단 헤더 영역 - 기존 업무일지/재고관리 앱과 똑같은 스타일(흰 배경 헤더 + 탭바)
+     구성: [헤더: 로고+이름+실시간시계 / 버전+연결상태]
+          [탭바: 업무관리 / 주간일지(외부 링크)]
+          [부서명 + 진행중·완료 토글] (main 안, 표 위쪽)
+     ======================================================================== */
+
+  /* ★★★ 맨 위 흰색 헤더 바 ★★★ */
+  .header{
+    background:#fff;             /* 헤더 배경 = 흰색 */
+    border-bottom:1px solid var(--line); /* 헤더 아래쪽 얇은 구분선 */
+    padding:0 20px;               /* 좌우 여백만 있고 위아래는 height로 고정 */
+    display:flex; align-items:center; justify-content:space-between; /* 왼쪽=제목, 오른쪽=버전/연결상태 */
+    height:60px;                  /* 헤더 높이. 숫자를 키우면 헤더가 두꺼워짐 */
+    position:sticky; top:0; z-index:30; /* 스크롤해도 항상 화면 맨 위에 붙어있음 */
+    box-shadow:0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08); /* 헤더 아래쪽 은은한 그림자 */
+  }
+
+  /* ★★★ "업무기록" 글자(제목)를 담당하는 CSS ★★★
+     실제 HTML: <h1>📝 <span>업무</span>기록 <span class="live-clock">...시계...</span></h1>
+     즉 "업무" 두 글자만 초록색이고, "기록"은 기본 검정 계열 글자색입니다. */
+  .header h1{
+    font-size:18px;       /* "업무기록" 글자 크기 */
+    font-weight:600;      /* 글자 굵기 */
+    display:flex; align-items:center; gap:8px;
+    color:var(--ink);
+  }
+  .header h1 span{ color:var(--blueprint); } /* h1 안의 <span>들은 기본적으로 초록색 ("업무" 글자가 이 규칙 적용받음) */
+  /* 실시간 시계(아래 .live-clock)는 위 규칙보다 더 구체적이라서 우선 적용됨 -> 시계 글자는 흐린 회색으로 덮어씀 */
+  .header h1 span.live-clock{ color:var(--muted); font-size:12px; font-weight:400; margin-left:2px; }
+
+  /* 헤더 오른쪽 영역(버전 글자 + 연결상태)을 가로로 배치 */
+  .header-right{ display:flex; align-items:center; gap:14px; }
+
+  /* "v1.0 · 260706" 처럼 작게 표시되는 버전/빌드 날짜 글자 */
+  .app-version{ font-size:12px; color:#B8C0CC; white-space:nowrap; }
+
+  /* "● 연결됨" 처럼 초록 점 + 글자로 표시되는 연결 상태 표시 */
+  .sync-status{ font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; }
+  .sync-dot{
+    width:8px; height:8px; border-radius:50%; /* 동그란 점 크기 */
+    background:var(--success);                /* 평소(정상 연결)엔 초록색 */
+    flex-shrink:0;
+  }
+  .sync-dot.loading{ background:var(--warning); animation:pulse 1s infinite; } /* 서버와 통신 중일 땐 노란색 + 깜빡임 */
+  .sync-dot.error{ background:var(--danger); }                                  /* 오류가 나면 빨간색 */
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:0.4; } } /* "깜빡이는" 효과 - 투명도를 왔다갔다 시킴 */
+
+  /* ★ 새로고침 버튼 - 다른 동료가 추가/완료 처리한 내용을 내 화면에도 반영하고 싶을 때 누르는 버튼.
+     이 앱은 기술전략부 여러 명이 같이 보는 앱이라, 자동으로 계속 새로고침하지는 않고
+     (서버에 불필요한 요청이 계속 나가는 걸 피하기 위해) 원할 때 수동으로 누르도록 만든 것.
+     - 다른 앱(업무일지/재고관리)에서 쓰는 것과 같은 "핑크색 알약(pill) 모양" 버튼 스타일로 맞춤.
+       (이 버튼만 앱의 메인 초록색이 아니라 핑크색인 이유: "새로고침"처럼 데이터 자체를 바꾸는 게 아니라
+        화면만 갱신하는 보조 동작은, 다른 앱들에서도 항상 이 핑크 톤으로 통일해서 쓰고 있기 때문) */
+  .refresh-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 16px;
+    border:1px solid #F3C1D3;      /* 연한 핑크 테두리 */
+    border-radius:7px;              /* 다른 버튼들(수정완료/+추가/토글)과 동일한 라운드 사각형으로 통일 */
+    background:#FFF3F7;             /* 아주 연한 핑크 배경 */
+    color:#D6336C;                  /* 진한 핑크(로즈) 글자색 */
+    font-size:13px;
+    font-weight:600;
+    font-family:var(--sans);
+    cursor:pointer;
+    transition:background .15s, transform .3s;
+  }
+  .refresh-btn:hover{ background:#FCE3EC; }
+  .refresh-btn svg{ width:14px; height:14px; flex-shrink:0; }
+  .refresh-btn.spinning svg{ animation:spin .6s linear; } /* 누르는 순간 아이콘이 한 바퀴 휙 도는 효과 */
+  @keyframes spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+
+  /* ========================================================================
+     ▣ 탭바 ("업무관리" / "주간일지" 전환·이동 버튼)
+     - "업무관리"는 지금 보고 있는 이 화면 자체(눌러도 아무일 안 일어남, 항상 활성 표시)
+     - "주간일지"는 실제 페이지 이동이 아니라 <a href> 링크라서, 누르면 기존 주간일지 앱이
+       "새 탭"으로 열립니다 (target="_blank"). 지금 입력 중인 내용이 안 날아가도록 하기 위함.
+     ======================================================================== */
+  .tab-bar{
+    background:#fff; border-bottom:1px solid var(--line);
+    padding:0 20px; display:flex;
+  }
+  .tab{
+    padding:14px 20px;     /* 탭 버튼 클릭 영역 크기(위아래/좌우 여백) */
+    font-size:14px;         /* 탭 글자 크기 */
+    font-weight:500;
+    color:var(--muted);     /* 선택 안 된 탭은 흐린 회색 글자 */
+    border:none; background:none; cursor:pointer;
+    border-bottom:3px solid transparent; /* 평소엔 투명한 밑줄 자리만 확보 */
+    transition:all .15s;
+    text-decoration:none;   /* <a> 태그를 탭처럼 쓰기 위해 밑줄 제거 */
+    display:inline-flex; align-items:center;
+    font-family:var(--sans);
+  }
+  .tab:hover{ color:var(--ink); }
+  .tab.active{ color:var(--blueprint); border-bottom-color:var(--blueprint); } /* 선택된 탭 = 초록 글자 + 초록 밑줄 */
+
+  /* ========================================================================
+     ▣ 부서명 타이틀 - "기술전략부" 처럼, main 맨 위 / 토글 버튼 바로 위에 표시되는 글자
+     ======================================================================== */
+  .dept-title{
+    font-size:18px;        /* 부서명 글자 크기 */
+    font-weight:700;        /* 글자 굵기 */
+    color:var(--blueprint); /* 글자색 = 포인트 초록색 (헤더 제목과 어울리게) */
+    letter-spacing:0.3px;
+    margin-bottom:10px;     /* 아래쪽 토글 버튼과의 간격 */
+  }
+
+  /* ========================================================================
+     ▣ 툴바 - "진행중 / 완료" 토글 버튼이 있는 줄 (main 맨 위, 표 바로 위)
+     ======================================================================== */
+  .toolbar-nav{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+    gap:10px; margin-bottom:14px;
+  }
+  .toolbar-nav .nav-group{ display:flex; align-items:center; gap:8px; }
+
+  /* "진행중 / 완료" 두 버튼을 하나의 테두리로 감싸서 "묶인 토글"처럼 보이게 하는 바깥 박스 */
+  .status-toggle{
+    display:flex;
+    border:1px solid var(--line);
+    border-radius:7px;
+    overflow:hidden; /* 안쪽 버튼의 모서리도 이 박스의 둥근 모서리를 따라가도록 잘라냄 */
+  }
+  /* 토글 안의 버튼 하나하나(진행중 버튼, 완료 버튼) 공통 모양 */
+  .status-toggle button{
+    background:#fff;
+    border:none;
+    color:var(--ink);
+    font-size:13px;
+    font-weight:600;
+    padding:8px 16px;
+    cursor:pointer;
+    font-family:var(--sans);
+    transition:background .15s;
+  }
+  .status-toggle button:first-child{ border-right:1px solid var(--line); } /* 두 버튼 사이에 얇은 구분선 */
+  .status-toggle button:hover{ background:var(--paper); }
+  /* 현재 선택된(활성화된) 쪽 버튼 - 배경을 포인트 초록색으로, 글자는 흰색으로 강조 */
+  .status-toggle button.active{ background:var(--blueprint); color:#fff; }
+  .status-toggle button.active:hover{ background:var(--blueprint-strong); }
+
+  /* ★ 검색창 - 진행중/완료 탭 각각에서 프로젝트명·수정사항 글자로 필터링할 때 쓰는 입력창.
+     탭을 전환해도 서로의 검색어를 기억하도록, JS에서 탭별로 검색어를 따로 저장해둡니다
+     (예: 진행중 탭에서 "GS-W805"를 검색해두고 완료 탭으로 갔다가 다시 돌아와도 검색어가 남아있음). */
+  .search-box{
+    display:flex; align-items:center; gap:6px;
+    border:1px solid var(--line);
+    border-radius:7px;           /* 다른 버튼들과 통일된 라운드 사각형 */
+    background:#fff;
+    padding:0 10px;
+    height:34px;                  /* status-toggle 버튼과 높이가 비슷하게 맞춘 값 */
+  }
+  .search-box svg{ width:14px; height:14px; color:var(--muted); flex-shrink:0; }
+  .search-box input{
+    border:none; outline:none; background:transparent;
+    font-size:13px; font-family:var(--sans); color:var(--ink);
+    width:180px;
+  }
+  .search-box input::placeholder{ color:#9AA5B1; }
+
+  /* 헤더/탭바 아래, 표가 들어있는 본문 영역의 좌우/전체 여백.
+     max-width를 키우면 표가 더 넓게(가로로) 펼쳐지고, 줄이면 더 좁고 아담하게 중앙에 모임. */
+  main{ max-width:1000px; margin:0 auto; padding:20px; }
+
+  /* ========================================================================
+     ▣ 표 영역 - 순번 / 프로젝트명·수정사항 / 요청일자 / 처리 버튼이 표시되는 표
+     ======================================================================== */
+
+  /* 표 전체를 감싸는 흰색 박스(테두리 있는 카드) */
+  .grid-wrap{
+    border:1px solid var(--line); /* 표 박스 테두리선 */
+    border-radius:var(--radius);  /* 표 박스 모서리 둥글기 (위 :root 에서 정한 --radius 값 사용) */
+    background:#fff;               /* 표 박스 배경 = 흰색 */
+    overflow:hidden;                /* 표 안쪽 모서리도 이 박스의 둥근 모서리를 따라가도록 잘라냄 */
+  }
+  /* 실제 표(<table>) 크기 규칙 */
+  table.record-grid{
+    border-collapse:separate; border-spacing:0; /* 표 안쪽 셀 사이에 이중 테두리가 생기지 않도록 하는 설정 */
+    width:100%; /* 표는 항상 .grid-wrap 박스 너비를 꽉 채움 */
+  }
+  /* 표 맨 위, "순번 / 프로젝트명·수정사항 / 요청일자 / 처리" 글자가 있는 줄(헤더 행) 공통 스타일 */
+  table.record-grid th{
+    background:#fff;
+    padding:12px 16px;   /* 헤더 글자 안쪽 여백 */
+    font-size:12px;       /* 헤더 글자 크기 (본문보다 작게, 흐리게) */
+    font-weight:600;
+    color:var(--muted);   /* 헤더 글자색 = 흐린 회색 */
+    text-align:left;      /* 기본은 왼쪽 정렬 (순번/프로젝트명 헤더는 아래에서 인라인 스타일로 중앙정렬 덮어씀) */
+    border-bottom:1px solid var(--line);
+  }
+  table.record-grid th.center{ text-align:center; } /* "처리" 헤더처럼 가운데 정렬이 필요한 경우 이 class를 붙임 */
+  /* 표 본문(<td>) 공통 스타일 */
+  table.record-grid td{
+    border-bottom:1px solid var(--line); /* 각 행 아래쪽 테두리선 */
+    vertical-align:middle;                /* 칸 안의 내용을 위아래 가운데 정렬 */
+    padding:0;                            /* 바깥쪽 여백은 0, 안쪽 여백은 각 입력칸/글자 요소에서 따로 지정 */
+  }
+  table.record-grid tr:last-child td{ border-bottom:none; } /* 표의 맨 마지막 행은 아래쪽 선 생략 */
+  table.record-grid tr:hover td{ background:var(--blueprint-bg); } /* 행에 마우스를 올리면 연한 민트색 배경 */
+
+  /* "순번" 열(1, 2, 3...) 스타일 - 헤더(th)와 본문(td) 양쪽에 공통으로 쓰이는 class.
+     ★ 참고: 아래 font-size:13px 는 "요청일자" 칸 글자 크기와 똑같이 맞춘 값입니다.
+       (요청일자 칸은 .cell-input.date-input 이 font-size:13px 로 되어 있음 - 서로 짝이 맞아야
+        보기에 통일감이 있으므로, 둘 중 하나를 바꾸면 다른 하나도 같이 바꿔주는 게 좋습니다) */
+  .col-seq{
+    width:56px; text-align:center;     /* 폭 56px 고정, 가운데 정렬 */
+    font-family:var(--mono);            /* 숫자 전용 글씨체 사용 (자릿수 달라도 정렬 깔끔) */
+    font-weight:700;                    /* 숫자를 굵게 표시 */
+    font-size:13px;                     /* 숫자 크기 - 요청일자와 동일하게 맞춘 값 */
+    color:var(--blueprint-strong);      /* 숫자 색 = 진한 초록색 */
+    padding:12px 8px !important;        /* 위 table.record-grid td{padding:0} 을 덮어써서 안쪽 여백을 줌 */
+  }
+  .col-date{ width:150px; }             /* "요청일자" 열의 가로 폭 */
+  .col-due{ width:150px; }              /* "마감일자" 열의 가로 폭 */
+  .col-action{ width:100px; text-align:center; padding:10px !important; } /* "처리" 열(버튼/배지가 들어가는 칸) */
+
+  /* ★★★ "프로젝트명 / 수정사항" 칸에 실제로 글자를 입력하는 <input> 상자 스타일 ★★★
+     이 칸은 얼핏 보면 그냥 표의 글자처럼 보이지만, 실제로는 클릭하면 바로 타이핑할 수 있는
+     입력창(input)입니다. 그래서 border:none, background:transparent 로 "표 셀처럼 안 보이게" 위장한 것.
+     font-size:13px 로 "요청일자" 칸(.date-input)과 크기를 통일했습니다. */
+  .cell-input{
+    width:100%;                 /* 칸(td) 너비를 꽉 채움 */
+    border:none;                 /* 원래 <input>에 있는 테두리선 없앰 (표 셀처럼 보이게) */
+    background:transparent;      /* 원래 <input>의 회색 배경 없앰 */
+    font-size:13px;              /* 글자 크기 - 요청일자와 동일하게 맞춘 값 (원래는 14px였음) */
+    font-family:var(--sans);
+    color:var(--ink);
+    padding:12px 16px;           /* 안쪽 여백 (헤더 th의 padding과 맞춰서 세로선이 맞게 보이도록) */
+    outline:none;                /* 클릭(포커스) 시 브라우저가 기본으로 그리는 파란 테두리 없앰
+                                     (대신 아래 :focus 규칙에서 배경색으로 "지금 편집 중"을 표시함) */
+  }
+  .cell-input:focus{ background:var(--blueprint-bg); } /* 입력칸을 클릭해서 편집 중일 때 연한 민트색 배경으로 강조 */
+  /* "요청일자" 입력칸(<input type="date">)에는 위 .cell-input 스타일 위에 추가로 이 스타일이 덧붙음 */
+  .cell-input.date-input{ color:var(--muted); font-family:var(--mono); font-size:13px; }
+
+  /* "완료" 탭에서 보여주는 읽기 전용 글자(더 이상 입력칸이 아니라 그냥 <span> 텍스트) */
+  .plain-text{
+    padding:12px 16px;   /* .cell-input과 동일한 여백을 줘서 진행중 탭과 완료 탭의 줄맞춤이 똑같게 함 */
+    display:block;
+    color:var(--ink);
+    font-size:13px;       /* 프로젝트명 글자 크기 - 진행중 탭의 입력칸과 동일하게 13px로 맞춘 값 */
+  }
+  .plain-text.sub{ color:var(--muted); font-family:var(--mono); font-size:13px; } /* 완료 탭의 요청일자 글자 */
+
+  /* ========================================================================
+     ▣ 버튼들
+     ======================================================================== */
+
+  /* "수정완료" 버튼 (진행중 탭의 각 행 오른쪽에 있는 초록 버튼).
+     누르면 해당 항목이 "완료" 상태로 바뀌면서 진행중 목록에서 사라집니다. */
+  .done-btn{
+    background:var(--blueprint); /* 버튼 배경 = 포인트 초록색 */
+    color:#fff;
+    border:none;
+    font-size:12.5px;
+    padding:7px 12px;
+    border-radius:7px;
+    cursor:pointer;
+    font-weight:600;
+    font-family:var(--sans);
+  }
+  .done-btn:hover{ background:var(--blueprint-strong); } /* 마우스를 올리면 더 진한 초록색으로 */
+
+  /* "완료" 탭에서 각 행 오른쪽에 표시되는 동그란 배지(라벨). 버튼이 아니라 그냥 상태 표시라서
+     클릭할 수 없고(cursor 없음), 연한 민트 배경 + 초록 글자로 "완료됨"을 나타냄. */
+  .status-badge{
+    display:inline-block;
+    padding:4px 12px;
+    border-radius:20px;   /* 숫자를 크게 줘서 양쪽 끝이 완전히 둥근 "알약" 모양으로 만듦 */
+    font-size:12px;
+    font-weight:600;
+    background:var(--blueprint-bg);
+    color:var(--blueprint);
+  }
+
+  /* 표에 항목이 하나도 없을 때(진행중 항목 없음 / 완료 항목 없음) 표시되는 안내 문구 스타일 */
+  .empty{
+    padding:60px 20px;
+    text-align:center;
+    color:var(--muted);
+    font-size:14px;
+  }
+
+  /* 표 아래쪽, 전체 너비를 꽉 채우는 초록색 "+ 추가" 버튼.
+     누르면 표 맨 아래에 빈 줄(빈 프로젝트명 + 오늘 날짜)이 하나 새로 생기고,
+     바로 그 줄의 프로젝트명 칸에 커서가 이동해서 곧바로 타이핑할 수 있게 됩니다. */
+  .add-row-btn{
+    width:100%;            /* 표(.grid-wrap)와 같은 너비로 꽉 채움 */
+    margin-top:14px;        /* 표 박스와의 위쪽 간격 */
+    padding:12px;
+    border:none;
+    border-radius:7px;
+    background:var(--blueprint);
+    color:#fff;
+    font-size:14px;
+    font-weight:600;
+    font-family:var(--sans);
+    cursor:pointer;
+  }
+  .add-row-btn:hover{ background:var(--blueprint-strong); }
+
+  /* 화면 맨 아래, "저장 중...", "저장 완료" 같은 작은 안내 문구가 표시되는 곳.
+     오른쪽 정렬로 표시되며, 저장이 실패하면 색이 빨간색(--danger)으로 바뀝니다(JS에서 처리). */
+  .sync-note{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:8px;
+    text-align:right;
+  }
+
+  /* 화면 폭이 600px보다 좁은 경우(휴대폰 화면 등)에 적용되는 규칙.
+     공간이 부족하니 "요청일자"/"마감일자" 열을 통째로 숨겨서 다른 열이 더 넓게 보이도록 함. */
+  @media (max-width:600px){
+    .col-date, .col-due{ display:none; }
+    table.record-grid th:nth-child(3), table.record-grid th:nth-child(4){ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     ▣ 화면에 실제로 보이는 상단 헤더 부분 (HTML)
+     - 왼쪽엔 로고(이모지)+이름+실시간시계, 오른쪽엔 버전+연결상태
+     ============================================================ -->
+<div class="header">
+  <!-- 📝 이모지 + "업무" 초록 글자 + "기록" 기본색 글자 + 그 옆의 실시간 시계 -->
+  <h1>📝 <span>업무</span>기록 <span class="live-clock" id="live-clock"></span></h1>
+  <div class="header-right">
+    <!-- 버전/빌드 표기. 필요하면 직접 숫자만 바꾸면 됩니다 (예: 배포할 때마다 날짜 갱신) -->
+    <span class="app-version" id="app-version">v1.0 · 260706</span>
+    <!-- 서버(Supabase)와의 연결 상태를 초록/노랑/빨강 점으로 표시 (JS의 setSyncStatus 함수가 조작) -->
+    <div class="sync-status" id="sync-status">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-text">연결됨</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ▣ 탭바 - "업무관리"(이 화면 자체) / "주간일지"(기존 앱으로 이동하는 링크)
+     ============================================================ -->
+<div class="tab-bar">
+  <!-- 이 탭은 실제로는 아무데도 이동하지 않는 "현재 화면" 표시용 탭입니다.
+       onclick="return false;" 덕분에 눌러도 페이지가 새로고침되거나 이동하지 않습니다. -->
+  <a class="tab active" href="#" onclick="return false;">업무관리</a>
+  <!-- 이 탭은 진짜 <a href> 링크입니다. target="_blank" 때문에 클릭하면 "새 탭"에서
+       기존 주간일지 앱(gswebplay.github.io/Week/)이 열립니다.
+       ※ 만약 나중에 기술전략부 전용 주소로 바꾸고 싶으면, 아래 href="..." 부분만 그 주소로 교체하면 됩니다. -->
+  <a class="tab" href="https://gswebplay.github.io/Week/" target="_blank" rel="noopener">주간일지 ↗</a>
+</div>
+
+<main>
+  <!-- ★ 부서명 타이틀. 글자만 바꾸고 싶으면 "기술전략부" 부분만 수정하면 되고,
+       생김새(크기/색/간격)를 바꾸고 싶으면 위 CSS의 .dept-title 규칙을 수정하면 됩니다. -->
+  <div class="dept-title" id="deptTitle">기술전략부</div>
+
+  <!-- "진행중 / 완료" 토글 버튼 줄.
+       왼쪽 = 진행중/완료 토글, 오른쪽 = 새로고침 버튼 (표의 "처리" 열 바로 위쪽에 오도록 오른쪽 정렬).
+       toolbar-nav에 justify-content:space-between이 이미 걸려있어서, 그 안에 div를 하나 더
+       추가하기만 하면 자동으로 반대편 끝(오른쪽)으로 밀려납니다. -->
+  <div class="toolbar-nav">
+    <div class="nav-group">
+      <div class="status-toggle">
+        <button id="tabActive" class="active" onclick="switchTab('active')">진행중</button>
+        <button id="tabDone" onclick="switchTab('done')">완료</button>
+      </div>
+      <!-- 검색창 - 프로젝트명/수정사항 글자로 필터링. 진행중/완료 탭 각각 검색어를 따로 기억함(JS 참고). -->
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="M21 21l-4.35-4.35"></path>
+        </svg>
+        <input type="text" id="searchInput" placeholder="프로젝트명 검색" oninput="onSearchInput(this.value)">
+      </div>
+    </div>
+    <!-- 새로고침 버튼 - 누르면 JS의 refreshNow() 함수가 실행되어 서버에서 최신 목록을 다시 불러옴.
+         다른 동료가 방금 추가/완료 처리한 내용을 내 화면에도 반영하고 싶을 때 누르면 됨.
+         표의 "처리" 열(맨 오른쪽 열) 바로 위쪽에 오도록 여기 오른쪽 끝에 배치함. -->
+    <button class="refresh-btn" id="refreshBtn" onclick="refreshNow()" title="새로고침">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M23 4v6h-6"></path>
+        <path d="M1 20v-6h6"></path>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+      </svg>
+      <span>새로고침</span>
+    </button>
+  </div>
+
+  <!-- ============================================================
+       ▣ 표 영역
+       - <thead> 안의 <tr>은 표의 "제목 줄"(순번/프로젝트명·수정사항/요청일자/처리)이고,
+         <tbody id="tbody"> 안의 내용은 처음엔 "불러오는 중..."이라고만 써있다가,
+         아래 script(스크립트)의 loadRecords() 함수가 Supabase에서 실제 데이터를 가져오면
+         JS가 자동으로 이 안의 내용을 실제 표 줄들로 바꿔 채워 넣습니다.
+       ============================================================ -->
+  <div class="grid-wrap">
+    <table class="record-grid">
+      <thead>
+        <tr>
+          <!-- style="text-align:center;" 를 직접 붙인 이유: CSS에 이미 더 우선순위가 높은
+               "table.record-grid th{ text-align:left; }" 규칙이 있어서, 그냥 class만으로는
+               중앙정렬이 씹힐 수 있기 때문에, 확실하게 덮어쓰려고 인라인 style을 직접 줬습니다. -->
+          <th class="col-seq" style="text-align:center;">순번</th>
+          <th style="text-align:center;">프로젝트명 / 수정사항</th>
+          <th class="col-date">요청일자</th>
+          <th class="col-due">마감일자</th>
+          <th class="col-action center">처리</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="5" class="empty">불러오는 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- "+ 추가" 버튼 - 누르면 JS의 addRow() 함수가 실행되어, Supabase에 빈 항목을 하나 만들고
+       표를 다시 그린 다음, 방금 만든 줄의 프로젝트명 입력칸에 자동으로 커서를 놓습니다. -->
+  <button class="add-row-btn" id="addRowBtn" onclick="addRow()">+ 추가</button>
+
+  <!-- "저장 중...", "저장 완료" 같은 작은 안내 문구가 표시되는 자리 (JS의 setSyncNote 함수가 채움) -->
+  <div class="sync-note" id="syncNote"></div>
+</main>
+
+<script>
+/* ============================================================================
+   [스크립트(자바스크립트) 사용법 - 아주 쉽게 설명]
+
+   여기부터는 "버튼을 누르면 무슨 일이 일어나는지", "화면에 데이터를 어떻게 채우는지"를
+   정하는 JS(자바스크립트) 코드입니다. CSS는 "생김새"만 담당하고, 실제 동작(저장/불러오기/
+   화면 갱신)은 전부 이 안에서 이루어집니다.
+
+   이 앱은 Supabase라는 온라인 데이터베이스 서비스를 사용합니다.
+   - work_records 라는 이름의 표(테이블)에 데이터가 저장됩니다.
+   - 각 항목(행)은 다음 정보를 가집니다:
+     id(고유번호), project_name(프로젝트명/수정사항), requested_date(요청일자),
+     status(상태: '진행중' 또는 '완료'), completed_at(완료 처리된 시각), created_at(만들어진 시각)
+   ============================================================================ */
+
+// Supabase 프로젝트 접속 주소와 공개용 키(비밀번호 같은 것이지만, "읽기/쓰기 허용" 수준의 공개 키라서
+// 이렇게 코드에 직접 적어놔도 괜찮음). 기존 업무일지/재고관리 앱과 동일한 프로젝트를 재사용합니다.
+const SUPABASE_URL = "https://zrhwdvuehaelintkfoqn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_oQ7F4Q9KRS22lpiE9uILFA_zN7n2V4V";
+
+// ★★★ Supabase에 데이터를 읽고/쓰기 위한 공용 함수 ★★★
+// path: 어떤 표(테이블)에 어떤 조건으로 요청할지 (예: 'work_records?select=*')
+// options: GET(조회)/POST(추가)/PATCH(수정) 중 어떤 방식으로 요청할지 등을 담음
+// Supabase의 SDK(전용 라이브러리)를 쓰지 않고, 그냥 fetch()라는 브라우저 기본 기능으로
+// 직접 요청을 보내는 방식입니다 (SDK를 안 쓰는 이유: 변수 이름이 겹치는 문제를 피하기 위함).
+async function sb(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      "apikey": SUPABASE_KEY,                       // Supabase가 "이 요청이 우리 프로젝트 것인지" 확인하는 키
+      "Authorization": `Bearer ${SUPABASE_KEY}`,      // 위와 비슷한 용도의 인증 정보
+      "Content-Type": "application/json",             // "요청 내용은 JSON 형식입니다"라고 알려주는 것
+      "Prefer": options.prefer || "return=representation", // "저장/수정한 결과를 다시 돌려달라"는 옵션
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    // 요청이 실패하면(예: 인터넷 끊김, 서버 오류 등) 에러 메시지를 만들어서 던짐 -> 아래 각 함수의 catch에서 처리
+    const errText = await res.text();
+    throw new Error(`Supabase error ${res.status}: ${errText}`);
+  }
+  const text = await res.text();
+  // 응답이 비어있지 않으면 JSON(글자로 된 데이터)을 실제 JS 객체/배열로 변환해서 돌려줌
+  return text ? JSON.parse(text) : null;
+}
+
+// currentTab: 지금 화면에 "진행중"을 보여주고 있는지 "완료"를 보여주고 있는지 기억하는 변수
+let currentTab = 'active';
+// records: Supabase에서 불러온 모든 업무 항목을 담아두는 배열(목록). 화면을 다시 그릴 때마다 이 배열을 사용함
+let records = [];
+// 진행중 탭과 완료 탭이 "각자" 검색어를 따로 기억하도록 만든 객체.
+// 예: 진행중 탭에서 "GS-W805"라고 검색해두고 완료 탭으로 넘어갔다가 다시 진행중 탭으로 돌아와도
+// 검색어가 그대로 남아있게 하기 위함 (하나의 변수만 쓰면 탭을 바꿀 때 서로 검색어를 덮어써버림)
+let searchQuery = { active: '', done: '' };
+
+// ----------------------------------------------------------------------------
+// ▣ 헤더의 실시간 시계 - "2026-07-06 15:54:01" 처럼 초 단위까지 표시하고, 1초마다 갱신함
+// ----------------------------------------------------------------------------
+function updateLiveClock(){
+  const el = document.getElementById('live-clock'); // 화면에서 시계 글자가 들어갈 자리를 찾음
+  if(!el) return;
+  const d = new Date(); // 지금 이 순간의 날짜/시간을 가져옴
+  const p = n => String(n).padStart(2,'0'); // 한 자리 숫자 앞에 0을 붙여서 두 자리로 맞춤 (예: 3 -> "03")
+  el.textContent = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+updateLiveClock();                   // 페이지가 열리자마자 한 번 즉시 표시
+setInterval(updateLiveClock, 1000);  // 이후 1초(1000ms)마다 계속 갱신
+
+// ----------------------------------------------------------------------------
+// ▣ 헤더 오른쪽의 "● 연결됨" 표시를 상황에 맞게 바꿔주는 함수
+// state: 'loading'(서버와 통신 중 - 노란 점) / 'ok'(정상 - 초록 점) / 'error'(오류 - 빨간 점)
+// ----------------------------------------------------------------------------
+function setSyncStatus(state){
+  const dot = document.getElementById('sync-dot');
+  const text = document.getElementById('sync-text');
+  if(!dot || !text) return;
+  dot.classList.remove('loading', 'error'); // 일단 상태 class를 다 지우고
+  if(state === 'loading'){
+    dot.classList.add('loading');
+    text.textContent = '동기화중';
+  } else if(state === 'error'){
+    dot.classList.add('error');
+    text.textContent = '오류';
+  } else {
+    text.textContent = '연결됨'; // 기본 상태(초록 점)는 CSS의 .sync-dot 기본 배경색을 그대로 사용
+  }
+}
+
+// ----------------------------------------------------------------------------
+// ▣ 화면 맨 아래에 "저장 중...", "저장 완료", "저장 실패: ..." 같은 작은 안내 문구를 표시하는 함수
+// msg: 표시할 문구, isError: true면 글자색을 빨간색으로 바꿔서 실패를 강조
+// ----------------------------------------------------------------------------
+function setSyncNote(msg, isError=false){
+  const el = document.getElementById('syncNote');
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--danger)' : 'var(--muted)';
+}
+
+// ----------------------------------------------------------------------------
+// ▣ "진행중 / 완료" 토글 버튼을 눌렀을 때 실행되는 함수
+// tab: 'active'(진행중) 또는 'done'(완료)
+// ----------------------------------------------------------------------------
+function switchTab(tab){
+  currentTab = tab; // 지금 어떤 탭을 보고 있는지 기억해둠 (render() 함수가 이 값을 참고함)
+  // 두 버튼 중 지금 선택된 쪽에만 "active"라는 class를 붙여서 초록색으로 강조되게 함
+  document.getElementById('tabActive').classList.toggle('active', tab==='active');
+  document.getElementById('tabDone').classList.toggle('active', tab==='done');
+  // "완료" 탭에서는 새 항목을 추가할 필요가 없으므로 "+ 추가" 버튼을 숨김
+  document.getElementById('addRowBtn').style.display = tab === 'active' ? 'block' : 'none';
+  // 방금 선택한 탭이 예전에 검색해뒀던 검색어를 검색창에 다시 채워넣음 (탭마다 검색어를 따로 기억하기 위함)
+  document.getElementById('searchInput').value = searchQuery[tab];
+  render(); // 화면의 표 내용을 다시 그림 (선택된 탭에 맞는 항목만 보이도록)
+}
+
+// ----------------------------------------------------------------------------
+// ▣ 검색창에 글자를 입력할 때마다(타이핑할 때마다) 실행되는 함수
+// - 지금 보고 있는 탭(진행중 또는 완료)에 해당하는 검색어만 갱신하고, 표를 다시 그림
+// ----------------------------------------------------------------------------
+function onSearchInput(value){
+  searchQuery[currentTab] = value;
+  render();
+}
+
+// ----------------------------------------------------------------------------
+// ▣ Supabase에서 전체 업무 항목을 새로 불러와서 화면을 다시 그리는 함수
+// - 페이지를 처음 열었을 때, 그리고 추가/완료 처리를 할 때마다 호출됨
+// ----------------------------------------------------------------------------
+async function loadRecords(){
+  setSyncStatus('loading'); // 불러오는 동안 헤더에 "동기화중" 노란 점 표시
+  try{
+    // select=* -> 모든 항목(컬럼)을 다 가져옴, order=created_at.asc -> 만들어진 순서(오래된 것부터)로 정렬
+    records = await sb('work_records?select=*&order=created_at.asc');
+    setSyncStatus('ok'); // 성공하면 다시 초록 점("연결됨")으로
+    render(); // 받아온 데이터로 표를 다시 그림
+  }catch(err){
+    console.error(err); // 개발자도구 콘솔에도 에러 내용을 남겨둠 (문제 생겼을 때 확인용)
+    setSyncStatus('error'); // 실패하면 빨간 점("오류")으로 표시
+    document.getElementById('tbody').innerHTML =
+      `<tr><td colspan="5" class="empty">불러오기 실패: ${err.message}</td></tr>`;
+  }
+}
+
+// ----------------------------------------------------------------------------
+// ▣ "+ 추가" 버튼을 눌렀을 때 실행되는 함수
+// - Supabase에 "프로젝트명은 빈칸, 요청일자는 오늘 날짜, 상태는 진행중"인 새 항목을 하나 만들고,
+//   표를 다시 불러온 뒤, 방금 만든 줄의 프로젝트명 입력칸에 자동으로 커서(포커스)를 이동시킴
+// ----------------------------------------------------------------------------
+async function addRow(){
+  try{
+    setSyncNote('추가 중...');
+    const today = new Date().toISOString().slice(0,10); // 오늘 날짜를 "YYYY-MM-DD" 형태 글자로 만듦
+    // POST 요청 = 새 데이터를 하나 만들어서 저장함. 결과로 만들어진 항목(id 포함)을 배열로 돌려받음
+    const [created] = await sb('work_records', {
+      method: 'POST',
+      body: JSON.stringify({
+        project_name: '',
+        requested_date: today,
+        due_date: null,
+        status: '진행중'
+      })
+    });
+    await loadRecords(); // 표를 최신 상태로 다시 불러옴 (방금 만든 항목이 포함되어 보이게 됨)
+    setSyncNote('추가 완료');
+    // 방금 만든 항목의 프로젝트명 입력칸을 찾아서 자동으로 커서(포커스)를 이동시킴
+    // -> 사용자가 "+ 추가"를 누르자마자 바로 타이핑을 시작할 수 있도록 하기 위함
+    // setTimeout으로 살짝 늦게 실행하는 이유: render()가 화면에 그려지는 시간을 잠깐 기다려주기 위함
+    setTimeout(()=>{
+      const input = document.querySelector(`input[data-id="${created.id}"][data-field="project_name"]`);
+      if(input) input.focus();
+    }, 50);
+  }catch(err){
+    console.error(err);
+    setSyncNote('추가 실패: ' + err.message, true);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// ▣ 표 안의 입력칸(프로젝트명 또는 요청일자)에서 포커스가 벗어났을 때(blur) 또는 날짜를 바꿨을 때(change)
+//   실행되어, 그 값을 Supabase에 즉시 저장하는 함수
+// id: 어떤 항목인지 (Supabase의 고유번호)
+// field: 어떤 항목의 값인지 ('project_name' 또는 'requested_date')
+// value: 새로 입력된 값
+// ----------------------------------------------------------------------------
+async function updateField(id, field, value){
+  try{
+    setSyncNote('저장 중...');
+    // PATCH 요청 = 기존 데이터 중 이 항목(id가 일치하는 행)의 특정 칸(field)만 수정함
+    await sb(`work_records?id=eq.${id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal', // 수정 결과를 다시 돌려받을 필요 없음(속도를 위해 생략)
+      body: JSON.stringify({ [field]: value }) // 예: { project_name: "GS-W805-S ..." }
+    });
+    // 화면을 통째로 다시 불러오면(loadRecords) 입력 중이던 포커스가 풀려서 불편하므로,
+    // 서버에 저장한 값을 우리가 들고 있는 records 배열에도 똑같이 반영해서 화면과 데이터를 맞춰둠
+    const rec = records.find(r => r.id === id);
+    if(rec) rec[field] = value;
+    setSyncNote('저장 완료');
+  }catch(err){
+    console.error(err);
+    setSyncNote('저장 실패: ' + err.message, true);
+  }
+}
+
+// ----------------------------------------------------------------------------
+// ▣ "수정완료" 버튼을 눌렀을 때 실행되는 함수
+// - 해당 항목의 상태(status)를 '완료'로 바꾸고, 완료된 시각(completed_at)을 지금 시각으로 기록함
+// - 완료로 바뀐 항목은 "진행중" 목록에서는 더 이상 안 보이고, "완료" 탭에서만 보이게 됨
+//   (되돌리는 기능은 의도적으로 만들지 않았음 - 완료는 최종 상태로 취급)
+// ----------------------------------------------------------------------------
+async function completeRecord(id){
+  try{
+    setSyncNote('처리 중...');
+    await sb(`work_records?id=eq.${id}`, {
+      method: 'PATCH',
+      prefer: 'return=minimal',
+      body: JSON.stringify({
+        status: '완료',
+        completed_at: new Date().toISOString() // 지금 이 순간의 정확한 시각을 함께 저장해둠 (기록용)
+      })
+    });
+    await loadRecords(); // 목록을 다시 불러오면, 이 항목은 이제 "완료" 상태이므로 진행중 탭에서 자동으로 사라짐
+    setSyncNote('수정완료 처리됨');
+  }catch(err){
+    console.error(err);
+    setSyncNote('처리 실패: ' + err.message, true);
+  }
+}
+
+// 날짜 값이 없으면(null) 빈 글자로, 있으면 그대로 돌려주는 간단한 함수
+function formatDate(d){ return d || ''; }
+
+// 사용자가 입력한 글자 안에 " (쌍따옴표)가 들어있어도 HTML이 깨지지 않도록 안전하게 바꿔주는 함수
+// (예: 프로젝트명에 "GS-W805-S" 처럼 따옴표가 들어가도 문제없이 화면에 표시되게 함)
+function escapeAttr(str){ return String(str || '').replace(/"/g,'&quot;'); }
+
+// ----------------------------------------------------------------------------
+// ▣ "진행중" 목록을 마감일자 임박순으로 정렬하는 함수
+// - 마감일자가 빠른(가까운) 항목이 위로 오도록 오름차순 정렬
+// - 마감일자가 없는(빈칸) 항목은 맨 아래로 보내고, 그 안에서는 작성순(등록한 순서)을 유지함
+// - 날짜가 "YYYY-MM-DD" 형태의 글자이기 때문에, 그냥 글자끼리 비교(< , >)해도 날짜 순서와 똑같이 동작함
+// ----------------------------------------------------------------------------
+function sortByDueDate(list){
+  return [...list].sort((a, b) => {
+    const ad = a.due_date, bd = b.due_date;
+    if(ad && bd) return ad < bd ? -1 : ad > bd ? 1 : 0; // 둘 다 마감일자가 있으면 빠른 날짜가 먼저
+    if(ad && !bd) return -1; // a만 마감일자가 있으면 a가 먼저
+    if(!ad && bd) return 1;  // b만 마감일자가 있으면 b가 먼저
+    return 0; // 둘 다 마감일자가 없으면 순서를 그대로 유지 (= 작성순, 아래 설명 참고)
+    // ※ Array.sort는 "안정 정렬(stable sort)"이라서, 비교 결과가 0(순서 안 바꿈)이면
+    //   원래 배열에 있던 순서가 그대로 유지됩니다. records 배열 자체가 이미 created_at(작성순)
+    //   기준으로 정렬되어 들어오기 때문에, 마감일자가 없는 항목들끼리는 자동으로 작성순이 됨.
+  });
+}
+
+// ----------------------------------------------------------------------------
+// ▣ 표 내용을 실제로 화면에 그리는(다시 채워 넣는) 함수
+// - records 배열 전체 중에서, currentTab에 맞는 항목(진행중 또는 완료)만 골라서(filter) 보여줌
+// - 검색창에 글자가 입력되어 있으면, 프로젝트명/수정사항에 그 글자가 포함된 항목만 한 번 더 걸러냄
+// - "진행중" 탭은 마감일자가 빠른 순으로 정렬해서 보여주고, "완료" 탭은 기존 방식(작성순) 그대로 둠
+// - "진행중" 탭일 때는 각 줄을 <input> 입력칸으로 그려서 바로 타이핑/수정할 수 있게 하고,
+//   "완료" 탭일 때는 더 이상 수정할 수 없도록 그냥 읽기 전용 글자(<span>)로 그림
+// ----------------------------------------------------------------------------
+function render(){
+  const tbody = document.getElementById('tbody');
+  // currentTab이 'active'면 status가 '진행중'인 것만, 아니면 '완료'인 것만 골라냄
+  let filtered = records.filter(r => currentTab === 'active' ? r.status === '진행중' : r.status === '완료');
+
+  // 검색어가 있으면(공백만 입력한 경우는 무시) 프로젝트명/수정사항에 그 글자가 포함된 것만 남김
+  // toLowerCase()를 양쪽 다 적용해서 대소문자를 구분하지 않고 검색되도록 함
+  const q = (searchQuery[currentTab] || '').trim().toLowerCase();
+  if(q){
+    filtered = filtered.filter(r => (r.project_name || '').toLowerCase().includes(q));
+  }
+
+  // "진행중" 탭만 마감일자 임박순으로 정렬. "완료" 탭은 기존 작성순 그대로 유지.
+  if(currentTab === 'active'){
+    filtered = sortByDueDate(filtered);
+  }
+
+  // 골라낸 항목이 하나도 없으면 안내 문구만 표시하고 함수를 끝냄
+  if(filtered.length === 0){
+    const emptyMsg = q
+      ? '검색 결과가 없습니다.'
+      : (currentTab==='active' ? '진행중인 항목이 없습니다. 아래 + 추가 버튼을 눌러보세요.' : '완료된 항목이 없습니다.');
+    tbody.innerHTML = `<tr><td colspan="5" class="empty">${emptyMsg}</td></tr>`;
+    return;
+  }
+
+  if(currentTab === 'active'){
+    // "진행중" 탭 - 순번은 idx+1(화면에 보이는 순서대로 1,2,3...)로 매번 새로 계산해서 매김
+    // (마감일자 순으로 정렬된 뒤의 순서 기준이라, 마감일이 급한 항목일수록 순번이 앞쪽에 옵니다)
+    tbody.innerHTML = filtered.map((r, idx) => `
+      <tr>
+        <td class="col-seq">${idx+1}</td>
+        <td>
+          <!-- 프로젝트명/수정사항 입력칸.
+               data-id, data-field 는 "이 입력칸이 어떤 항목의 어떤 값인지" 표시해두는 꼬리표로,
+               addRow() 함수에서 새로 만든 줄에 자동으로 포커스를 줄 때 이 꼬리표로 찾아냄.
+               onblur = 이 칸에서 다른 곳을 클릭해서 벗어나는 순간, updateField()를 호출해 자동 저장함. -->
+          <input class="cell-input" type="text" value="${escapeAttr(r.project_name)}"
+            placeholder="프로젝트명 / 수정사항 입력"
+            data-id="${r.id}" data-field="project_name"
+            onblur="updateField('${r.id}','project_name', this.value)">
+        </td>
+        <td class="col-date">
+          <!-- 요청일자 입력칸(달력 아이콘이 붙은 날짜 선택 input).
+               onchange = 날짜를 고르는 순간(달력에서 선택 완료 시) updateField()를 호출해 자동 저장함. -->
+          <input class="cell-input date-input" type="date" value="${r.requested_date || ''}"
+            data-id="${r.id}" data-field="requested_date"
+            onchange="updateField('${r.id}','requested_date', this.value)">
+        </td>
+        <td class="col-due">
+          <!-- 마감일자 입력칸. 이 값이 바로 위 "진행중" 탭의 정렬 기준(임박한 순)으로 쓰입니다.
+               비워두면(마감일자 없음) 정렬 시 맨 아래로 밀려납니다. -->
+          <input class="cell-input date-input" type="date" value="${r.due_date || ''}"
+            data-id="${r.id}" data-field="due_date"
+            onchange="updateField('${r.id}','due_date', this.value)">
+        </td>
+        <td class="col-action">
+          <!-- 이 버튼을 누르면 completeRecord() 함수가 실행되어 이 항목이 "완료" 상태로 바뀜 -->
+          <button class="done-btn" onclick="completeRecord('${r.id}')">수정완료</button>
+        </td>
+      </tr>
+    `).join(''); // 배열의 각 항목마다 만들어진 <tr>...</tr> 글자들을 하나로 이어붙여서 표 전체를 완성함
+  } else {
+    // "완료" 탭 - 더 이상 수정할 수 없으므로 입력칸(<input>) 대신 읽기 전용 글자(<span>)로 표시
+    tbody.innerHTML = filtered.map((r, idx) => `
+      <tr>
+        <td class="col-seq">${idx+1}</td>
+        <td><span class="plain-text">${escapeAttr(r.project_name) || '-'}</span></td>
+        <td class="col-date"><span class="plain-text sub">${formatDate(r.requested_date)}</span></td>
+        <td class="col-due"><span class="plain-text sub">${formatDate(r.due_date)}</span></td>
+        <td class="col-action"><span class="status-badge">완료</span></td>
+      </tr>
+    `).join('');
+  }
+}
+
+// ----------------------------------------------------------------------------
+// ▣ 프로젝트명 입력칸에서 Enter 키를 눌렀을 때, 줄바꿈되지 않고 그냥 입력을 "확정"(포커스 해제)하도록
+//   만드는 부분. blur()를 호출하면 위에서 정의한 onblur="updateField(...)"가 자동으로 실행되어 저장됨.
+// ----------------------------------------------------------------------------
+document.addEventListener('keydown', function(e){
+  // e.target = 지금 키보드 입력이 일어나고 있는 요소. 그 요소가 .cell-input이고 text 타입일 때만 동작
+  if(e.target.classList && e.target.classList.contains('cell-input') && e.target.type === 'text'){
+    if(e.key === 'Enter'){
+      e.preventDefault(); // Enter의 기본 동작(폼 제출 등)을 막음
+      e.target.blur();     // 포커스를 해제 -> 위에 걸려있는 onblur 저장 로직이 자동으로 실행됨
+    }
+  }
+});
+
+// ----------------------------------------------------------------------------
+// ▣ 새로고침 버튼을 눌렀을 때 실행되는 함수
+// - 다른 동료가 방금 추가했거나 완료 처리한 항목까지 포함해서, 서버의 최신 목록을 다시 불러옴
+// - 버튼 아이콘이 살짝 한 바퀴 도는 애니메이션을 잠깐 보여줘서 "지금 새로고침 중"임을 알려줌
+// ----------------------------------------------------------------------------
+function refreshNow(){
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  setTimeout(()=> btn.classList.remove('spinning'), 600); // 회전 애니메이션(0.6초) 끝나면 class 제거
+  loadRecords();
+}
+
+// 페이지가 열리자마자 Supabase에서 데이터를 불러와서 표를 채움
+loadRecords();
+</script>
+</body>
+</html>
