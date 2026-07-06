@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>업무 기록 - 기술전략부</title>
+<style>
+  :root{
+    --bg:#f5f6f8;
+    --card:#ffffff;
+    --border:#e2e5ea;
+    --text:#1f2430;
+    --sub:#6b7280;
+    --accent:#3b5bdb;
+    --accent-light:#e8edff;
+    --danger:#e03131;
+    --done:#37b24d;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif;
+    background:var(--bg);
+    color:var(--text);
+  }
+  .wrap{
+    max-width:960px;
+    margin:0 auto;
+    padding:24px 16px 80px;
+  }
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:20px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  h1{
+    font-size:20px;
+    font-weight:700;
+    margin:0;
+  }
+  .tabs{
+    display:flex;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .tab-btn{
+    padding:10px 20px;
+    border:none;
+    background:transparent;
+    font-size:14px;
+    font-weight:600;
+    color:var(--sub);
+    cursor:pointer;
+    transition:.15s;
+  }
+  .tab-btn.active{
+    background:var(--accent);
+    color:#fff;
+  }
+  .add-btn{
+    padding:10px 18px;
+    border:none;
+    border-radius:var(--radius);
+    background:var(--accent);
+    color:#fff;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .add-btn:hover{background:#324fc0;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  table{
+    width:100%;
+    border-collapse:collapse;
+  }
+  thead th{
+    text-align:left;
+    font-size:12px;
+    color:var(--sub);
+    font-weight:600;
+    padding:12px 16px;
+    border-bottom:1px solid var(--border);
+    background:#fafbfc;
+  }
+  tbody td{
+    padding:14px 16px;
+    border-bottom:1px solid var(--border);
+    font-size:14px;
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:#fafbfd;}
+  .col-seq{width:50px; color:var(--sub); font-weight:600;}
+  .col-date{width:110px; color:var(--sub); white-space:nowrap;}
+  .col-action{width:90px; text-align:right;}
+  .project-name{font-weight:700; margin-bottom:4px;}
+  .revision-note{color:var(--sub); font-size:13px; white-space:pre-wrap;}
+
+  .done-btn{
+    padding:6px 14px;
+    border:1px solid var(--done);
+    background:#fff;
+    color:var(--done);
+    border-radius:6px;
+    font-size:13px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .done-btn:hover{background:var(--done); color:#fff;}
+
+  .status-badge{
+    display:inline-block;
+    padding:3px 10px;
+    border-radius:20px;
+    font-size:12px;
+    font-weight:600;
+    background:var(--accent-light);
+    color:var(--accent);
+  }
+
+  .empty{
+    padding:60px 20px;
+    text-align:center;
+    color:var(--sub);
+    font-size:14px;
+  }
+
+  /* Modal */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.4);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:100;
+  }
+  .overlay.show{display:flex;}
+  .modal{
+    background:#fff;
+    border-radius:var(--radius);
+    width:90%;
+    max-width:420px;
+    padding:24px;
+  }
+  .modal h2{
+    margin:0 0 18px;
+    font-size:17px;
+  }
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:13px;
+    font-weight:600;
+    margin-bottom:6px;
+    color:var(--sub);
+  }
+  .field input, .field textarea{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:14px;
+    font-family:inherit;
+  }
+  .field textarea{resize:vertical; min-height:70px;}
+  .modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:8px;
+    margin-top:20px;
+  }
+  .btn-secondary{
+    padding:9px 16px;
+    border:1px solid var(--border);
+    background:#fff;
+    border-radius:8px;
+    font-size:14px;
+    cursor:pointer;
+  }
+  .btn-primary{
+    padding:9px 16px;
+    border:none;
+    background:var(--accent);
+    color:#fff;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+  }
+
+  .sync{
+    font-size:12px;
+    color:var(--sub);
+    margin-top:8px;
+    text-align:right;
+  }
+
+  @media (max-width:600px){
+    .col-date{display:none;}
+    thead th:nth-child(3){display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>업무 기록 · 기술전략부</h1>
+    <div style="display:flex; gap:10px;">
+      <div class="tabs">
+        <button class="tab-btn active" id="tabActive" onclick="switchTab('active')">진행중</button>
+        <button class="tab-btn" id="tabDone" onclick="switchTab('done')">완료</button>
+      </div>
+      <button class="add-btn" onclick="openModal()">+ 새 항목</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th class="col-seq">순번</th>
+          <th>프로젝트명 / 수정사항</th>
+          <th class="col-date">요청일자</th>
+          <th class="col-action"></th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="4" class="empty">불러오는 중...</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="sync" id="syncStatus"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>새 업무 항목</h2>
+    <div class="field">
+      <label>프로젝트명</label>
+      <input type="text" id="inputProject" placeholder="프로젝트명 입력">
+    </div>
+    <div class="field">
+      <label>수정사항</label>
+      <textarea id="inputRevision" placeholder="수정사항 입력"></textarea>
+    </div>
+    <div class="field">
+      <label>요청일자</label>
+      <input type="date" id="inputDate">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">취소</button>
+      <button class="btn-primary" onclick="saveRecord()">추가</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://zrhwdvuehaelintkfoqn.supabase.co";
+const SUPABASE_KEY = "sb_publishable_oQ7F4Q9KRS22lpiE9uILFA_zN7n2V4V";
+
+async function sb(path, options = {}) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    ...options,
+    headers: {
+      "apikey": SUPABASE_KEY,
+      "Authorization": `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      "Prefer": options.prefer || "return=representation",
+      ...(options.headers || {})
+    }
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Supabase error ${res.status}: ${errText}`);
+  }
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+let currentTab = 'active';
+let records = [];
+
+function setSyncStatus(msg, isError=false){
+  const el = document.getElementById('syncStatus');
+  el.textContent = msg;
+  el.style.color = isError ? 'var(--danger)' : 'var(--sub)';
+}
+
+function switchTab(tab){
+  currentTab = tab;
+  document.getElementById('tabActive').classList.toggle('active', tab==='active');
+  document.getElementById('tabDone').classList.toggle('active', tab==='done');
+  render();
+}
+
+function openModal(){
+  document.getElementById('inputProject').value = '';
+  document.getElementById('inputRevision').value = '';
+  document.getElementById('inputDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('overlay').classList.add('show');
+  setTimeout(()=>document.getElementById('inputProject').focus(), 50);
+}
+
+function closeModal(){
+  document.getElementById('overlay').classList.remove('show');
+}
+
+// Enter key triggers primary action, except inside textarea
+document.addEventListener('keydown', function(e){
+  if(!document.getElementById('overlay').classList.contains('show')) return;
+  if(e.key === 'Enter' && e.target.tagName !== 'TEXTAREA'){
+    e.preventDefault();
+    saveRecord();
+  }
+  if(e.key === 'Escape'){
+    closeModal();
+  }
+});
+
+async function saveRecord(){
+  const project = document.getElementById('inputProject').value.trim();
+  const revision = document.getElementById('inputRevision').value.trim();
+  const date = document.getElementById('inputDate').value;
+
+  if(!project){
+    alert('프로젝트명을 입력해주세요.');
+    return;
+  }
+
+  try{
+    setSyncStatus('저장 중...');
+    await sb('work_records', {
+      method: 'POST',
+      body: JSON.stringify({
+        project_name: project,
+        revision_note: revision,
+        requested_date: date || null,
+        status: '진행중'
+      })
+    });
+    closeModal();
+    await loadRecords();
+    setSyncStatus('저장 완료');
+  }catch(err){
+    console.error(err);
+    setSyncStatus('저장 실패: ' + err.message, true);
+  }
+}
+
+async function completeRecord(id){
+  try{
+    setSyncStatus('업데이트 중...');
+    await sb(`work_records?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        status: '완료',
+        completed_at: new Date().toISOString()
+      })
+    });
+    await loadRecords();
+    setSyncStatus('업데이트 완료');
+  }catch(err){
+    console.error(err);
+    setSyncStatus('업데이트 실패: ' + err.message, true);
+  }
+}
+
+async function loadRecords(){
+  try{
+    records = await sb('work_records?select=*&order=created_at.asc');
+    render();
+  }catch(err){
+    console.error(err);
+    document.getElementById('tbody').innerHTML =
+      `<tr><td colspan="4" class="empty">불러오기 실패: ${err.message}</td></tr>`;
+  }
+}
+
+function formatDate(d){
+  if(!d) return '-';
+  return d;
+}
+
+function render(){
+  const tbody = document.getElementById('tbody');
+  const filtered = records.filter(r => currentTab === 'active' ? r.status === '진행중' : r.status === '완료');
+
+  if(filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="4" class="empty">${currentTab==='active' ? '진행중인 항목이 없습니다.' : '완료된 항목이 없습니다.'}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((r, idx) => `
+    <tr>
+      <td class="col-seq">${idx+1}</td>
+      <td>
+        <div class="project-name">${escapeHtml(r.project_name)}</div>
+        ${r.revision_note ? `<div class="revision-note">${escapeHtml(r.revision_note)}</div>` : ''}
+      </td>
+      <td class="col-date">${formatDate(r.requested_date)}</td>
+      <td class="col-action">
+        ${currentTab === 'active'
+          ? `<button class="done-btn" onclick="completeRecord('${r.id}')">완료</button>`
+          : `<span class="status-badge">완료</span>`
+        }
+      </td>
+    </tr>
+  `).join('');
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// Modal overlay click does nothing (only explicit close)
+document.getElementById('overlay').addEventListener('click', function(e){
+  if(e.target === this){
+    // intentionally does nothing per spec
+  }
+});
+
+loadRecords();
+</script>
+</body>
+</html>
