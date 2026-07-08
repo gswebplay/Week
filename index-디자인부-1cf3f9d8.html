@@ -1266,19 +1266,31 @@ function renderBody(){
             if(renderedTitles.has(title)) return ''; // 이미 이 프로젝트는 한 줄로 합쳐서 출력했으므로 건너뜀
             renderedTitles.add(title);
             const group = stageGroups.get(title);
-            // 이 프로젝트의 단계들을 "단계명 진행률%" 형태로 각각 만들고, 콤마로 이어붙임
-            const segments = group.map(g => {
+            // 이 프로젝트의 단계들을 "단계명 진행률%" 형태로 각각 만듦.
+            // ★ [수정됨] % 숫자는 <span class="pct">로 감싸서, 원래 스타일(작은 회색 모노스페이스 글꼴)이
+            // 그대로 유지되도록 함. (합치기 전에는 각 항목마다 .pct가 따로 있었는데, 한 줄로 합치면서
+            // 이 부분을 깜빡하고 그냥 일반 글자로 넣었더니 %가 밋밋하게 보였던 문제를 고침)
+            const htmlSegments = group.map(g => {
+              const gStages = g.stage ? String(g.stage).split(STAGE_SEP).map(s => s.trim()).filter(Boolean) : [];
+              const stageLabel = escapeHtml(gStages.join(' / '));
+              const contentPart = (g.content || '').trim() ? `(${escapeHtml(g.content.trim())})` : ''; // 내용이 있으면 괄호로 덧붙임
+              const pctHtml = (g.progress !== null && g.progress !== undefined) ? `<span class="pct">${g.progress}%</span>` : '';
+              return `${stageLabel}${contentPart}${pctHtml}`;
+            });
+            // 마우스를 올렸을 때 뜨는 title 속성(툴팁)은 HTML 태그 없이 순수 글자여야 하므로 따로 만듦
+            const plainSegments = group.map(g => {
               const gStages = g.stage ? String(g.stage).split(STAGE_SEP).map(s => s.trim()).filter(Boolean) : [];
               const stageLabel = gStages.join(' / ');
-              const contentPart = (g.content || '').trim() ? `(${g.content.trim()})` : ''; // 내용이 있으면 괄호로 덧붙임
+              const contentPart = (g.content || '').trim() ? `(${g.content.trim()})` : '';
               const pct = (g.progress !== null && g.progress !== undefined) ? ` ${g.progress}%` : '';
               return `${stageLabel}${contentPart}${pct}`;
             });
-            const label = `${title} - ${segments.join(', ')}`;
+            const htmlLabel = `${escapeHtml(title)} - ${htmlSegments.join(', ')}`;
+            const plainLabel = `${title} - ${plainSegments.join(', ')}`;
             return `
           <div class="log-item">
             <span class="dot">·</span>
-            <span class="txt" title="${escapeHtml(label)}">${escapeHtml(label)}</span>
+            <span class="txt" title="${escapeHtml(plainLabel)}">${htmlLabel}</span>
           </div>`;
           }
 
