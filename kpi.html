@@ -34,7 +34,6 @@
   --mono:'JetBrains Mono', 'D2Coding', monospace;
 }
 *{ box-sizing:border-box; }
-button, input, select{ font-family:inherit; } /* 버튼/입력창이 브라우저 기본 폰트 대신 앱 폰트(Pretendard)를 쓰도록 강제 - 다른 앱과 탭 크기를 픽셀 단위까지 동일하게 맞추기 위함 */
 html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
 body{
   background:var(--paper); color:var(--ink); font-family:var(--sans);
@@ -69,7 +68,7 @@ body{
   transition:all .15s; white-space:nowrap;
 }
 .tab:hover{ color:var(--ink); }
-.tab.active{ color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+.tab.active{ color:var(--accent); border-bottom-color:var(--accent); }
 
 /* ================= 공통 툴바 (월 이동 등) ================= */
 .toolbar{
@@ -100,26 +99,29 @@ main{ padding:0 20px 20px; overflow-y:auto; }
 .tab-content.active{ display:block; }
 
 /* ================= 대시보드: 리포트 헤더 ================= */
-/* A4 가로(297mm x 210mm) 비율 = 1.4142 : 1 을 그대로 유지.
-   지표 개수와 상관없이 항상 이 비율의 "종이" 모양을 유지하고, 안의 내용(카드/그래프)은 가운데 정렬됨 */
+/* A4 가로(297mm x 210mm) 비율 = 1.4142 : 1 을 "기본 틀"로 유지.
+   내용이 이 비율보다 많아지면 억지로 누르지 않고 자연스럽게 세로로 더 늘어남(짤림 방지) */
 #dashboardCapture{
   background:#fff; border-radius:14px; padding:28px 32px;
-  margin:0 auto; width:1122px; aspect-ratio:1.4142 / 1; max-width:100%;
+  margin:0 auto; width:1122px; min-height:calc(1122px / 1.4142); max-width:100%;
   display:flex; flex-direction:column;
 }
-.report-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.report-top{ display:grid; grid-template-columns:1fr auto 1fr; align-items:start; gap:16px; }
+.report-title-col{ text-align:center; }
 .report-title[contenteditable="true"]{
-  font-size:26px; font-weight:700; outline:none; min-width:200px;
-  border-bottom:2px dashed transparent; padding-bottom:2px;
+  font-size:26px; font-weight:700; outline:none; display:inline-block; min-width:200px;
+  border-bottom:2px dashed transparent; padding-bottom:2px; text-align:center;
 }
 .report-title[contenteditable="true"]:hover,
 .report-title[contenteditable="true"]:focus{ border-bottom-color:var(--line); }
-.report-logo{ text-align:right; }
+.report-logo{ text-align:right; grid-column:3; }
 .report-logo .name{ font-size:20px; font-weight:800; color:#1A1A2E; letter-spacing:-.5px; }
 .report-logo .sub{ font-size:10px; color:var(--muted); letter-spacing:.5px; }
 .report-rule{ height:3px; background:var(--accent); margin:10px 0 18px; border-radius:2px; }
-.report-month-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.report-month-row{ display:grid; grid-template-columns:1fr auto 1fr; align-items:center; margin-bottom:20px; }
+.report-month-row .month-nav{ grid-column:2; justify-content:center; }
 .report-month-row .month-nav .label{ font-size:22px; font-weight:800; }
+.report-month-row .dept-badge{ grid-column:3; justify-self:end; }
 .dept-badge[contenteditable="true"]{
   background:var(--accent); color:#fff; font-weight:700; font-size:13px;
   padding:6px 14px; border-radius:6px; outline:none; white-space:nowrap;
@@ -149,9 +151,10 @@ main{ padding:0 20px 20px; overflow-y:auto; }
 .kpi-card .stat.highlight .val{ font-weight:800; }
 
 /* ================= 대시보드: 그래프 ================= */
-.kpi-chart-wrap{ width:100%; overflow-x:auto; display:flex; justify-content:center; flex:1; min-height:0; }
-.kpi-chart-wrap svg{ flex-shrink:0; max-height:100%; }
-.kpi-legend{ display:flex; flex-wrap:wrap; gap:16px; justify-content:center; margin-top:8px; }
+.kpi-chart-outer{ display:flex; flex-direction:column; align-items:center; width:100%; }
+.kpi-chart-scroll{ width:100%; overflow-x:auto; display:flex; justify-content:center; }
+.kpi-chart-scroll svg{ flex-shrink:0; }
+.kpi-legend{ display:flex; flex-wrap:wrap; gap:16px; justify-content:center; margin-top:10px; width:100%; }
 .kpi-legend .item{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink); }
 .kpi-legend .dot{ width:10px; height:10px; border-radius:50%; }
 
@@ -167,6 +170,7 @@ main{ padding:0 20px 20px; overflow-y:auto; }
 .indicator-head .swatch{ width:16px; height:16px; border-radius:50%; flex-shrink:0; }
 .indicator-head .name{ font-weight:700; font-size:15px; flex:1; min-width:0; }
 .indicator-head .target-txt{ font-size:12px; color:var(--muted); white-space:nowrap; }
+.indicator-head .target-txt .mono-num{ font-family:var(--mono); font-weight:700; color:var(--ink); }
 .indicator-body{ padding:12px 16px; }
 table.sub-table{ width:100%; border-collapse:collapse; }
 table.sub-table th{
@@ -197,6 +201,7 @@ table.sub-table input.month-input:focus{ outline:none; border-color:var(--bluepr
 .add-sub-btn:hover{ background:var(--paper); }
 .date-type-row{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
 .date-type-row .stat label{ display:block; font-size:11px; color:var(--muted); margin-bottom:4px; }
+.indicator-card.dragging{ opacity:.45; }
 .add-indicator-btn{
   width:100%; padding:14px; border:2px dashed var(--line); border-radius:12px;
   background:none; color:var(--muted); font-size:14px; cursor:pointer; margin-bottom:24px;
@@ -283,7 +288,8 @@ table.sub-table input.month-input:focus{ outline:none; border-color:var(--bluepr
 
     <div id="dashboardCapture">
       <div class="report-top">
-        <div>
+        <div></div>
+        <div class="report-title-col">
           <div class="report-title" contenteditable="true" id="mainTitle">프로젝트 성과지표 (KPI)</div>
         </div>
         <div class="report-logo">
@@ -294,6 +300,7 @@ table.sub-table input.month-input:focus{ outline:none; border-color:var(--bluepr
       <div class="report-rule"></div>
 
       <div class="report-month-row">
+        <div></div>
         <div class="month-nav">
           <button id="dashPrevBtn">◀</button>
           <span class="label">~ <span id="dashMonthLabel"></span></span>
@@ -303,7 +310,7 @@ table.sub-table input.month-input:focus{ outline:none; border-color:var(--bluepr
       </div>
 
       <div class="kpi-cards" id="kpiCards"></div>
-      <div class="kpi-chart-wrap" id="kpiChartWrap"></div>
+      <div class="kpi-chart-outer" id="kpiChartWrap"></div>
     </div>
   </div>
 
@@ -572,7 +579,7 @@ function renderChart(){
     `<div class="item"><span class="dot" style="background:${ind.color}"></span>${escapeHtml(ind.title)}</div>`
   ).join('');
 
-  wrap.innerHTML = svg + `<div class="kpi-legend">${legend}</div>`;
+  wrap.innerHTML = `<div class="kpi-chart-scroll">${svg}</div><div class="kpi-legend">${legend}</div>`;
 }
 
 /* ============================================================
@@ -630,7 +637,7 @@ function renderManage(){
         <div class="indicator-head" draggable="true">
           <span class="swatch" style="background:${ind.color}"></span>
           <span class="name">${escapeHtml(ind.title)}</span>
-          <span class="target-txt">목표 ${targetTxt}</span>
+          <span class="target-txt">목표 <span class="mono-num">${targetTxt}</span></span>
           <button class="btn icon" onclick="openEditIndicatorModal('${ind.id}')" title="수정">✏️</button>
         </div>
         <div class="indicator-body">
@@ -823,26 +830,47 @@ function closeModal(){ document.getElementById('modalOverlay').classList.remove(
 /* ============================================================
    드래그로 지표 순서 바꾸기 (지표관리 탭)
    ============================================================ */
+// 드래그 중인 카드 (드래그 중에도 반투명 상태로 계속 화면에 보이며, 위치만 실시간으로 이동함)
+let dragEl = null;
+
+// 카드별로 dragstart/dragend 이벤트를 연결 (렌더링마다 새로 만들어지는 요소라 매번 다시 연결)
 function enableDragReorder(container){
-  let dragEl = null;
-  container.querySelectorAll('.indicator-card').forEach(card => {
-    const handle = card.querySelector('.indicator-head'); // 진한 회색 헤더 박스에서만 드래그 시작 가능
-    handle.addEventListener('dragstart', () => { dragEl = card; card.style.opacity = '.4'; });
+  container.querySelectorAll('.indicator-head').forEach(handle => {
+    handle.addEventListener('dragstart', () => {
+      const card = handle.closest('.indicator-card');
+      dragEl = card;
+      card.classList.add('dragging'); // 반투명하게만 표시 - 숨기지 않음
+    });
     handle.addEventListener('dragend', async () => {
-      card.style.opacity = '';
+      if (dragEl) dragEl.classList.remove('dragging');
+      dragEl = null;
       const ids = [...container.querySelectorAll('.indicator-card')].map(el => el.dataset.id);
       try {
         await Promise.all(ids.map((id, i) => sb(`kpi_indicators?id=eq.${id}`, 'PATCH', { sort_order: i })));
         indicators.sort((a,b) => ids.indexOf(a.id) - ids.indexOf(b.id));
       } catch(e) { console.error(e); }
     });
-    card.addEventListener('dragover', e => {
-      e.preventDefault();
-      if (!dragEl || dragEl === card) return;
-      const rect = card.getBoundingClientRect();
-      const after = (e.clientY - rect.top) > rect.height / 2;
-      container.insertBefore(dragEl, after ? card.nextSibling : card);
+  });
+}
+
+// 그리드(가로 배치)에서도 잘 동작하도록, 마우스와 가장 가까운 카드를 찾아 그 앞/뒤로 실시간 이동
+// (container 자체는 렌더링마다 새로 생기지 않으므로 이 리스너는 처음 한 번만 연결하면 됨)
+function setupDragContainer(container){
+  container.addEventListener('dragover', e => {
+    e.preventDefault();
+    if (!dragEl) return;
+    const cards = [...container.querySelectorAll('.indicator-card')].filter(el => el !== dragEl);
+    let target = null, minDist = Infinity;
+    cards.forEach(el => {
+      const r = el.getBoundingClientRect();
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      const d = Math.hypot(e.clientX - cx, e.clientY - cy);
+      if (d < minDist) { minDist = d; target = el; }
     });
+    if (!target) return;
+    const rect = target.getBoundingClientRect();
+    const before = e.clientX < rect.left + rect.width / 2;
+    target.parentNode.insertBefore(dragEl, before ? target : target.nextSibling);
   });
 }
 
@@ -909,6 +937,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('addIndicatorBtn').addEventListener('click', openAddIndicatorModal);
   document.getElementById('printBtn').addEventListener('click', saveDashboardAsImage);
+  setupDragContainer(document.getElementById('indicatorList'));
 
   loadAll();
 });
