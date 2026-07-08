@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>KPI 관리</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%93%8A</text></svg>">
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- 대시보드를 이미지로 저장(캡처)하기 위한 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+/* ============================================================
+   색상 이름표 모음. 여기 값만 바꾸면 앱 전체 색이 한번에 바뀝니다.
+   ============================================================ */
+:root{
+  --ink:#1A2332;
+  --muted:#64748B;
+  --line:#D9DEE6;
+  --paper:#F5F7FA;
+  --accent:#C0392B;        /* GSWeb 브랜드 포인트 색(붉은색). 로고 밑줄, 배지 등 */
+  --accent-bg:#FDECEA;
+  --blueprint:#2B6CB0;
+  --success:#34A853;
+  --warning:#FBBC04;
+  --danger:#C0392B;
+  --radius:10px;
+  --sans:'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif;
+  --mono:'JetBrains Mono', 'D2Coding', monospace;
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
+body{
+  background:var(--paper); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  word-break:keep-all; overflow-wrap:break-word; /* 한글 단어 중간 줄바꿈 방지 */
+}
+
+/* ================= 상단 앱 헤더 (다른 앱들과 동일한 톤) ================= */
+.header{
+  background:#fff; border-bottom:1px solid var(--line);
+  padding:0 20px; height:60px;
+  display:flex; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:30;
+  box-shadow:0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+}
+.header h1{ font-size:18px; font-weight:600; display:flex; align-items:center; gap:8px; white-space:nowrap; min-width:0; }
+.header h1 span.accent{ color:var(--accent); }
+.header h1 span.live-clock{ color:var(--muted); font-size:12px; font-weight:400; margin-left:2px; white-space:nowrap; }
+.header-right{ display:flex; align-items:center; gap:14px; flex-shrink:0; }
+.app-version{ font-size:12px; color:#B8C0CC; white-space:nowrap; }
+.sync-status{ font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.sync-dot{ width:8px; height:8px; border-radius:50%; background:var(--success); flex-shrink:0; }
+.sync-dot.loading{ background:var(--warning); animation:pulse 1s infinite; }
+.sync-dot.error{ background:var(--danger); }
+@keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+/* ================= 탭바 ================= */
+.tab-bar{ background:#fff; border-bottom:1px solid var(--line); padding:0 20px; display:flex; }
+.tab{
+  padding:14px 20px; font-size:14px; font-weight:500; color:var(--muted);
+  border:none; background:none; cursor:pointer; border-bottom:3px solid transparent;
+  transition:all .15s; white-space:nowrap;
+}
+.tab:hover{ color:var(--ink); }
+.tab.active{ color:var(--accent); border-bottom-color:var(--accent); font-weight:600; }
+
+/* ================= 공통 툴바 (월 이동 등) ================= */
+.toolbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:14px 20px; flex-wrap:wrap;
+}
+.month-nav{ display:flex; align-items:center; gap:10px; }
+.month-nav button{
+  width:32px; height:32px; border-radius:8px; border:1px solid var(--line); background:#fff;
+  cursor:pointer; font-size:14px; color:var(--muted);
+}
+.month-nav button:hover{ background:var(--paper); }
+.month-nav .label{ font-size:16px; font-weight:700; min-width:90px; text-align:center; white-space:nowrap; }
+.btn{
+  padding:8px 16px; border-radius:8px; border:1px solid var(--line); background:#fff;
+  font-size:13px; font-weight:500; cursor:pointer; color:var(--ink); white-space:nowrap;
+}
+.btn:hover{ background:var(--paper); }
+.btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.primary:hover{ background:#A5311F; }
+.btn.danger{ color:var(--danger); border-color:#F1C4BE; }
+.btn.danger:hover{ background:var(--accent-bg); }
+.btn.icon{ width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; font-size:16px; border-radius:8px; }
+
+/* ================= 메인 영역 스크롤 ================= */
+main{ padding:0 20px 20px; overflow-y:auto; }
+.tab-content{ display:none; }
+.tab-content.active{ display:block; }
+
+/* ================= 대시보드: 리포트 헤더 ================= */
+#dashboardCapture{ background:#fff; border-radius:14px; padding:28px 32px; }
+.report-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+.report-title[contenteditable="true"]{
+  font-size:26px; font-weight:700; outline:none; min-width:200px;
+  border-bottom:2px dashed transparent; padding-bottom:2px;
+}
+.report-title[contenteditable="true"]:hover,
+.report-title[contenteditable="true"]:focus{ border-bottom-color:var(--line); }
+.report-logo{ text-align:right; }
+.report-logo .name{ font-size:20px; font-weight:800; color:#1A1A2E; letter-spacing:-.5px; }
+.report-logo .sub{ font-size:10px; color:var(--muted); letter-spacing:.5px; }
+.report-rule{ height:3px; background:var(--accent); margin:10px 0 18px; border-radius:2px; }
+.report-month-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.report-month-row .month-nav .label{ font-size:22px; font-weight:800; }
+.dept-badge[contenteditable="true"]{
+  background:var(--accent); color:#fff; font-weight:700; font-size:13px;
+  padding:6px 14px; border-radius:6px; outline:none; white-space:nowrap;
+}
+.print-btn{
+  width:38px; height:38px; border-radius:8px; border:1px solid var(--line); background:#fff;
+  cursor:pointer; font-size:17px; display:flex; align-items:center; justify-content:center;
+}
+.print-btn:hover{ background:var(--paper); }
+
+/* ================= 대시보드: 지표 카드들 ================= */
+.kpi-cards{ display:flex; flex-wrap:wrap; gap:16px; margin-bottom:28px; }
+.kpi-card{
+  flex:1 1 190px; max-width:230px; border:2px solid var(--card-color, var(--line));
+  border-radius:14px; padding:16px; text-align:center;
+}
+.donut{
+  width:130px; height:130px; border-radius:50%; margin:0 auto 12px;
+  background:conic-gradient(var(--card-color) calc(var(--pct)*1%), #E5E7EB 0);
+  display:flex; align-items:center; justify-content:center;
+}
+.donut-inner{
+  width:96px; height:96px; border-radius:50%; background:#fff;
+  display:flex; align-items:center; justify-content:center;
+  font-size:22px; font-weight:800; color:var(--card-color);
+}
+.kpi-card .title{ font-size:14px; font-weight:700; margin-bottom:10px; }
+.kpi-card .stat-row{ display:flex; gap:6px; }
+.kpi-card .stat{ flex:1; }
+.kpi-card .stat label{ display:block; font-size:11px; color:var(--muted); margin-bottom:4px; }
+.kpi-card .stat .val{
+  border:1px solid var(--line); border-radius:6px; padding:6px 4px;
+  font-family:var(--mono); font-weight:700; font-size:13px; background:var(--paper);
+}
+.kpi-card .stat.highlight .val{ background:color-mix(in srgb, var(--card-color) 15%, white); }
+
+/* ================= 대시보드: 그래프 ================= */
+.kpi-chart-wrap{ width:100%; overflow-x:auto; }
+.kpi-legend{ display:flex; flex-wrap:wrap; gap:16px; justify-content:center; margin-top:8px; }
+.kpi-legend .item{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink); }
+.kpi-legend .dot{ width:10px; height:10px; border-radius:50%; }
+
+/* ================= 지표관리 탭 ================= */
+.indicator-card{ background:#fff; border:1px solid var(--line); border-radius:12px; margin-bottom:16px; overflow:hidden; }
+.indicator-head{
+  display:flex; align-items:center; gap:10px; padding:14px 16px;
+  border-bottom:1px solid var(--line); background:var(--paper);
+  cursor:grab;
+}
+.indicator-head .swatch{ width:16px; height:16px; border-radius:50%; flex-shrink:0; }
+.indicator-head .name{ font-weight:700; font-size:15px; flex:1; min-width:0; }
+.indicator-head .target-txt{ font-size:12px; color:var(--muted); white-space:nowrap; }
+.indicator-body{ padding:12px 16px; }
+table.sub-table{ width:100%; border-collapse:collapse; }
+table.sub-table th{
+  font-size:11px; color:var(--muted); font-weight:600; text-align:left; padding:6px 8px;
+  border-bottom:1px solid var(--line); white-space:nowrap;
+}
+table.sub-table td{ padding:6px 8px; border-bottom:1px solid #EEF1F5; font-size:13px; }
+table.sub-table input.month-input{
+  width:80px; padding:6px 8px; border:1px solid var(--line); border-radius:6px;
+  font-family:var(--mono); font-size:13px; text-align:right;
+}
+table.sub-table input.month-input:focus{ outline:none; border-color:var(--blueprint); }
+.cum-val{ font-family:var(--mono); font-weight:700; }
+.sub-name{ display:flex; align-items:center; gap:6px; }
+.sub-name input.name-input{
+  border:1px solid transparent; background:none; font-size:13px; font-weight:500;
+  padding:4px 6px; border-radius:6px; width:140px;
+}
+.sub-name input.name-input:hover{ border-color:var(--line); }
+.sub-name input.name-input:focus{ outline:none; border-color:var(--blueprint); background:#fff; }
+.row-x{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:2px 6px; }
+.row-x:hover{ color:var(--danger); }
+.sum-row td{ font-weight:800; border-top:2px solid var(--ink); border-bottom:none; }
+.add-sub-btn{
+  margin-top:8px; background:none; border:1px dashed var(--line); border-radius:8px;
+  padding:6px 12px; font-size:12px; color:var(--muted); cursor:pointer;
+}
+.add-sub-btn:hover{ background:var(--paper); }
+.date-type-row{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.date-type-row .stat label{ display:block; font-size:11px; color:var(--muted); margin-bottom:4px; }
+.add-indicator-btn{
+  width:100%; padding:14px; border:2px dashed var(--line); border-radius:12px;
+  background:none; color:var(--muted); font-size:14px; cursor:pointer; margin-bottom:24px;
+}
+.add-indicator-btn:hover{ background:#fff; color:var(--ink); }
+
+/* ================= 모달 ================= */
+.modal-overlay{
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100;
+  align-items:center; justify-content:center;
+}
+.modal-overlay.open{ display:flex; }
+.modal-box{ background:#fff; border-radius:14px; width:400px; max-width:92vw; max-height:86vh; overflow-y:auto; }
+.modal-head{ padding:16px 20px; border-bottom:1px solid var(--line); font-weight:700; font-size:15px; }
+.modal-body{ padding:16px 20px; }
+.modal-body .field{ margin-bottom:14px; }
+.modal-body label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:600; }
+.modal-body input[type=text], .modal-body input[type=number], .modal-body input[type=date]{
+  width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:8px; font-size:14px; font-family:var(--sans);
+}
+.modal-body input:focus{ outline:none; border-color:var(--blueprint); }
+.modal-body .type-toggle{ display:flex; gap:8px; }
+.modal-body .type-toggle button{
+  flex:1; padding:9px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font-size:13px;
+}
+.modal-body .type-toggle button.selected{ background:var(--blueprint); color:#fff; border-color:var(--blueprint); }
+.modal-body .color-row{ display:flex; gap:8px; flex-wrap:wrap; }
+.modal-body .color-dot{
+  width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid transparent;
+}
+.modal-body .color-dot.selected{ border-color:var(--ink); }
+.checkbox-row{ display:flex; align-items:center; gap:8px; }
+.modal-foot{ padding:14px 20px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px; }
+
+/* ================= 토스트 ================= */
+#toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--ink); color:#fff; padding:10px 18px; border-radius:8px; font-size:13px;
+  opacity:0; pointer-events:none; transition:all .2s; z-index:200; white-space:nowrap;
+}
+#toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ================= 모바일(480px 이하) 대응 ================= */
+@media (max-width:480px){
+  .header{ height:52px; padding:0 12px; }
+  .header h1{ font-size:15px; }
+  .header .live-clock{ display:none; }
+  .app-version{ display:none; }
+  .toolbar{ padding:10px 12px; }
+  main{ padding:0 10px 14px; }
+  #dashboardCapture{ padding:18px 14px; }
+  .report-title[contenteditable="true"]{ font-size:19px; min-width:120px; }
+  .report-logo .name{ font-size:15px; }
+  .kpi-card{ flex:1 1 130px; padding:10px; }
+  .donut{ width:96px; height:96px; }
+  .donut-inner{ width:70px; height:70px; font-size:16px; }
+  table.sub-table th, table.sub-table td{ padding:5px 4px; font-size:12px; }
+  table.sub-table input.month-input{ width:60px; }
+  .sub-name input.name-input{ width:90px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 KPI <span class="accent">관리</span> <span class="live-clock" id="live-clock"></span></h1>
+  <div class="header-right">
+    <span class="app-version">v1.0</span>
+    <span class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">연결됨</span></span>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" data-tab="dashboard">대시보드</button>
+  <button class="tab" data-tab="manage">지표관리</button>
+</div>
+
+<main>
+  <!-- ================= 대시보드 탭 ================= -->
+  <div class="tab-content active" id="tab-dashboard">
+    <div class="toolbar">
+      <div></div>
+      <button class="btn icon print-btn" id="printBtn" title="이미지로 저장(2K)">🖨️</button>
+    </div>
+
+    <div id="dashboardCapture">
+      <div class="report-top">
+        <div>
+          <div class="report-title" contenteditable="true" id="mainTitle">프로젝트 성과지표 (KPI)</div>
+        </div>
+        <div class="report-logo">
+          <div class="name">GSWeb</div>
+          <div class="sub">Recreation Equipment</div>
+        </div>
+      </div>
+      <div class="report-rule"></div>
+
+      <div class="report-month-row">
+        <div class="month-nav">
+          <button id="dashPrevBtn">◀</button>
+          <span class="label">~ <span id="dashMonthLabel"></span></span>
+          <button id="dashNextBtn">▶</button>
+        </div>
+        <div class="dept-badge" contenteditable="true" id="deptBadge">기술전략팀</div>
+      </div>
+
+      <div class="kpi-cards" id="kpiCards"></div>
+      <div class="kpi-chart-wrap" id="kpiChartWrap"></div>
+    </div>
+  </div>
+
+  <!-- ================= 지표관리 탭 ================= -->
+  <div class="tab-content" id="tab-manage">
+    <div class="toolbar">
+      <div class="month-nav">
+        <button id="mgPrevBtn">◀</button>
+        <span class="label" id="mgMonthLabel"></span>
+        <button id="mgNextBtn">▶</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);">이 달에 새로 늘어난 값만 입력하면 누적은 자동 계산됩니다</div>
+    </div>
+    <div id="indicatorList"></div>
+    <button class="add-indicator-btn" id="addIndicatorBtn">+ 지표 추가</button>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-head" id="modalHead"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================
+   Supabase 연결 정보 (기본값 그대로 사용)
+   ============================================================ */
+const SUPABASE_URL = 'https://zrhwdvuehaelintkfoqn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_oQ7F4Q9KRS22lpiE9uILFA_zN7n2V4V';
+
+// Supabase REST API 호출 공용 함수 (SDK 없이 fetch 직접 사용 - 변수 충돌 방지)
+async function sb(path, method = 'GET', body = null, headers = {}) {
+  setSync('loading');
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method,
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation',
+        ...headers
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${detail}`);
+    }
+    setSync('ok');
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  } catch (e) {
+    setSync('error');
+    throw e;
+  }
+}
+function setSync(state){
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  if(!dot) return;
+  dot.className = 'sync-dot' + (state === 'loading' ? ' loading' : state === 'error' ? ' error' : '');
+  txt.textContent = state === 'loading' ? '동기화중' : state === 'error' ? '오류' : '연결됨';
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================
+   전역 상태
+   ============================================================ */
+const TODAY = new Date();
+let currentYear = TODAY.getFullYear();
+let currentMonth = TODAY.getMonth() + 1;   // 대시보드 "~N월" 및 지표관리 입력월 - 같이 씀
+
+let indicators = [];      // kpi_indicators 목록
+let subitemsMap = {};     // { indicator_id: [subitem, ...] }
+let entriesMap = {};      // { subitem_id: { "year-month": value } }
+
+const PRESET_COLORS = ['#6C5CE7','#00B894','#F39C12','#2B6CB0','#E84393','#E74C3C','#16A085','#8E44AD'];
+
+/* ============================================================
+   데이터 로드
+   ============================================================ */
+async function loadAll(){
+  const [settings, inds, subs] = await Promise.all([
+    sb('kpi_settings?id=eq.1&select=*'),
+    sb('kpi_indicators?select=*&order=sort_order.asc'),
+    sb('kpi_subitems?select=*&order=sort_order.asc')
+  ]);
+
+  if (settings && settings[0]) {
+    document.getElementById('mainTitle').textContent = settings[0].main_title || '프로젝트 성과지표 (KPI)';
+    document.getElementById('deptBadge').textContent = settings[0].dept_badge || '기술전략팀';
+  }
+
+  indicators = inds || [];
+  subitemsMap = {};
+  (subs || []).forEach(s => {
+    if (!subitemsMap[s.indicator_id]) subitemsMap[s.indicator_id] = [];
+    subitemsMap[s.indicator_id].push(s);
+  });
+
+  const allSubIds = (subs || []).map(s => s.id);
+  entriesMap = {};
+  if (allSubIds.length) {
+    const idList = allSubIds.map(id => `"${id}"`).join(',');
+    const entries = await sb(`kpi_entries?subitem_id=in.(${idList})&select=*`);
+    (entries || []).forEach(e => {
+      if (!entriesMap[e.subitem_id]) entriesMap[e.subitem_id] = {};
+      entriesMap[e.subitem_id][`${e.year}-${e.month}`] = Number(e.value) || 0;
+    });
+  }
+
+  renderDashboard();
+  renderManage();
+}
+
+/* ============================================================
+   계산 helper
+   ============================================================ */
+// 특정 하위항목의, year/month 시점까지의 누적값(그 이전 모든 월 증가분 합)
+function cumulativeOf(subitemId, year, month){
+  const m = entriesMap[subitemId] || {};
+  let total = 0;
+  Object.keys(m).forEach(key => {
+    const [y, mo] = key.split('-').map(Number);
+    if (y < year || (y === year && mo <= month)) total += m[key];
+  });
+  return total;
+}
+// 지표 하나의 year/month 시점 누적 합계 (하위항목들의 누적 합)
+function indicatorTotal(indicator, year, month){
+  const subs = subitemsMap[indicator.id] || [];
+  return subs.reduce((sum, s) => sum + cumulativeOf(s.id, year, month), 0);
+}
+function pctOf(indicator, year, month){
+  if (indicator.type === 'date') return 100;
+  const target = Number(indicator.target_value) || 0;
+  if (!target) return 0;
+  const p = indicatorTotal(indicator, year, month) / target * 100;
+  return Math.max(0, Math.min(100, p));
+}
+function daysRemaining(dateStr){
+  if (!dateStr) return null;
+  const target = new Date(dateStr + 'T00:00:00');
+  const diff = Math.round((target - new Date(TODAY.toDateString())) / 86400000);
+  return diff;
+}
+
+/* ============================================================
+   대시보드 렌더링
+   ============================================================ */
+function renderDashboard(){
+  document.getElementById('dashMonthLabel').textContent = `${currentMonth}월`;
+
+  // ---- 카드들 ----
+  const cardsEl = document.getElementById('kpiCards');
+  cardsEl.innerHTML = indicators.map(ind => {
+    const pct = pctOf(ind, currentYear, currentMonth);
+    if (ind.type === 'date') {
+      const rem = daysRemaining(ind.target_date);
+      return `
+        <div class="kpi-card" style="--card-color:${ind.color}">
+          <div class="donut" style="--pct:${pct}"><div class="donut-inner">${pct.toFixed(1)}%</div></div>
+          <div class="title">${escapeHtml(ind.title)}</div>
+          <div class="stat-row">
+            <div class="stat"><label>목표일자</label><div class="val">${ind.target_date || '-'}</div></div>
+            <div class="stat highlight"><label>남은일자</label><div class="val">${rem === null ? '-' : rem}</div></div>
+          </div>
+        </div>`;
+    }
+    const total = indicatorTotal(ind, currentYear, currentMonth);
+    const targetTxt = Number(ind.target_value || 0).toLocaleString() + '건' + (ind.is_lower_better ? ' 이하' : '');
+    return `
+      <div class="kpi-card" style="--card-color:${ind.color}">
+        <div class="donut" style="--pct:${pct}"><div class="donut-inner">${pct.toFixed(1)}%</div></div>
+        <div class="title">${escapeHtml(ind.title)}</div>
+        <div class="stat-row">
+          <div class="stat"><label>목표</label><div class="val">${targetTxt}</div></div>
+          <div class="stat highlight"><label>현재</label><div class="val">${total.toLocaleString()}</div></div>
+        </div>
+      </div>`;
+  }).join('') || '<div style="color:var(--muted);font-size:13px;padding:20px;">등록된 지표가 없습니다. "지표관리" 탭에서 추가해주세요.</div>';
+
+  // ---- 그래프 (1월 ~ 선택된 월) ----
+  renderChart();
+}
+
+function renderChart(){
+  const wrap = document.getElementById('kpiChartWrap');
+  if (!indicators.length) { wrap.innerHTML = ''; return; }
+
+  const months = [];
+  for (let m = 1; m <= currentMonth; m++) months.push(m);
+
+  const W = Math.max(700, months.length * 70);
+  const H = 340;
+  const padL = 44, padR = 20, padT = 20, padB = 34;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const xFor = i => padL + (months.length === 1 ? plotW / 2 : (plotW * i / (months.length - 1)));
+  const yFor = pct => padT + plotH - (plotH * pct / 100);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">`;
+  // 배경 가로선 (0/20/40/60/80/100%)
+  for (let g = 0; g <= 100; g += 20) {
+    const y = yFor(g);
+    svg += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#EEF1F5" stroke-width="1"/>`;
+    svg += `<text x="${padL-8}" y="${y+4}" font-size="11" fill="#94A3B8" text-anchor="end">${g}%</text>`;
+  }
+  // x축 월 라벨
+  months.forEach((m, i) => {
+    svg += `<text x="${xFor(i)}" y="${H-10}" font-size="11" fill="#94A3B8" text-anchor="middle">${m}월</text>`;
+  });
+  // 지표별 선 + 점
+  indicators.forEach(ind => {
+    const pts = months.map((m, i) => {
+      const pct = pctOf(ind, currentYear, m);
+      return `${xFor(i)},${yFor(pct)}`;
+    });
+    svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${ind.color}" stroke-width="2.5"/>`;
+    months.forEach((m, i) => {
+      const pct = pctOf(ind, currentYear, m);
+      svg += `<circle cx="${xFor(i)}" cy="${yFor(pct)}" r="4" fill="${ind.color}"/>`;
+    });
+  });
+  svg += `</svg>`;
+
+  const legend = indicators.map(ind =>
+    `<div class="item"><span class="dot" style="background:${ind.color}"></span>${escapeHtml(ind.title)}</div>`
+  ).join('');
+
+  wrap.innerHTML = svg + `<div class="kpi-legend">${legend}</div>`;
+}
+
+/* ============================================================
+   지표관리 탭 렌더링
+   ============================================================ */
+function renderManage(){
+  document.getElementById('mgMonthLabel').textContent = `${currentYear}년 ${currentMonth}월`;
+
+  const listEl = document.getElementById('indicatorList');
+  listEl.innerHTML = indicators.map(ind => {
+    if (ind.type === 'date') {
+      const rem = daysRemaining(ind.target_date);
+      return `
+        <div class="indicator-card" draggable="true" data-id="${ind.id}">
+          <div class="indicator-head">
+            <span class="swatch" style="background:${ind.color}"></span>
+            <span class="name">${escapeHtml(ind.title)} <span style="font-size:11px;color:var(--muted);font-weight:400;">(날짜형)</span></span>
+            <button class="btn icon" onclick="openEditIndicatorModal('${ind.id}')" title="수정">✏️</button>
+          </div>
+          <div class="indicator-body date-type-row">
+            <div class="stat"><label>목표일자</label>
+              <input type="date" class="month-input" style="width:auto;" value="${ind.target_date || ''}"
+                onchange="updateIndicatorField('${ind.id}','target_date',this.value)"/>
+            </div>
+            <div class="stat"><label>남은일자</label><div class="val" style="border:1px solid var(--line);border-radius:6px;padding:8px 14px;font-family:var(--mono);">${rem === null ? '-' : rem}</div></div>
+          </div>
+        </div>`;
+    }
+
+    const subs = subitemsMap[ind.id] || [];
+    const rows = subs.map(s => {
+      const key = `${currentYear}-${currentMonth}`;
+      const thisMonthVal = (entriesMap[s.id] || {})[key];
+      const cum = cumulativeOf(s.id, currentYear, currentMonth);
+      return `
+        <tr>
+          <td class="sub-name">
+            <input class="name-input" value="${escapeHtml(s.name)}"
+              onchange="renameSubitem('${s.id}', this.value)"/>
+            <button class="row-x" onclick="deleteSubitem('${s.id}','${ind.id}')" title="삭제">✕</button>
+          </td>
+          <td><input type="number" class="month-input" placeholder="0"
+              value="${thisMonthVal ?? ''}"
+              onchange="saveEntry('${s.id}','${ind.id}', this.value)"/></td>
+          <td class="cum-val">${cum.toLocaleString()}</td>
+        </tr>`;
+    }).join('');
+
+    const total = indicatorTotal(ind, currentYear, currentMonth);
+    const pct = pctOf(ind, currentYear, currentMonth);
+    const targetTxt = Number(ind.target_value || 0).toLocaleString() + '건' + (ind.is_lower_better ? ' 이하' : '');
+
+    return `
+      <div class="indicator-card" draggable="true" data-id="${ind.id}">
+        <div class="indicator-head">
+          <span class="swatch" style="background:${ind.color}"></span>
+          <span class="name">${escapeHtml(ind.title)}</span>
+          <span class="target-txt">목표 ${targetTxt}</span>
+          <button class="btn icon" onclick="openEditIndicatorModal('${ind.id}')" title="수정">✏️</button>
+        </div>
+        <div class="indicator-body">
+          <table class="sub-table">
+            <thead><tr><th>하위항목</th><th>${currentMonth}월 증가분</th><th>누적</th></tr></thead>
+            <tbody>
+              ${rows || `<tr><td colspan="3" style="color:var(--muted);">하위항목이 없습니다</td></tr>`}
+              <tr class="sum-row"><td>합계</td><td></td><td class="cum-val">${total.toLocaleString()} (${pct.toFixed(1)}%)</td></tr>
+            </tbody>
+          </table>
+          <button class="add-sub-btn" onclick="addSubitem('${ind.id}')">+ 하위항목 추가</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  enableDragReorder(listEl);
+}
+
+/* ============================================================
+   CRUD - 하위항목 / 입력값
+   ============================================================ */
+async function addSubitem(indicatorId){
+  const subs = subitemsMap[indicatorId] || [];
+  try {
+    const [created] = await sb('kpi_subitems', 'POST', {
+      indicator_id: indicatorId, name: '새 항목', sort_order: subs.length
+    });
+    if (!subitemsMap[indicatorId]) subitemsMap[indicatorId] = [];
+    subitemsMap[indicatorId].push(created);
+    renderManage();
+  } catch(e) { console.error(e); showToast('추가 실패'); }
+}
+async function renameSubitem(id, name){
+  name = name.trim();
+  if (!name) return showToast('이름을 입력하세요');
+  try {
+    await sb(`kpi_subitems?id=eq.${id}`, 'PATCH', { name });
+    Object.values(subitemsMap).forEach(arr => {
+      const t = arr.find(s => s.id === id); if (t) t.name = name;
+    });
+    showToast('저장됨');
+  } catch(e) { console.error(e); showToast('저장 실패'); }
+}
+async function deleteSubitem(id, indicatorId){
+  if (!confirm('이 하위항목과 입력된 값을 모두 삭제할까요?')) return;
+  try {
+    await sb(`kpi_subitems?id=eq.${id}`, 'DELETE');
+    subitemsMap[indicatorId] = (subitemsMap[indicatorId] || []).filter(s => s.id !== id);
+    delete entriesMap[id];
+    renderManage(); renderDashboard();
+  } catch(e) { console.error(e); showToast('삭제 실패'); }
+}
+async function saveEntry(subitemId, indicatorId, value){
+  const num = value === '' ? 0 : Number(value);
+  if (Number.isNaN(num)) return showToast('숫자를 입력하세요');
+  try {
+    await sb(`kpi_entries?on_conflict=subitem_id,year,month`, 'POST',
+      { subitem_id: subitemId, year: currentYear, month: currentMonth, value: num },
+      { 'Prefer': 'resolution=merge-duplicates,return=representation' });
+    if (!entriesMap[subitemId]) entriesMap[subitemId] = {};
+    entriesMap[subitemId][`${currentYear}-${currentMonth}`] = num;
+    renderManage(); renderDashboard();
+  } catch(e) { console.error(e); showToast('저장 실패'); }
+}
+
+/* ============================================================
+   CRUD - 지표(indicator) 자체
+   ============================================================ */
+async function updateIndicatorField(id, field, value){
+  try {
+    await sb(`kpi_indicators?id=eq.${id}`, 'PATCH', { [field]: value || null });
+    const ind = indicators.find(i => i.id === id);
+    if (ind) ind[field] = value;
+    renderManage(); renderDashboard();
+  } catch(e) { console.error(e); showToast('저장 실패'); }
+}
+
+function openAddIndicatorModal(){
+  openIndicatorModal(null);
+}
+function openEditIndicatorModal(id){
+  openIndicatorModal(indicators.find(i => i.id === id));
+}
+
+function openIndicatorModal(existing){
+  const isEdit = !!existing;
+  let type = existing?.type || 'count';
+  let color = existing?.color || PRESET_COLORS[indicators.length % PRESET_COLORS.length];
+
+  document.getElementById('modalHead').textContent = isEdit ? '지표 수정' : '지표 추가';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="field">
+      <label>지표 이름</label>
+      <input type="text" id="indTitle" value="${escapeHtml(existing?.title || '')}" placeholder="예: 놀이시설 DB"/>
+    </div>
+    <div class="field">
+      <label>유형</label>
+      <div class="type-toggle">
+        <button type="button" id="typeCountBtn" class="${type==='count'?'selected':''}">누적건수형</button>
+        <button type="button" id="typeDateBtn" class="${type==='date'?'selected':''}">날짜형</button>
+      </div>
+    </div>
+    <div id="countFields" style="${type==='date'?'display:none;':''}">
+      <div class="field"><label>목표 건수</label><input type="number" id="indTarget" value="${existing?.target_value ?? ''}" placeholder="5000"/></div>
+      <div class="field checkbox-row">
+        <input type="checkbox" id="indLower" ${existing?.is_lower_better ? 'checked' : ''}/>
+        <label style="margin:0;">목표보다 적어야 좋음 ("OO건 이하"로 표시)</label>
+      </div>
+    </div>
+    <div id="dateFields" style="${type==='count'?'display:none;':''}">
+      <div class="field"><label>목표일자</label><input type="date" id="indDate" value="${existing?.target_date || ''}"/></div>
+    </div>
+    <div class="field">
+      <label>색상</label>
+      <div class="color-row" id="colorRow">
+        ${PRESET_COLORS.map(c => `<div class="color-dot ${c===color?'selected':''}" style="background:${c}" data-color="${c}"></div>`).join('')}
+      </div>
+    </div>
+  `;
+  document.getElementById('modalFoot').innerHTML = `
+    ${isEdit ? `<button class="btn danger" id="delIndBtn" style="margin-right:auto;">삭제</button>` : ''}
+    <button class="btn" id="cancelIndBtn">취소</button>
+    <button class="btn primary" id="saveIndBtn">${isEdit ? '저장' : '추가'}</button>
+  `;
+
+  document.getElementById('typeCountBtn').onclick = () => {
+    type = 'count';
+    document.getElementById('typeCountBtn').classList.add('selected');
+    document.getElementById('typeDateBtn').classList.remove('selected');
+    document.getElementById('countFields').style.display = '';
+    document.getElementById('dateFields').style.display = 'none';
+  };
+  document.getElementById('typeDateBtn').onclick = () => {
+    type = 'date';
+    document.getElementById('typeDateBtn').classList.add('selected');
+    document.getElementById('typeCountBtn').classList.remove('selected');
+    document.getElementById('countFields').style.display = 'none';
+    document.getElementById('dateFields').style.display = '';
+  };
+  document.getElementById('colorRow').querySelectorAll('.color-dot').forEach(dot => {
+    dot.onclick = () => {
+      color = dot.dataset.color;
+      document.getElementById('colorRow').querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+      dot.classList.add('selected');
+    };
+  });
+
+  document.getElementById('cancelIndBtn').onclick = closeModal;
+  if (isEdit) document.getElementById('delIndBtn').onclick = async () => {
+    if (!confirm('이 지표와 모든 하위항목/입력값을 삭제할까요?')) return;
+    try {
+      await sb(`kpi_indicators?id=eq.${existing.id}`, 'DELETE');
+      await loadAll();
+      closeModal();
+    } catch(e) { console.error(e); showToast('삭제 실패'); }
+  };
+
+  document.getElementById('saveIndBtn').onclick = async () => {
+    const title = document.getElementById('indTitle').value.trim();
+    if (!title) return showToast('지표 이름을 입력하세요');
+    const payload = { title, type, color };
+    if (type === 'count') {
+      payload.target_value = Number(document.getElementById('indTarget').value) || 0;
+      payload.is_lower_better = document.getElementById('indLower').checked;
+      payload.target_date = null;
+    } else {
+      payload.target_date = document.getElementById('indDate').value || null;
+      payload.target_value = 0;
+      payload.is_lower_better = false;
+    }
+    try {
+      if (isEdit) {
+        await sb(`kpi_indicators?id=eq.${existing.id}`, 'PATCH', payload);
+      } else {
+        payload.sort_order = indicators.length;
+        await sb('kpi_indicators', 'POST', payload);
+      }
+      await loadAll();
+      closeModal();
+    } catch(e) { console.error(e); showToast('저장 실패'); }
+  };
+
+  openModalOverlay();
+}
+
+function openModalOverlay(){ document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+// 바깥 클릭으로는 안 닫히고, 취소/X 버튼으로만 닫히도록 오버레이 자체 클릭 이벤트는 걸지 않음
+
+/* ============================================================
+   드래그로 지표 순서 바꾸기 (지표관리 탭)
+   ============================================================ */
+function enableDragReorder(container){
+  let dragEl = null;
+  container.querySelectorAll('.indicator-card').forEach(card => {
+    card.addEventListener('dragstart', () => { dragEl = card; card.style.opacity = '.4'; });
+    card.addEventListener('dragend', async () => {
+      card.style.opacity = '';
+      const ids = [...container.querySelectorAll('.indicator-card')].map(el => el.dataset.id);
+      try {
+        await Promise.all(ids.map((id, i) => sb(`kpi_indicators?id=eq.${id}`, 'PATCH', { sort_order: i })));
+        indicators.sort((a,b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+      } catch(e) { console.error(e); }
+    });
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (!dragEl || dragEl === card) return;
+      const rect = card.getBoundingClientRect();
+      const after = (e.clientY - rect.top) > rect.height / 2;
+      container.insertBefore(dragEl, after ? card.nextSibling : card);
+    });
+  });
+}
+
+/* ============================================================
+   대시보드 이미지 저장 (2K 화질)
+   ============================================================ */
+async function saveDashboardAsImage(){
+  const target = document.getElementById('dashboardCapture');
+  showToast('이미지 생성 중...');
+  try {
+    // 2K(가로 약 2560px) 화질을 위해 scale을 넉넉히 잡음
+    const scale = Math.max(2, 2560 / target.offsetWidth);
+    const canvas = await html2canvas(target, { scale, backgroundColor: '#ffffff', useCORS: true });
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `KPI_${currentYear}년${currentMonth}월.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  } catch(e) {
+    console.error(e);
+    showToast('이미지 저장 실패');
+  }
+}
+
+/* ============================================================
+   설정(제목/배지) 저장 - blur 시 자동저장
+   ============================================================ */
+async function saveSetting(field, value){
+  try {
+    await sb('kpi_settings?id=eq.1', 'PATCH', { [field]: value });
+  } catch(e) { console.error(e); showToast('저장 실패'); }
+}
+
+/* ============================================================
+   초기화 및 이벤트 연결
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  // 탭 전환
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // 대시보드 월 이동
+  document.getElementById('dashPrevBtn').addEventListener('click', () => { stepMonth(-1); });
+  document.getElementById('dashNextBtn').addEventListener('click', () => { stepMonth(1); });
+  document.getElementById('mgPrevBtn').addEventListener('click', () => { stepMonth(-1); });
+  document.getElementById('mgNextBtn').addEventListener('click', () => { stepMonth(1); });
+
+  // 제목/배지 편집 저장
+  document.getElementById('mainTitle').addEventListener('blur', e => saveSetting('main_title', e.target.textContent.trim()));
+  document.getElementById('deptBadge').addEventListener('blur', e => saveSetting('dept_badge', e.target.textContent.trim()));
+  // 편집 중 Enter로 줄바꿈 안 되게(단일 라인 유지)
+  [document.getElementById('mainTitle'), document.getElementById('deptBadge')].forEach(el => {
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+  });
+
+  document.getElementById('addIndicatorBtn').addEventListener('click', openAddIndicatorModal);
+  document.getElementById('printBtn').addEventListener('click', saveDashboardAsImage);
+
+  loadAll();
+});
+
+function stepMonth(delta){
+  currentMonth += delta;
+  if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+  if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  renderDashboard();
+  renderManage();
+}
+
+/* 실시간 시계 */
+function updateLiveClock(){
+  const el = document.getElementById('live-clock');
+  if (!el) return;
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  el.textContent = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+updateLiveClock();
+setInterval(updateLiveClock, 1000);
+</script>
+</body>
+</html>
