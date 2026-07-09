@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>KPI 관리</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%F0%9F%93%8A</text></svg>">
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<!-- 숫자 전용 글씨체(JetBrains Mono)는 더 이상 사용하지 않음 (모든 글자를 Pretendard 하나로 통일) -->
+<!-- 대시보드를 이미지로 저장(캡처)하기 위한 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
+<style>
+/* ============================================================================
+   [이 파일 사용법 - 아주 쉽게 설명]
+
+   이 안의 style(스타일) 태그 사이는 전부 "CSS"라는 것으로,
+   화면에 보이는 글자/버튼/칸의 "생김새"(크기, 색깔, 위치, 여백)를 정하는 부분입니다.
+   (글자 내용 자체나 버튼을 눌렀을 때 동작은 CSS가 아니라 훨씬 아래쪽 script(스크립트) 안의
+    JS(자바스크립트) 코드가 담당합니다.)
+
+   CSS 규칙은 항상 이런 모양으로 생겼습니다:
+
+     .어떤이름{
+       속성이름: 값;
+       속성이름: 값;
+     }
+
+   자주 나오는 속성 이름 뜻 (이것만 알아도 대부분 찾아 고칠 수 있어요):
+   - font-size    : 글자 크기 (숫자가 클수록 글자가 커짐, 단위는 px = 픽셀)
+   - font-weight  : 글자 굵기 (400=보통, 500~600=중간, 700~800=진하게/볼드)
+   - color        : 글자 색깔
+   - background   : 배경 색깔 (글자 뒤 칸/버튼의 색)
+   - padding      : "안쪽" 여백 (테두리와 글자 사이 간격)
+   - margin       : "바깥쪽" 여백 (이 요소와 다른 요소 사이 간격)
+   - border       : 테두리 선 (굵기, 종류, 색)
+   - border-radius: 테두리 모서리를 얼마나 둥글게 깎을지 (숫자가 클수록 더 둥글어짐)
+   - width/height : 가로/세로 크기
+
+   ★ 어떤 CSS 규칙이 화면의 어떤 글자인지 찾는 가장 쉬운 방법 ★
+   1) 크롬 브라우저에서 고치고 싶은 글자(예: "대시보드" 탭)를 마우스 오른쪽 버튼으로 클릭
+   2) "검사(Inspect)" 클릭
+   3) 화면 오른쪽에 파란색으로 강조되는 class 이름(예: class="tab")이 뜸
+   4) 그 이름을 이 파일에서 Ctrl+F(찾기)로 검색하면 (예: .tab{) 바로 그 CSS 규칙으로 이동함
+
+   ★ 이 파일에서 자주 물어보실 만한 부분 미리 안내 ★
+   - 상단 탭("대시보드"/"지표관리") 글자 크기·굵기 → 아래 ".tab{ ... }" 규칙 (62번째 줄 근처)
+   - 헤더 제목("KPI 관리") 글자 크기·굵기 → ".header h1{ ... }" 규칙
+   - 리포트 큰 제목("프로젝트 성과지표") 크기 → ".report-title[contenteditable]{ ... }"
+   - 숫자칸(목표/현재) 글꼴 → 맨 위 --mono 변수 (지금은 Pretendard로 통일됨)
+   ============================================================================ */
+
+/* ============================================================
+   색상 이름표 모음. 여기 값만 바꾸면 앱 전체 색이 한번에 바뀝니다.
+   ============================================================ */
+:root{
+  --ink:#1A2332;
+  --muted:#64748B;
+  --line:#D9DEE6;
+  --paper:#F5F7FA;
+  --accent:#C0392B;        /* GSWeb 브랜드 포인트 색(붉은색). 로고 밑줄, 배지 등 */
+  --accent-bg:#FDECEA;
+  --blueprint:#2B6CB0;
+  --success:#34A853;
+  --warning:#FBBC04;
+  --danger:#C0392B;
+  --radius:10px;
+  --sans:'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif; /* 기본 글씨체. 앱의 모든 글자(제목/버튼/숫자 등)가 이 폰트를 씁니다 */
+  --mono:'Pretendard', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', sans-serif; /* ★ 숫자칸(목표/현재 등) 전용 글씨체. 원래는 JetBrains Mono(영어 숫자용 서체)였지만, 사용자 요청으로 Pretendard와 동일하게 변경함. 숫자를 다른 서체로 바꾸고 싶으면 이 줄만 고치면 앱 전체의 숫자칸에 한번에 적용됨 */
+}
+*{ box-sizing:border-box; }
+html,body{ margin:0; padding:0; height:100%; overflow:hidden; }
+body{
+  background:var(--paper); color:var(--ink); font-family:var(--sans);
+  -webkit-font-smoothing:antialiased;
+  word-break:keep-all; overflow-wrap:break-word; /* 한글 단어 중간 줄바꿈 방지 */
+  /* ★★★ 중요: body를 세로 방향 flex 상자로 만듦 (header/tab-bar/main이 위에서부터 순서대로 쌓임)
+     이렇게 해야 아래 main{flex:1; overflow-y:auto} 이 "화면에서 header/tab-bar를 뺀 나머지 공간"만큼만
+     차지하게 되고, 그 안에서 내용이 넘치면 "그 영역 안에서만" 스크롤이 생김.
+     (이 설정이 없으면 main의 높이가 무한정 늘어나버려서, 화면보다 큰 내용이 스크롤도 안 되고
+      그냥 화면 밖으로 통째로 잘려 안 보이는 문제가 생김 - 그래프 하단이 잘려 보이던 진짜 원인) */
+  display:flex; flex-direction:column; height:100%;
+}
+
+/* ================= 상단 앱 헤더 (다른 앱들과 동일한 톤) =================
+   구성: 왼쪽에 "📊 KPI 관리 (날짜시각)", 오른쪽에 버전/연결상태 */
+.header{
+  background:#fff; border-bottom:1px solid var(--line);
+  padding:0 20px; height:60px;              /* ← 헤더 전체 높이. 숫자를 키우면 헤더가 두꺼워짐 */
+  display:flex; align-items:center; justify-content:space-between;
+  flex-shrink:0;                              /* body가 flex 상자가 됐으므로, 헤더 높이가 줄어들지 않게 고정 */
+  position:sticky; top:0; z-index:30;        /* 스크롤해도 항상 맨 위에 붙어있음 */
+  box-shadow:0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08);
+}
+/* "📊 KPI 관리" 글자 크기/굵기는 여기서 조절 */
+.header h1{
+  font-size:18px;      /* ← 헤더 제목 글자 크기 */
+  font-weight:600;      /* ← 헤더 제목 굵기 */
+  display:flex; align-items:center; gap:8px; white-space:nowrap; min-width:0;
+}
+.header h1 span.accent{ color:var(--accent); } /* "관리" 글자만 붉은 포인트색으로 */
+.header h1 span.live-clock{ color:var(--muted); font-size:12px; font-weight:400; margin-left:2px; white-space:nowrap; } /* 옆에 붙는 작은 실시간 시계 글자 */
+.header-right{ display:flex; align-items:center; gap:14px; flex-shrink:0; }
+.app-version{ font-size:12px; color:#B8C0CC; white-space:nowrap; }
+.sync-status{ font-size:12px; color:var(--muted); display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.sync-dot{ width:8px; height:8px; border-radius:50%; background:var(--success); flex-shrink:0; }
+.sync-dot.loading{ background:var(--warning); animation:pulse 1s infinite; }
+.sync-dot.error{ background:var(--danger); }
+@keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+/* ================= 탭바 ("대시보드" / "지표관리" 전환 버튼) =================
+   ★★★ 탭 크기/굵기를 바꾸고 싶으면 아래 .tab{ ... } 안의 값만 고치면 됩니다.
+   다른 앱(주간일지 등)과 완전히 똑같이 맞춰둔 상태라, 이 값을 바꾸면 다른 앱과 달라지니 주의! ★★★ */
+.tab-bar{ background:#fff; border-bottom:1px solid var(--line); padding:0 20px; display:flex; flex-shrink:0; }
+.tab{
+  padding:14px 20px;      /* ← 탭 버튼의 클릭 영역 크기(위아래 14px, 좌우 20px 여백) */
+  font-size:14px;          /* ← 탭 글자 크기 (숫자를 키우면 글자가 커짐) */
+  font-weight:500;         /* ← 탭 글자 굵기 (선택 안 된 탭/선택된 탭 둘 다 이 굵기 그대로 씀) */
+  color:var(--muted);      /* 선택 안 된 탭 글자색 (흐린 회색) */
+  border:none; background:none; cursor:pointer;
+  border-bottom:3px solid transparent; /* ← 선택됐을 때 생기는 밑줄의 두께(3px). 평소엔 투명 */
+  transition:all .15s; white-space:nowrap;
+}
+.tab:hover{ color:var(--ink); }               /* 마우스 올렸을 때 살짝 진해짐 */
+.tab.active{ color:var(--accent); border-bottom-color:var(--accent); } /* 선택된 탭 = 포인트색 글자 + 밑줄 (굵기는 그대로 500) */
+
+/* ================= 공통 툴바 (월 이동 등) ================= */
+.toolbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:14px 20px; flex-wrap:wrap;
+}
+.month-nav{ display:flex; align-items:center; gap:10px; }
+.month-nav button{
+  width:32px; height:32px; border-radius:8px; border:1px solid var(--line); background:#fff;
+  cursor:pointer; font-size:14px; color:var(--muted);
+}
+.month-nav button:hover{ background:var(--paper); }
+.month-nav .label{ font-size:16px; font-weight:700; min-width:90px; text-align:center; white-space:nowrap; }
+.btn{
+  padding:8px 16px; border-radius:8px; border:1px solid var(--line); background:#fff;
+  font-size:13px; font-weight:500; cursor:pointer; color:var(--ink); white-space:nowrap;
+}
+.btn:hover{ background:var(--paper); }
+.btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.primary:hover{ background:#A5311F; }
+.btn.danger{ color:var(--danger); border-color:#F1C4BE; }
+.btn.danger:hover{ background:var(--accent-bg); }
+.btn.icon{ width:36px; height:36px; padding:0; display:flex; align-items:center; justify-content:center; font-size:16px; border-radius:8px; }
+
+/* ================= 메인 영역 스크롤 =================
+   ★ flex:1 = header/tab-bar를 뺀 나머지 화면 공간을 전부 차지함
+   ★ min-height:0 = flex 상자 안에서 내용이 넘칠 때 "억지로 안 늘어나고 스크롤이 생기게" 하는 필수 설정
+   ★ overflow-y:auto = 내용이 이 영역보다 크면 세로 스크롤바가 생김 (이제 잘리지 않고 끝까지 스크롤해서 볼 수 있음) */
+main{ padding:0 20px 20px; overflow-y:auto; flex:1; min-height:0; }
+.tab-content{ display:none; }
+.tab-content.active{ display:block; }
+
+/* ================= 대시보드 & 분기비교: 리포트 헤더 =================
+   ★ 대시보드 탭과 분기비교 탭은 완전히 같은 "종이" 구조(흰 배경, 50vw 폭, 통째로 확대/축소)를 씀.
+   그래서 #dashboardCapture와 #quarterCapture, #dashboardScaleWrap과 #quarterScaleWrap을
+   같은 CSS 규칙으로 함께 묶어둠 */
+/* 바깥 박스: 화면(모니터) 폭의 50%를 항상 유지하는 "틀". 실제 디자인은 안쪽(스케일랩)에서 함
+   ★ 이 비율을 바꾸고 싶으면 50vw 숫자만 수정 (예: 60vw, 40vw 등) */
+#dashboardCapture, #quarterCapture{
+  background:#fff; border-radius:14px; overflow:hidden;
+  margin:0 auto; width:50vw; min-width:480px;
+}
+/* 안쪽 내용물: 항상 "가로 1122px짜리 도면"처럼 고정된 크기로 디자인해두고,
+   JS(updateScale 함수)가 바깥 박스 폭에 맞춰 이 전체를 통째로 확대/축소함.
+   그래서 바깥 박스가 커지면 안의 도넛/글자/표까지 전부 비례해서 같이 커짐 */
+#dashboardScaleWrap, #quarterScaleWrap{
+  width:1122px; padding:28px 32px; box-sizing:border-box;
+  transform-origin:top left; /* 확대/축소가 왼쪽 위를 기준으로 일어나게 함 */
+}
+/* ▣ 리포트 상단 줄 (타이틀 + 로고)
+   ★★★ 캡처(이미지 저장) 라이브러리는 CSS Grid를 제대로 못 읽어서, Grid 대신
+   "position:relative + 절대위치" 방식으로 가운데 정렬을 구현함. (지난 버전엔 grid를 써서
+   화면에서는 잘 보였지만 이미지로 저장하면 깨졌던 원인이 바로 이것) ★★★ */
+.report-top{ position:relative; min-height:40px; }
+.report-title-col{ width:100%; text-align:center; } /* 로고 유무와 상관없이 전체 폭 기준 정중앙 정렬 */
+.report-title[contenteditable="true"], .report-title{
+  font-size:26px;          /* ← 리포트 큰 제목 글자 크기. 숫자를 키우면 제목이 커짐 */
+  font-weight:700;         /* ← 제목 굵기 (400=보통, 700=굵게) */
+  outline:none; display:inline-block; min-width:200px;
+  border-bottom:2px dashed transparent; padding-bottom:2px;
+}
+.report-title[contenteditable="true"]:hover,
+.report-title[contenteditable="true"]:focus{ border-bottom-color:var(--line); }
+.report-logo{
+  position:absolute; top:0; right:0; text-align:right; /* 항상 오른쪽 위 고정. 제목의 가운데 정렬에 영향 안 줌 */
+}
+.report-logo .name{ font-size:20px; font-weight:800; color:#1A1A2E; letter-spacing:-.5px; }
+.report-logo .sub{ font-size:11px; color:var(--muted); letter-spacing:.5px; } /* ← 최소 11px 이상 유지 (그보다 작으면 가독성이 떨어짐) */
+.report-rule{ height:3px; background:var(--accent); margin:10px 0 18px; border-radius:2px; }
+
+/* ▣ "~7월" 월 이동 줄도 같은 방식(절대위치)으로 가운데 정렬 */
+.report-month-row{ position:relative; min-height:38px; margin-bottom:20px; }
+.report-month-row .month-nav{
+  display:flex; align-items:center; justify-content:center; width:100%; gap:0; /* 기본 .month-nav의 gap을 0으로 무효화 - margin으로만 간격을 줌(캡처 호환) */
+}
+.report-month-row .month-nav button{ margin:0 5px; } /* 버튼 사이 간격 (gap 대신 margin 사용 - 캡처 호환성) */
+.report-month-row .month-nav .label{ font-size:22px; font-weight:800; margin:0 5px; }
+.report-month-row .dept-badge{ position:absolute; top:50%; right:0; transform:translateY(-50%); }
+.dept-badge[contenteditable="true"], .dept-badge{
+  background:var(--accent); color:#fff; font-weight:700; font-size:13px;
+  padding:6px 14px; border-radius:6px; outline:none; white-space:nowrap;
+}
+.print-btn{
+  width:38px; height:38px; border-radius:8px; border:1px solid var(--line); background:#fff;
+  cursor:pointer; font-size:17px; display:flex; align-items:center; justify-content:center;
+}
+.print-btn:hover{ background:var(--paper); }
+/* ★ 새로고침 버튼 - 다른 앱(게시판 등)과 완전히 동일한 핑크 알약 스타일로 통일.
+   앞으로 새로고침 버튼을 새로 만들 때는 이 스타일(.refresh-btn)을 그대로 복사해서 쓰면 됨 */
+.refresh-btn{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:7px 16px;
+  border:1px solid #F3C1D3; border-radius:7px;
+  background:#FFF3F7; color:#D6336C;
+  font-size:13px; font-weight:600; font-family:var(--sans);
+  cursor:pointer; white-space:nowrap;
+  transition:background .15s, transform .3s;
+}
+.refresh-btn:hover{ background:#FCE3EC; }
+.refresh-btn svg{ width:14px; height:14px; flex-shrink:0; }
+.refresh-btn.spinning svg{ animation:spin .6s linear; }
+@keyframes spin{ from{ transform:rotate(0deg); } to{ transform:rotate(360deg); } }
+
+/* ================= 대시보드: 지표 카드들 ================= */
+/* ★ 카드 사이 간격은 gap 대신 margin으로 처리함. 이미지 캡처 라이브러리가 flex의 gap 속성을
+   제대로 계산하지 못해서, 지표가 여러 줄로 줄바꿈될 때 카드끼리 겹쳐 보이는 문제가 있었기 때문 */
+/* ★ 카드가 6개 이상이 되어도 두 줄로 줄바꿈되지 않고 한 줄로만 나란히 배치되게 함.
+   (줄바꿈되면 마지막 줄 카드 하나만 남아 다른 줄과 폭이 안 맞는 문제가 있었음)
+   대신 카드 개수가 너무 많아 한 줄에 다 안 들어가면, 줄바꿈 대신 가로 스크롤이 생기게 함 */
+.kpi-cards{ display:flex; flex-wrap:nowrap; overflow-x:auto; justify-content:center; margin:-8px -8px 20px; padding-bottom:4px; }
+.kpi-card{
+  margin:8px; /* 카드 하나하나의 상하좌우 여백 (이 값이 카드 사이 간격을 만듦) */
+  /* ★ 폭을 214px로 딱 고정하지 않고, 160px~230px 사이에서 늘었다 줄었다 하게 함.
+     이렇게 해야 지표가 5~6개 정도일 때 억지로 줄바꿈되지 않고 한 줄에 폭을 나눠 가지며 꽉 참.
+     (지표가 너무 많아져서 160px보다 더 좁아져야 하는 상황이 되면 그때는 자동으로 다음 줄로 넘어감) */
+  flex:1 1 190px; min-width:190px; max-width:230px;
+  border:2px solid var(--card-color, var(--line));
+  border-radius:14px; padding:16px; text-align:center;
+}
+.donut-svg{ display:block; margin:0 auto 12px; } /* 도넛 그래프 (SVG로 그림. 크기는 JS의 donutSvg 함수 size값에서 조절) */
+.donut-pct{ font-size:22px; font-weight:800; } /* (참고용 - 실제 %글자 크기는 JS donutSvg 함수 안 font-size에서 조절) */
+.kpi-card .title{ font-size:14px; font-weight:700; margin-bottom:10px; } /* ← 카드 안 지표 이름 글자 크기/굵기 */
+.kpi-card .stat-row{ display:flex; margin:0 -3px; }
+.kpi-card .stat{ flex:1; margin:0 3px; }
+.kpi-card .stat label{ display:block; font-size:11px; color:var(--muted); margin-bottom:4px; }
+.kpi-card .stat .val{
+  border:1px solid var(--line); border-radius:6px; padding:6px 4px;
+  font-family:var(--mono); font-weight:700; font-size:13px; background:var(--paper);
+}
+.kpi-card .stat.highlight .val{ font-weight:800; }
+/* ★ 목표금액형 전용 - 숫자가 길어서 좌우로 나란히 두면 겹치므로, 목표/현재를 위아래로 쌓는 방식.
+   라벨("목표"/"현재")은 박스 왼쪽에 놓고, 값 박스는 나머지 폭을 전부 차지함.
+   글자 크기는 "10억"(예: 1,000,000,000원) 단위 숫자가 항상 넉넉히 들어가는 크기로 고정해둠
+   (숫자 길이에 따라 커졌다 작아졌다 하지 않고 항상 동일한 크기 - 목표/현재 비교가 쉬워짐)
+   오른쪽 정렬로 맞춰서 자릿수(일/십/백...)가 위아래로 나란히 보이게 함 */
+.kpi-card .stat-col{ display:flex; flex-direction:column; gap:8px; text-align:left; }
+.kpi-card .stat-col .stat-block{ display:flex; align-items:center; gap:8px; }
+.kpi-card .stat-col .stat-block label{ flex:0 0 28px; font-size:11px; color:var(--muted); }
+.kpi-card .stat-col .stat-block .val{
+  flex:1; min-width:0; border:1px solid var(--line); border-radius:6px; padding:6px 8px;
+  font-family:var(--mono); font-weight:700; font-size:12px; background:var(--paper);
+  box-sizing:border-box; text-align:right; white-space:nowrap; overflow:hidden;
+}
+.kpi-card .stat-col .stat-block.highlight .val{ font-weight:800; }
+
+/* ================= 대시보드: 그래프 ================= */
+.kpi-chart-outer{ display:flex; flex-direction:column; align-items:center; width:100%; }
+.kpi-chart-scroll{ width:100%; overflow-x:auto; display:flex; justify-content:center; padding-bottom:14px; }
+/* ↑ padding-bottom: 그래프 폭이 넓어서 가로 스크롤바가 생길 때, 스크롤바가 x축 월 글자(1월,2월...)를
+   가리지 않도록 미리 여유 공간을 만들어둠. 화면에서 월 표시가 안 보이던 문제의 원인이 이것이었음 */
+.kpi-chart-scroll svg{ flex-shrink:0; }
+.kpi-legend{ display:flex; flex-wrap:wrap; justify-content:center; margin:6px -8px 0; }
+.kpi-legend .item{ display:flex; align-items:center; font-size:12px; color:var(--ink); margin:0 8px 6px; }
+.kpi-legend .dot{ width:10px; height:10px; border-radius:50%; margin-right:6px; }
+
+
+/* ================= 지표관리 탭 =================
+   구성: 카드 여러 개가 그리드로 가로 배치됨. 카드 하나 = 지표 하나.
+   카드 안: 헤더(제목/목표, 드래그 가능한 진한 회색 박스) + 표(하위항목/이번달 증가분/누적) */
+#indicatorList{ display:grid; grid-template-columns:repeat(auto-fill, minmax(420px, 1fr)); gap:16px; margin-bottom:20px; align-items:start; }
+/* ↑ auto-fill,minmax(360px,1fr): 카드 하나가 최소 360px을 넘게 확보하면서, 화면 너비에 맞춰
+   자동으로 한 줄에 몇 개씩 놓을지 결정됨(그래서 "가로로 배치"가 됨). 카드 최소폭을 바꾸려면 360px 값을 수정 */
+.indicator-card{ background:#fff; border:1px solid var(--line); border-radius:12px; overflow:hidden; }
+.indicator-head{
+  display:flex; align-items:center; flex-wrap:wrap; gap:10px; row-gap:4px; padding:14px 16px;
+  border-bottom:1px solid var(--line); background:#E7EBF0; /* 드래그 가능 영역임을 알 수 있도록 살짝 진한 회색 */
+  cursor:grab; user-select:none;
+}
+.indicator-head:active{ cursor:grabbing; }
+.indicator-head .swatch{ width:16px; height:16px; border-radius:50%; flex-shrink:0; }
+.indicator-head .name{
+  font-weight:700; font-size:15px; outline:none; user-select:text; -webkit-user-select:text;
+  border-bottom:2px dashed transparent; padding-bottom:1px;
+  cursor:text; /* ★ 부모(.indicator-head)의 드래그용 손 커서(grab)를 여기서 텍스트 커서로 덮어씀 */
+  flex:0 1 auto; max-width:66%; /* ★ 예전엔 flex:1로 남는 공간을 전부 차지해서 빈 곳까지 클릭 영역이 됐음.
+     이제는 글자 길이에 맞게만 커지고(flex-grow 없음), 최대 폭도 헤더 전체의 2/3까지만 차지하게 제한함 */
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.indicator-head .name:hover, .indicator-head .name:focus{ border-bottom-color:var(--muted); } /* 배경 박스 대신, 다른 편집칸(제목 등)과 똑같이 점선 밑줄로만 표시 */
+.indicator-head .type-tag{ font-size:11px; color:var(--muted); font-weight:400; white-space:nowrap; margin-left:auto; }
+.indicator-head .target-txt{ font-size:12px; color:var(--muted); white-space:normal; word-break:break-word; margin-left:auto; text-align:right; }
+.indicator-head .target-txt .mono-num{ font-family:var(--mono); font-weight:700; color:var(--ink); }
+.indicator-body{ padding:12px 16px; }
+table.sub-table{ width:100%; border-collapse:collapse; table-layout:fixed; } /* table-layout:fixed로 각 칸 폭을 아래 th 지정값대로 고정 (안 그러면 '누적' 칸이 필요 이상으로 넓어져 오른쪽에 빈 공간이 생김) */
+table.sub-table th:nth-child(1){ width:auto; }
+table.sub-table th:nth-child(2){ width:130px; text-align:right; } /* ← '7월 증가분' 헤더도 '누적'처럼 오른쪽 정렬 */
+table.sub-table th:nth-child(3){ width:150px; text-align:right; } /* ← 큰 금액 숫자가 안 잘리도록 90px→150px로 넓힘 */
+table.sub-table td:nth-child(2){ text-align:right; padding-right:10px; white-space:nowrap; } /* ← 증가분 입력창도 오른쪽 정렬 */
+table.sub-table td:nth-child(3){ text-align:right; padding-right:10px; white-space:nowrap; }
+table.sub-table th{
+  font-size:11px; color:var(--muted); font-weight:600; text-align:left; padding:6px 8px;
+  border-bottom:1px solid var(--line); white-space:nowrap;
+}
+table.sub-table td{ padding:6px 8px; border-bottom:1px solid #EEF1F5; font-size:13px; }
+table.sub-table input.month-input{
+  width:104px; padding:6px 8px; border:1px solid var(--line); border-radius:6px;
+  font-family:var(--mono); font-size:13px; text-align:right; color:var(--muted);
+}
+table.sub-table input.month-input:focus{ outline:none; border-color:var(--blueprint); }
+.cum-val{ font-family:var(--mono); font-size:13px; color:var(--muted); font-weight:500; } /* 하위항목별 누적값 = 13px 회색으로 통일 */
+.sum-row .cum-val{ color:var(--ink); font-weight:800; font-size:13px; } /* ★ 합계(맨 아래 줄) 값만 예외적으로 진하게 유지 - 여기 색/굵기만 따로 지정해서 .cum-val의 회색 규칙을 덮어씀 */
+.sub-name{ display:flex; align-items:center; gap:6px; }
+.sub-name input.name-input{
+  border:1px solid transparent; background:none; font-size:13px; font-weight:500;
+  padding:4px 6px 4px 0; border-radius:6px; width:100px; color:var(--muted);
+  /* ↑ padding 순서: 위 6px 아래 4px 오른쪽 6px 왼쪽 0px.
+     왼쪽만 0으로 만들어서, td 자체 여백(8px)만으로 "하위항목" 헤더 글자와 시작 위치가 정확히 일치하게 함 */
+}
+.sub-name input.name-input:hover{ border-color:var(--line); }
+.sub-name input.name-input:focus{ outline:none; border-color:var(--blueprint); background:#fff; }
+.row-x{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; padding:2px 6px; }
+.row-x:hover{ color:var(--danger); }
+.sum-row td{ font-weight:800; border-top:2px solid var(--ink); border-bottom:none; }
+.add-sub-btn{
+  margin-top:8px; background:none; border:1px dashed var(--line); border-radius:8px;
+  padding:6px 12px; font-size:12px; color:var(--muted); cursor:pointer;
+}
+.add-sub-btn:hover{ background:var(--paper); }
+.date-type-row{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.date-type-row .stat label{ display:block; font-size:11px; color:var(--muted); margin-bottom:4px; }
+/* ★ 목표일자 / 달성률 입력창 공통 스타일. 다른 값 표시칸들과 통일: 13px, 살짝 회색(muted)
+   - font-size   : 여기 숫자를 바꾸면 목표일자/달성률 글자 크기가 바뀜
+   - color       : 글자 색깔 (var(--muted) = 살짝 회색)
+   - padding     : 테두리 안쪽 여백 (첫번째 숫자=위아래, 두번째 숫자=좌우)
+   - border-radius: 모서리 둥근 정도 */
+.date-input{
+  border:1px solid var(--line); border-radius:8px; padding:8px 10px;
+  font-family:var(--sans); font-size:13px; font-weight:500; color:var(--muted);
+  background:#fff;
+}
+.date-input:focus{ outline:none; border-color:var(--blueprint); }
+.indicator-card.dragging{ opacity:.4; } /* 드래그 중인 카드 = 반투명 (주간일지와 동일) */
+/* ★ outline은 카드 "바깥쪽"에 그려져서 헤더의 진한 회색 배경에 가려지지 않음.
+   (이전엔 box-shadow:inset을 썼는데, 이건 카드 "안쪽"에 그려지다 보니 헤더 배경이 위에 덮여서
+   테두리가 헤더 부분만 안 보이고 밑부분만 보이는 문제가 있었음) */
+.indicator-card.drag-over{ outline:3px solid var(--blueprint); outline-offset:2px; }
+.add-indicator-btn{
+  width:100%; padding:14px; border:2px dashed var(--line); border-radius:12px;
+  background:none; color:var(--muted); font-size:14px; cursor:pointer; margin-bottom:24px;
+}
+.add-indicator-btn:hover{ background:#fff; color:var(--ink); }
+
+/* ================= 모달 ================= */
+.modal-overlay{
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:100;
+  align-items:center; justify-content:center;
+}
+.modal-overlay.open{ display:flex; }
+.modal-box{ background:#fff; border-radius:14px; width:400px; max-width:92vw; max-height:86vh; overflow-y:auto; }
+.modal-head{ padding:16px 20px; border-bottom:1px solid var(--line); font-weight:700; font-size:15px; }
+.modal-body{ padding:16px 20px; }
+.modal-body .field{ margin-bottom:14px; }
+.modal-body label{ display:block; font-size:12px; color:var(--muted); margin-bottom:6px; font-weight:600; }
+.modal-body input[type=text], .modal-body input[type=number], .modal-body input[type=date]{
+  width:100%; padding:9px 10px; border:1px solid var(--line); border-radius:8px; font-size:14px; font-family:var(--sans);
+}
+.modal-body input:focus{ outline:none; border-color:var(--blueprint); }
+.modal-body .type-toggle{ display:flex; gap:8px; }
+.modal-body .type-toggle button{
+  flex:1; padding:9px; border:1px solid var(--line); border-radius:8px; background:#fff; cursor:pointer; font-size:13px;
+}
+.modal-body .type-toggle button.selected{ background:var(--blueprint); color:#fff; border-color:var(--blueprint); }
+.modal-body .color-row{ display:flex; gap:8px; flex-wrap:wrap; }
+.modal-body .color-dot{
+  width:28px; height:28px; border-radius:50%; cursor:pointer; border:2px solid transparent;
+}
+.modal-body .color-dot.selected{ border-color:var(--ink); }
+.checkbox-row{ display:flex; align-items:center; gap:8px; }
+.modal-foot{ padding:14px 20px; border-top:1px solid var(--line); display:flex; justify-content:flex-end; gap:8px; }
+
+/* ================= 토스트 ================= */
+#toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--ink); color:#fff; padding:10px 18px; border-radius:8px; font-size:13px;
+  opacity:0; pointer-events:none; transition:all .2s; z-index:200; white-space:nowrap;
+}
+#toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ================= 모바일(480px 이하) 대응 ================= */
+@media (max-width:480px){
+  .header{ height:52px; padding:0 12px; }
+  .header h1{ font-size:15px; }
+  .header .live-clock{ display:none; }
+  .app-version{ display:none; }
+  .toolbar{ padding:10px 12px; }
+  main{ padding:0 10px 14px; }
+  /* ↓ 대시보드 안쪽(#dashboardScaleWrap)은 JS가 화면 폭에 맞춰 자동으로 통째로 축소하므로
+     예전처럼 폰트/카드 크기를 따로 조절해줄 필요가 없어짐 (updateDashboardScale 함수 참고) */
+  table.sub-table th, table.sub-table td{ padding:5px 4px; font-size:12px; }
+  table.sub-table input.month-input{ width:80px; }
+  .sub-name input.name-input{ width:90px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 KPI <span class="accent">관리</span> <span class="live-clock" id="live-clock"></span></h1>
+  <div class="header-right">
+    <span class="app-version">v1.0</span>
+    <span class="sync-status"><span class="sync-dot" id="syncDot"></span><span id="syncText">연결됨</span></span>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <button class="tab active" data-tab="dashboard">대시보드</button>
+  <button class="tab" data-tab="quarter">분기비교</button>
+  <button class="tab" data-tab="manage">지표관리</button>
+</div>
+
+<main>
+  <!-- ================= 대시보드 탭 ================= -->
+  <div class="tab-content active" id="tab-dashboard">
+    <div class="toolbar">
+      <div></div>
+      <div style="display:flex; gap:8px;">
+        <button class="refresh-btn" id="refreshBtn" title="새로고침">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span>새로고침</span>
+        </button>
+        <button class="btn icon print-btn" id="printBtn" title="이미지로 저장(2K)">🖨️</button>
+      </div>
+    </div>
+
+    <!-- ★ dashboardCapture(바깥 박스, 폭=모니터의 50%)와 dashboardScaleWrap(안쪽 내용물, 항상 1122px 기준으로 디자인됨)을
+         분리함. JS가 "바깥 박스 폭 ÷ 1122" 비율을 계산해서 안쪽 전체를 통째로 확대/축소(transform:scale)함.
+         이렇게 해야 박스가 커질 때 도넛/글자/표 전부 다 같이 비례해서 커짐 (그냥 여백만 늘어나는 게 아니라) -->
+    <div id="dashboardCapture">
+      <div id="dashboardScaleWrap">
+        <div class="report-top">
+          <div class="report-title-col">
+            <div class="report-title" contenteditable="true" id="mainTitle">프로젝트 성과지표 (KPI)</div>
+          </div>
+          <div class="report-logo">
+            <div class="name">GSWeb</div>
+            <div class="sub">Recreation Equipment</div>
+          </div>
+        </div>
+        <div class="report-rule"></div>
+
+        <div class="report-month-row">
+          <div class="month-nav">
+            <button id="dashPrevBtn">◀</button>
+            <span class="label">~ <span id="dashMonthLabel"></span></span>
+            <button id="dashNextBtn">▶</button>
+          </div>
+          <div class="dept-badge" contenteditable="true" id="deptBadge">기술전략부</div>
+        </div>
+
+        <div class="kpi-cards" id="kpiCards"></div>
+        <div class="kpi-chart-outer" id="kpiChartWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 분기비교 탭 =================
+       ★ 지표별로 1분기(1~3월)/2분기(4~6월)/3분기(7~9월)/4분기(10~12월) 끝난 시점의
+       누적 진행률(%)을 막대 4개로 나란히 비교해서 보여줌. 막대 위에는 그 분기에
+       늘어난 증가분(건수/금액)도 함께 표시함.
+       ★ 날짜형(예: 카달로그 제작) 지표는 월별 증가분 기록이 없어서(달성률을 직접 입력하는 방식)
+       분기별 증가분을 계산할 수 없으므로 이 그래프에서는 제외함.
+       ★ 대시보드 탭과 완전히 동일한 구조(흰 배경 종이 + 50vw 폭 + 통째로 확대/축소)를 그대로 사용함.
+         (#quarterCapture/#quarterScaleWrap는 CSS에서 #dashboardCapture/#dashboardScaleWrap과
+          같은 규칙을 공유하도록 되어 있음) -->
+  <div class="tab-content" id="tab-quarter">
+    <div class="toolbar">
+      <div style="font-size:12px;color:var(--muted);">날짜형 지표는 분기별 증가분이 없어 이 그래프에서 제외됩니다</div>
+      <div style="display:flex; gap:8px;">
+        <button class="refresh-btn" id="qRefreshBtn" title="새로고침">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span>새로고침</span>
+        </button>
+        <button class="btn icon print-btn" id="qPrintBtn" title="이미지로 저장(2K)">🖨️</button>
+      </div>
+    </div>
+    <div id="quarterCapture">
+      <div id="quarterScaleWrap">
+        <div class="report-top">
+          <div class="report-title-col">
+            <div class="report-title" style="cursor:default;">분기별 KPI 진행률 비교</div>
+          </div>
+          <div class="report-logo">
+            <div class="name">GSWeb</div>
+            <div class="sub">Recreation Equipment</div>
+          </div>
+        </div>
+        <div class="report-rule"></div>
+
+        <div class="report-month-row">
+          <div class="month-nav">
+            <button id="qPrevBtn">◀</button>
+            <span class="label" id="qYearLabel"></span>
+            <button id="qNextBtn">▶</button>
+          </div>
+          <div class="dept-badge" id="qDeptBadge">기술전략부</div>
+        </div>
+
+        <div id="quarterChartWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= 지표관리 탭 ================= -->
+  <div class="tab-content" id="tab-manage">
+    <div class="toolbar">
+      <div class="month-nav">
+        <button id="mgPrevBtn">◀</button>
+        <span class="label" id="mgMonthLabel"></span>
+        <button id="mgNextBtn">▶</button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);">이 달에 새로 늘어난 값만 입력하면 누적은 자동 계산됩니다</div>
+    </div>
+    <div id="indicatorList"></div>
+    <button class="add-indicator-btn" id="addIndicatorBtn">+ 지표 추가</button>
+  </div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-head" id="modalHead"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============================================================================
+   [이 script(자바스크립트) 부분 사용법 - 아주 쉽게 설명]
+
+   위쪽 <style> 부분이 "생김새"를 정한다면, 여기 <script> 부분은
+   "버튼을 누르면 무슨 일이 일어나는지", "데이터를 어떻게 서버에 저장/불러오는지"를 정합니다.
+
+   - function 이름(){ ... } : "이름"이라는 동작(함수)을 정의함. 나중에 이름() 이라고 부르면 실행됨
+   - async function : 서버와 통신하는 등 "시간이 걸리는 작업"이 들어있는 함수라는 뜻
+   - await : "이 작업이 끝날 때까지 기다렸다가 다음 줄로 넘어가라"는 뜻
+   - const/let  : 값을 담아두는 상자(변수). const는 안 바뀌는 값, let은 나중에 바뀔 수 있는 값
+   - document.getElementById('아이디') : 화면에서 그 id를 가진 요소를 찾아옴
+
+   ★ 이 파일에서 자주 물어보실 만한 함수 미리 안내 ★
+   - cumulativeOf / indicatorTotal / pctOf : 누적값·진행률(%) 계산 (아래쪽에 있음)
+   - renderDashboard / renderChart / renderManage : 화면을 실제로 그려주는 함수들
+   - sb() : Supabase 서버에 데이터를 읽고 쓰는 공용 함수
+   ============================================================================ */
+
+/* ============================================================
+   Supabase 연결 정보 (기본값 그대로 사용)
+   ============================================================ */
+const SUPABASE_URL = 'https://zrhwdvuehaelintkfoqn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_oQ7F4Q9KRS22lpiE9uILFA_zN7n2V4V';
+
+/* ============================================================
+   부서 구분 설정 (주간일지 앱과 동일한 방식)
+   ★ Supabase 프로젝트(테이블)는 5개 부서가 전부 함께 쓰지만, 이 값 덕분에
+   "이 파일은 어느 부서 화면인지"를 구분해서 그 부서 데이터만 불러오고 저장함.
+   - DEPARTMENT_ID    : 서버에 데이터를 요청/저장할 때 쓰는 값 (다른 부서가 유추하기 어려운 임의 문자열)
+   - DEPARTMENT_LABEL : 화면/브라우저 탭 제목에 보이는 이름
+   ★ 다른 부서용 파일을 새로 만들 때는, 이 두 값만 그 부서에 맞게 바꿔서 별도 파일로 저장하면 됨
+   (예: kpi-디자인부-xxxxxxxx.html 파일 안에서 DEPARTMENT_ID/LABEL만 디자인부 값으로 교체) */
+const DEPARTMENT_ID = 'e7f2a91c';     // 이 파일(기술전략부)의 서버 필터용 값
+const DEPARTMENT_LABEL = '기술전략부'; // 화면에 보이는 부서 이름
+const DEPT_Q = encodeURIComponent(DEPARTMENT_ID);
+document.title = `KPI 관리 · ${DEPARTMENT_LABEL}`;
+document.addEventListener('DOMContentLoaded', () => {
+  const qBadge = document.getElementById('qDeptBadge');
+  if (qBadge) qBadge.textContent = DEPARTMENT_LABEL;
+});
+
+// Supabase REST API 호출 공용 함수 (SDK 없이 fetch 직접 사용 - 변수 충돌 방지)
+// path: 어떤 테이블/조건에 요청할지 (예: 'kpi_indicators?select=*')
+// method: GET(조회)/POST(추가)/PATCH(수정)/DELETE(삭제)
+// body: POST/PATCH일 때 보낼 데이터 (자바스크립트 객체 → 자동으로 JSON 문자열로 변환)
+async function sb(path, method = 'GET', body = null, headers = {}) {
+  setSync('loading'); // 헤더의 "연결됨" 표시를 잠깐 "동기화중"(노란색)으로 바꿈
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+      method,
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=representation', // 추가/수정한 결과를 그대로 돌려받기 위한 옵션
+        ...headers
+      },
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`${res.status} ${detail}`);
+    }
+    setSync('ok'); // 성공하면 다시 초록색 "연결됨"으로
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+  } catch (e) {
+    setSync('error'); // 실패하면 빨간색 "오류"로 표시
+    throw e;
+  }
+}
+function setSync(state){
+  const dot = document.getElementById('syncDot');
+  const txt = document.getElementById('syncText');
+  if(!dot) return;
+  dot.className = 'sync-dot' + (state === 'loading' ? ' loading' : state === 'error' ? ' error' : '');
+  txt.textContent = state === 'loading' ? '동기화중' : state === 'error' ? '오류' : '연결됨';
+}
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function escapeHtml(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================================================
+   전역 상태
+   ============================================================ */
+const TODAY = new Date();
+let currentYear = TODAY.getFullYear();
+let currentMonth = TODAY.getMonth() + 1;   // 대시보드 "~N월" 및 지표관리 입력월 - 같이 씀
+let quarterYear = TODAY.getFullYear();     // 분기비교 탭 전용 연도 (대시보드/지표관리와 별개로 움직임)
+
+let indicators = [];      // kpi_indicators 목록
+let subitemsMap = {};     // { indicator_id: [subitem, ...] }
+let entriesMap = {};      // { subitem_id: { "year-month": value } }
+
+const PRESET_COLORS = ['#6C5CE7','#00B894','#F39C12','#2B6CB0','#E84393','#E74C3C','#16A085','#8E44AD'];
+
+/* ============================================================
+   데이터 로드
+   ============================================================ */
+async function loadAll(){
+  const [settings, inds, subs] = await Promise.all([
+    sb(`kpi_settings?department=eq.${DEPT_Q}&select=*`),
+    sb(`kpi_indicators?department=eq.${DEPT_Q}&select=*&order=sort_order.asc`),
+    sb(`kpi_subitems?department=eq.${DEPT_Q}&select=*&order=sort_order.asc`)
+  ]);
+
+  if (settings && settings[0]) {
+    document.getElementById('mainTitle').textContent = settings[0].main_title || '프로젝트 성과지표 (KPI)';
+    document.getElementById('deptBadge').textContent = settings[0].dept_badge || '기술전략부';
+  }
+
+  indicators = inds || [];
+  subitemsMap = {};
+  (subs || []).forEach(s => {
+    if (!subitemsMap[s.indicator_id]) subitemsMap[s.indicator_id] = [];
+    subitemsMap[s.indicator_id].push(s);
+  });
+
+  const allSubIds = (subs || []).map(s => s.id);
+  entriesMap = {};
+  if (allSubIds.length) {
+    const idList = allSubIds.map(id => `"${id}"`).join(',');
+    const entries = await sb(`kpi_entries?subitem_id=in.(${idList})&select=*`);
+    (entries || []).forEach(e => {
+      if (!entriesMap[e.subitem_id]) entriesMap[e.subitem_id] = {};
+      entriesMap[e.subitem_id][`${e.year}-${e.month}`] = Number(e.value) || 0;
+    });
+  }
+
+  renderDashboard();
+  renderManage();
+  renderQuarterChart();
+}
+
+/* ============================================================
+   계산 helper
+   ============================================================ */
+/* ============================================================
+   ★★★ 핵심 계산 로직 ★★★
+   지표관리 탭에서 사람이 입력하는 값은 "그 달에 새로 늘어난 개수(증분)" 입니다.
+   예: 1월에 10, 2월에 5를 입력했다면 → 2월까지의 누적은 10+5=15 가 됩니다.
+   즉 "총 누적 개수"를 직접 입력할 필요 없이, 이 함수들이 자동으로 다 더해줍니다.
+   ============================================================ */
+// 특정 하위항목의 [year년 month월]까지 누적값 = 그 이전(포함) 모든 달의 증분을 다 더한 값
+function cumulativeOf(subitemId, year, month){
+  const m = entriesMap[subitemId] || {};   // 이 하위항목에 지금까지 입력된 { "년-월": 값 } 목록
+  let total = 0;
+  Object.keys(m).forEach(key => {
+    const [y, mo] = key.split('-').map(Number);
+    if (y < year || (y === year && mo <= month)) total += m[key]; // year/month "이전 또는 그 달까지"만 더함
+  });
+  return total;
+}
+// 지표 하나의 [year년 month월] 시점 누적 합계 = 그 지표에 속한 모든 하위항목의 누적을 다 더한 값
+function indicatorTotal(indicator, year, month){
+  const subs = subitemsMap[indicator.id] || [];
+  return subs.reduce((sum, s) => sum + cumulativeOf(s.id, year, month), 0);
+}
+// 도넛에 표시할 진행률(%) = 누적 ÷ 목표 × 100 (0~100 사이로 제한, 날짜형 지표는 항상 100%)
+function pctOf(indicator, year, month){
+  // 날짜형(카달로그 제작 등) 지표는 "건수"가 아니라 목표일자만 있으므로,
+  // 예전엔 무조건 100%로 표시했지만 → 이제는 지표관리 탭에서 사람이 직접 입력한 "달성률(%)" 값을 그대로 씀
+  if (indicator.type === 'date') return Math.max(0, Math.min(100, Number(indicator.progress_pct) || 0));
+  const target = Number(indicator.target_value) || 0;
+  if (!target) return 0; // 목표가 0이면 나눗셈 에러 방지를 위해 그냥 0%로
+  const p = indicatorTotal(indicator, year, month) / target * 100;
+  return Math.max(0, Math.min(100, p)); // 도넛 "링" 그림은 100%를 넘게 그릴 수 없으므로 여기서만 100%로 잘라냄
+}
+// ★ 목표를 초과 달성했을 때 100%가 넘는 실제 숫자를 그대로 보여주기 위한 함수.
+// (도넛 "링"은 100%를 넘게 그릴 수 없어서 pctOf()에서 잘라내지만, 화면에 표시하는 숫자나
+// 꺾은선/막대그래프는 110%, 160%처럼 실제 초과분까지 그대로 보여줘야 하므로 따로 둠)
+function rawPctOf(indicator, year, month){
+  if (indicator.type === 'date') return Math.max(0, Math.min(100, Number(indicator.progress_pct) || 0)); // 날짜형은 원래 100%가 최대라 그대로 둠
+  const target = Number(indicator.target_value) || 0;
+  if (!target) return 0;
+  const p = indicatorTotal(indicator, year, month) / target * 100;
+  return Math.max(0, p); // 위로는 안 잘라냄(초과분 그대로), 아래로는 0% 밑으로 안 내려가게만 함
+}
+// 날짜를 짧게 표시하는 함수: "2026-12-31" → "26.12.31" (앞 두 자리 연도 생략 + 점으로 구분)
+// ★ 한 줄로 표시되게 하려고 글자수를 줄이는 용도. 원래 날짜 값 자체는 그대로 서버(DB)에 저장됨
+function formatDateShort(dateStr){
+  if (!dateStr) return '-';
+  const parts = dateStr.split('-'); // "2026-12-31" → ["2026","12","31"]
+  if (parts.length !== 3) return dateStr;
+  const yy = parts[0].slice(2); // 앞 두 자리(20)를 잘라내고 뒤 두 자리만 사용
+  return `${yy}.${parts[1]}.${parts[2]}`;
+}
+// 지표 유형별 목표/현재 값을 사람이 읽기 좋은 글자로 바꿔주는 함수들
+// - count(누적건수형)  → "3,233건"
+// - amount(목표금액형) → "2,000,000원" (쉼표로 자릿수 구분)
+function targetUnitLabel(type){ return type === 'amount' ? '원' : '건'; }
+function formatTargetTxt(ind){
+  const unit = targetUnitLabel(ind.type);
+  return Number(ind.target_value || 0).toLocaleString() + unit + (ind.is_lower_better ? ' 이하' : '');
+}
+function formatCurrentTxt(ind, total){
+  const unit = ind.type === 'amount' ? '원' : '';
+  return total.toLocaleString() + unit;
+}
+function daysRemaining(dateStr){
+  if (!dateStr) return null;
+  const target = new Date(dateStr + 'T00:00:00');
+  const diff = Math.round((target - new Date(TODAY.toDateString())) / 86400000); // 86400000 = 하루를 밀리초로 표현한 값
+  return diff;
+}
+
+/* ============================================================
+   대시보드 렌더링
+   ============================================================ */
+// hex 색상을 옅은 배경색(rgba)으로 바꿔주는 함수 (CSS color-mix는 캡처 라이브러리가 지원 안해서 JS로 직접 계산)
+function lightBg(hex){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  return `rgba(${r},${g},${b},0.15)`;
+}
+
+// SVG로 도넛을 그리는 함수 (CSS conic-gradient는 이미지 캡처 라이브러리가 지원하지 않아 SVG로 대체)
+// ★ transform="rotate(...)" 도 캡처 라이브러리가 제대로 처리하지 못해서 링이 잘못된 위치로 틀어지는
+// 문제가 있었음 → transform을 아예 쓰지 않고, 삼각함수로 좌표를 직접 계산해서 그리는 방식으로 변경
+function donutSvg(pct, color){
+  // ★★★ 캔버스(size)를 130→150으로 더 키움. 링 반지름(r)은 이전과 동일한 48로 고정해서
+  // 화면에 보이는 링 크기는 그대로 두고, 사방 여백만 더 넉넉하게 확보함.
+  // (이전엔 캔버스가 딱 맞아서 저장(캡처)할 때 오른쪽이 미세하게 잘리는 문제가 있었음.
+  //  여백을 더 크게 잡을수록 잘릴 확률이 줄어듦)
+  const size = 150, stroke = 14;
+  const r = 48; // ← 링의 두께(굵기)가 아니라 "링의 반지름"(크기). 숫자를 키우면 도넛이 커짐
+  const c = size / 2;
+  const clamped = Math.max(0, Math.min(100, pct));
+  let arcMarkup = '';
+  if (clamped >= 99.95) {
+    // 100%에 아주 가까우면 아크(호) 계산이 불안정해지므로, 그냥 완전한 원으로 그림
+    arcMarkup = `<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round"/>`;
+  } else if (clamped > 0) {
+    // 12시 방향(맨 위)을 시작점으로 놓고, 시계방향으로 pct%만큼 호를 그림
+    const startX = c, startY = c - r; // 12시 방향 시작점
+    const angle = (-90 + 360 * clamped / 100) * Math.PI / 180; // 각도를 라디안으로 변환
+    const endX = (c + r * Math.cos(angle)).toFixed(2);
+    const endY = (c + r * Math.sin(angle)).toFixed(2);
+    const largeArc = clamped > 50 ? 1 : 0; // 절반(50%) 넘게 그릴 땐 "큰 호"로 그려야 방향이 안 뒤집힘
+    arcMarkup = `<path d="M ${startX} ${startY} A ${r} ${r} 0 ${largeArc} 1 ${endX} ${endY}"
+        fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round"/>`;
+  }
+  // ★ style 속성을 직접(inline) 넣어서, 외부 CSS 클래스(.donut-svg)가 이미지 저장 과정에서
+  // 혹시 못 읽혀지더라도 가운데 정렬/크기가 항상 보장되도록 함
+  return `
+    <svg class="donut-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"
+         style="display:block; margin:0 auto 12px; width:${size}px; height:${size}px; overflow:visible;">
+      <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#E5E7EB" stroke-width="${stroke}"/>
+      ${arcMarkup}
+      <text x="${c}" y="${c}" text-anchor="middle" dominant-baseline="central"
+        font-size="22" font-weight="800" fill="${color}" font-family="Pretendard, sans-serif">${pct.toFixed(1)}%</text>
+    </svg>`;
+}
+
+function renderDashboard(){
+  document.getElementById('dashMonthLabel').textContent = `${currentMonth}월`;
+
+  // ---- 카드들 ----
+  const cardsEl = document.getElementById('kpiCards');
+  cardsEl.innerHTML = indicators.map(ind => {
+    const pct = rawPctOf(ind, currentYear, currentMonth); // 100% 넘게 달성했으면 실제 숫자 그대로 (도넛 링만 안에서 100%로 잘림)
+    if (ind.type === 'date') {
+      const rem = daysRemaining(ind.target_date);
+      return `
+        <div class="kpi-card" style="--card-color:${ind.color}">
+          ${donutSvg(pct, ind.color)}
+          <div class="title">${escapeHtml(ind.title)}</div>
+          <div class="stat-row">
+            <div class="stat"><label>목표일자</label><div class="val" style="white-space:nowrap;">${formatDateShort(ind.target_date)}</div></div>
+            <div class="stat highlight"><label>남은일자</label><div class="val" style="background:${lightBg(ind.color)}">${rem === null ? '-' : rem}</div></div>
+          </div>
+        </div>`;
+    }
+    const total = indicatorTotal(ind, currentYear, currentMonth);
+    const targetTxt = formatTargetTxt(ind);
+    if (ind.type === 'amount') {
+      // ★ 목표금액형: 숫자가 길어서 좌우로 나란히 두면 겹치므로 위아래로 쌓는 stat-col 레이아웃 사용
+      return `
+        <div class="kpi-card" style="--card-color:${ind.color}">
+          ${donutSvg(pct, ind.color)}
+          <div class="title">${escapeHtml(ind.title)}</div>
+          <div class="stat-col">
+            <div class="stat-block"><label>목표</label><div class="val">${targetTxt}</div></div>
+            <div class="stat-block highlight"><label>현재</label><div class="val" style="background:${lightBg(ind.color)}">${formatCurrentTxt(ind, total)}</div></div>
+          </div>
+        </div>`;
+    }
+    return `
+      <div class="kpi-card" style="--card-color:${ind.color}">
+        ${donutSvg(pct, ind.color)}
+        <div class="title">${escapeHtml(ind.title)}</div>
+        <div class="stat-row">
+          <div class="stat"><label>목표</label><div class="val">${targetTxt}</div></div>
+          <div class="stat highlight"><label>현재</label><div class="val" style="background:${lightBg(ind.color)}">${formatCurrentTxt(ind, total)}</div></div>
+        </div>
+      </div>`;
+  }).join('') || '<div style="color:var(--muted);font-size:13px;padding:20px;">등록된 지표가 없습니다. "지표관리" 탭에서 추가해주세요.</div>';
+
+  // ---- 그래프 (1월 ~ 선택된 월) ----
+  renderChart();
+
+  // ---- 바깥 박스 크기에 맞춰 안쪽 내용물을 통째로 확대/축소 ----
+  updateDashboardScale();
+}
+
+/* ============================================================
+   대시보드 "통째로 확대/축소" 로직
+   - #dashboardScaleWrap은 항상 가로 1122px 기준으로 디자인되어 있음
+   - #dashboardCapture(바깥 박스)의 실제 폭 ÷ 1122 = 배율(scale)
+   - 이 배율만큼 안쪽 전체를 CSS transform:scale()로 키우거나 줄임
+   - transform은 화면에 "보이는 크기"만 바꾸고 실제 차지하는 공간(레이아웃)은 안 바꾸므로,
+     바깥 박스의 높이도 "줄어든/늘어난 실제 내용물 높이 × 배율"만큼 JS로 직접 맞춰줌
+   ============================================================ */
+const DASHBOARD_DESIGN_WIDTH = 1122; // 안쪽 내용물이 기준으로 삼는 가로 폭(px). 이 숫자는 #dashboardScaleWrap의 width와 항상 같아야 함
+// ★ 바깥 박스 폭에 맞춰 안쪽 내용물을 통째로 확대/축소하는 공용 함수 (대시보드/분기비교 탭 둘 다 이 함수를 씀)
+function updateScale(outerId, innerId){
+  const outer = document.getElementById(outerId);
+  const inner = document.getElementById(innerId);
+  if (!outer || !inner) return;
+  const scale = outer.clientWidth / DASHBOARD_DESIGN_WIDTH;
+  inner.style.transform = `scale(${scale})`;
+  outer.style.height = (inner.scrollHeight * scale) + 'px'; // 축소된 만큼 바깥 박스 높이도 같이 줄여줌 (안 그러면 빈 공간이 남음)
+}
+function updateDashboardScale(){ updateScale('dashboardCapture', 'dashboardScaleWrap'); }
+function updateQuarterScale(){ updateScale('quarterCapture', 'quarterScaleWrap'); }
+
+// ★ 목표 초과 달성(100% 넘음)까지 감안해서 그래프 세로축 최대값을 정하는 공용 함수.
+// 데이터 중 가장 큰 값을 25% 단위로 올림해서 축 최대값으로 씀 (최소 100%는 항상 보장)
+// 예: 최댓값이 110% → 125%까지, 160% → 175%까지, 100% 이하 → 100%까지
+function calcAxisMax(maxVal){
+  if (maxVal <= 100) return 100;
+  return Math.ceil(maxVal / 25) * 25;
+}
+
+function renderChart(){
+  const wrap = document.getElementById('kpiChartWrap');
+  if (!indicators.length) { wrap.innerHTML = ''; return; }
+
+  const months = [];
+  for (let m = 1; m <= currentMonth; m++) months.push(m);
+
+  // ★ 이번 달까지 모든 지표의 실제 진행률(100% 초과분 포함) 중 가장 큰 값을 찾아서,
+  // 그 값에 맞춰 그래프 세로축 최대값을 25% 단위(100/125/150/175/200...)로 정함
+  let maxPct = 0;
+  indicators.forEach(ind => {
+    months.forEach(m => {
+      const p = rawPctOf(ind, currentYear, m);
+      if (p > maxPct) maxPct = p;
+    });
+  });
+  const axisMax = calcAxisMax(maxPct);
+
+  // ★ 그래프 최소 폭을 지표 카드 줄(#kpiCards)과 좌우가 딱 맞도록 맞춤.
+  // 대시보드 안쪽 디자인 기준폭(DASHBOARD_DESIGN_WIDTH=1122px)에서 좌우 패딩(32px×2)을 뺀 값 = 1058px
+  // 월 개수가 많아져서 이 값보다 넓어져야 하면 그때는 월 개수에 맞춰 더 넓어지고, 가로 스크롤이 생김
+  const CHART_MIN_WIDTH = DASHBOARD_DESIGN_WIDTH - 32 * 2; // = 1058
+  const W = Math.max(CHART_MIN_WIDTH, months.length * 70);
+  const H = 360;
+  const padL = 46, padR = 20, padT = 20, padB = 40;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  const xFor = i => padL + (months.length === 1 ? plotW / 2 : (plotW * i / (months.length - 1)));
+  const yFor = pct => padT + plotH - (plotH * pct / axisMax);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, sans-serif">`;
+  // 배경 가로선 - 축 최대값(axisMax)까지 25% 단위로 그림 (100% 이하일 땐 기존처럼 0/25/50/75/100)
+  for (let g = 0; g <= axisMax; g += 25) {
+    const y = yFor(g);
+    svg += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#EEF1F5" stroke-width="1"/>`;
+    svg += `<text x="${padL-8}" y="${y+4}" font-size="11" fill="#94A3B8" text-anchor="end">${g}%</text>`;
+  }
+  // x축 기준선 + 월 라벨 (진한 색으로 확실히 보이게)
+  svg += `<line x1="${padL}" y1="${padT+plotH}" x2="${W-padR}" y2="${padT+plotH}" stroke="#CBD5E1" stroke-width="1.5"/>`;
+  months.forEach((m, i) => {
+    svg += `<text x="${xFor(i)}" y="${H-14}" font-size="13" font-weight="600" fill="#475569" text-anchor="middle">${m}월</text>`;
+  });
+  // 지표별 선 + 점
+  indicators.forEach(ind => {
+    const pts = months.map((m, i) => {
+      const pct = rawPctOf(ind, currentYear, m);
+      return `${xFor(i)},${yFor(pct)}`;
+    });
+    svg += `<polyline points="${pts.join(' ')}" fill="none" stroke="${ind.color}" stroke-width="2.5"/>`;
+    months.forEach((m, i) => {
+      const pct = rawPctOf(ind, currentYear, m);
+      svg += `<circle cx="${xFor(i)}" cy="${yFor(pct)}" r="4" fill="${ind.color}"/>`;
+    });
+  });
+  svg += `</svg>`;
+
+  const legend = indicators.map(ind =>
+    `<div class="item"><span class="dot" style="background:${ind.color}"></span>${escapeHtml(ind.title)}</div>`
+  ).join('');
+
+  wrap.innerHTML = `<div class="kpi-chart-scroll">${svg}</div><div class="kpi-legend">${legend}</div>`;
+}
+
+/* ============================================================
+   분기비교 탭: 1~4분기 말 누적 진행률(%) 막대그래프
+   ★ 날짜형 지표는 "월별 증가분" 기록이 없어서(달성률을 직접 입력하는 방식이라) 제외함
+   ============================================================ */
+// year/month 시점의 누적값. month가 0 이하면 "그 이전 해 12월까지"의 누적을 뜻함
+// (1분기의 "증가분"을 계산하려면 "작년 12월까지 누적"이 필요하기 때문에 이 함수가 필요함)
+function indicatorTotalAt(ind, year, month){
+  if (month <= 0) return indicatorTotal(ind, year - 1, 12);
+  return indicatorTotal(ind, year, month);
+}
+// hex 색상을 흰색과 섞어서 더 옅게 만들어주는 함수 (분기별로 옅음→진함 색 단계를 만들 때 씀)
+// amt: 0이면 원래 색 그대로, 1에 가까울수록 흰색에 가까워짐(더 옅어짐)
+function shadeColor(hex, amt){
+  const h = hex.replace('#','');
+  const r = parseInt(h.substring(0,2),16), g = parseInt(h.substring(2,4),16), b = parseInt(h.substring(4,6),16);
+  const mix = c => Math.round(c + (255 - c) * amt);
+  return `rgb(${mix(r)},${mix(g)},${mix(b)})`;
+}
+const QUARTERS = [
+  { label:'1분기', sub:'(1~3월)', endMonth:3 },
+  { label:'2분기', sub:'(4~6월)', endMonth:6 },
+  { label:'3분기', sub:'(7~9월)', endMonth:9 },
+  { label:'4분기', sub:'(10~12월)', endMonth:12 },
+];
+// ★ "오늘이 몇 분기인지"가 아니라, "지표관리 탭에서 실제로 입력값이 들어있는 월"을 기준으로
+// 몇 분기까지 보여줄지 정함. 예: 4~6월(2분기) 중 어디든 값이 하나라도 입력돼 있으면 1,2분기까지 표시.
+// entriesMap = { 하위항목id: { "년-월": 입력값, ... } } 전체를 뒤져서, 이 연도(year)에서
+// 값이 입력된 가장 늦은 달이 몇 분기에 속하는지 찾음
+function getPassedQuarters(year){
+  let maxQuarter = 0;
+  Object.values(entriesMap).forEach(monthMap => {
+    Object.keys(monthMap).forEach(key => {
+      const [y, m] = key.split('-').map(Number);
+      if (y === year) {
+        const q = Math.ceil(m / 3); // 1~3월→1분기, 4~6월→2분기, 7~9월→3분기, 10~12월→4분기
+        if (q > maxQuarter) maxQuarter = q;
+      }
+    });
+  });
+  return QUARTERS.slice(0, maxQuarter);
+}
+function renderQuarterChart(){
+  document.getElementById('qYearLabel').textContent = `${quarterYear}년`;
+  const wrap = document.getElementById('quarterChartWrap');
+  // 날짜형 지표는 분기별 증가분을 계산할 수 없으므로 제외
+  const targetIndicators = indicators.filter(ind => ind.type !== 'date');
+  const passedQuarters = getPassedQuarters(quarterYear); // 이미 끝난 분기만
+  if (!targetIndicators.length) {
+    wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px;">비교할 수 있는 지표가 없습니다 (누적건수형/목표금액형 지표를 추가해주세요).</div>';
+    updateQuarterScale();
+    return;
+  }
+  if (!passedQuarters.length) {
+    wrap.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:20px;">이 연도에는 아직 입력된 값이 없습니다. 지표관리 탭에서 값을 입력해주세요.</div>';
+    updateQuarterScale();
+    return;
+  }
+
+  // ---- 크기 계산 ----
+  const barW = 26, barGap = 4; // 막대 하나 폭 / 같은 그룹 안 막대 사이 간격
+  // ★ 그룹 폭(groupW)을 "끝난 분기 개수"만큼만 계산함. 예를 들어 2개 분기만 끝났다면
+  // 그룹 폭도 막대 2개 분량으로 줄어들어서, 자동으로 그 자리에 중앙 정렬된 것처럼 보임
+  const groupW = passedQuarters.length * barW + (passedQuarters.length - 1) * barGap;
+  const padL = 46, padR = 20, padT = 70, padB = 50;
+  const DESIGN_W = 1058; // 다른 그래프와 동일한 기준 폭(카드 영역과 좌우 라인 맞춤)
+  const availW = DESIGN_W - padL - padR;
+  const totalBarsW = targetIndicators.length * groupW;
+  // ★ 지표(그룹) 사이 간격 계산.
+  // - 지표가 많으면: 남는 공간을 지표 개수만큼 나눠서 화면 폭에 고르게 퍼지게 함
+  // - 지표가 적으면(2~3개): 간격을 억지로 넓히지 않도록 최대 90px로 제한하고,
+  //   대신 전체 그룹 묶음을 화면 가운데로 모아줌 (양 끝까지 쫙 벌어지는 문제 방지)
+  let groupGap = targetIndicators.length > 1 ? (availW - totalBarsW) / (targetIndicators.length - 1) : 0;
+  if (groupGap < 30) groupGap = 30;   // 너무 좁아지면 최소 30px 유지 (그 이상은 가로 스크롤)
+  if (groupGap > 90) groupGap = 90;   // 너무 넓어지면 최대 90px로 제한
+  const plotW = totalBarsW + groupGap * (targetIndicators.length - 1);
+  const W = Math.max(DESIGN_W, padL + plotW + padR);
+  // 그룹 묶음이 사용 가능한 폭보다 좁으면, 남는 공간의 절반만큼 오른쪽으로 밀어서 가운데 정렬함
+  const startX = plotW < availW ? padL + (availW - plotW) / 2 : padL;
+  const H = 420;
+  const plotH = H - padT - padB;
+  // ★ 이 연도에 표시될 모든 지표/분기 중 가장 큰 실제 진행률(100% 초과분 포함)을 찾아서
+  // 그래프 세로축 최대값을 25% 단위(100/125/150/175/200...)로 정함
+  let maxPct = 0;
+  targetIndicators.forEach(ind => {
+    passedQuarters.forEach(q => {
+      const p = rawPctOf(ind, quarterYear, q.endMonth);
+      if (p > maxPct) maxPct = p;
+    });
+  });
+  const axisMax = calcAxisMax(maxPct);
+  const yFor = pct => padT + plotH - (plotH * Math.max(0, pct) / axisMax);
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" font-family="Pretendard, sans-serif">`;
+  // 배경 가로선 - 축 최대값(axisMax)까지 25% 단위로 그림
+  for (let g = 0; g <= axisMax; g += 25) {
+    const y = yFor(g);
+    svg += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="#EEF1F5" stroke-width="1"/>`;
+    svg += `<text x="${padL-8}" y="${y+4}" font-size="11" fill="#94A3B8" text-anchor="end">${g}%</text>`;
+  }
+  svg += `<line x1="${padL}" y1="${padT+plotH}" x2="${W-padR}" y2="${padT+plotH}" stroke="#CBD5E1" stroke-width="1.5"/>`;
+
+  targetIndicators.forEach((ind, gi) => {
+    const groupX = startX + gi * (groupW + groupGap);
+    const unit = targetUnitLabel(ind.type); // '건' 또는 '원'
+
+    // ★ 그룹 맨 위 요약 문구: "마지막으로 끝난 분기 기준 진행률% (올해 전체 증가분↑)"
+    const lastQ = passedQuarters[passedQuarters.length - 1];
+    const lastPct = rawPctOf(ind, quarterYear, lastQ.endMonth); // 100% 넘게 달성했으면 실제 숫자 그대로
+    const yearInc = indicatorTotalAt(ind, quarterYear, lastQ.endMonth) - indicatorTotalAt(ind, quarterYear, 0);
+    svg += `<text x="${groupX + groupW/2}" y="26" font-size="15" font-weight="800" fill="#1A2332" text-anchor="middle">${lastPct.toFixed(1)}% (${yearInc.toLocaleString()}${unit} ↑)</text>`;
+
+    passedQuarters.forEach((q, qi) => {
+      const pct = rawPctOf(ind, quarterYear, q.endMonth);
+      const barX = groupX + qi * (barW + barGap);
+      const barY = yFor(pct);
+      const barH = (padT + plotH) - barY;
+      // 분기 색 옅음→진함 단계: 끝난 분기 개수에 맞춰 자동으로 나눔 (분기가 1개뿐이면 원래색 그대로)
+      const shadeAmt = passedQuarters.length > 1 ? 0.55 - qi * (0.55 / (passedQuarters.length - 1)) : 0;
+      const color = shadeColor(ind.color, shadeAmt);
+      svg += `<rect x="${barX}" y="${barY}" width="${barW}" height="${Math.max(0,barH)}" fill="${color}" rx="3"/>`;
+      // 막대 위 숫자(진행률 %)
+      svg += `<text x="${barX + barW/2}" y="${barY - 6}" font-size="11" font-weight="700" fill="${ind.color}" text-anchor="middle">${pct.toFixed(0)}%</text>`;
+    });
+    // ★ 그룹(지표) 이름 - 막대 바로 아래, 가깝게 표시 (그래프 맨 아래쪽에 크고 진하게)
+    svg += `<text x="${groupX + groupW/2}" y="${padT+plotH+28}" font-size="14" font-weight="700" fill="#1A2332" text-anchor="middle">${escapeHtml(ind.title)}</text>`;
+  });
+
+  svg += `</svg>`;
+  wrap.innerHTML = `<div class="kpi-chart-scroll">${svg}</div>`;
+  updateQuarterScale();
+}
+function stepQuarterYear(delta){
+  quarterYear += delta;
+  renderQuarterChart();
+}
+
+/* ============================================================
+   지표관리 탭 렌더링
+   ============================================================ */
+function renderManage(){
+  document.getElementById('mgMonthLabel').textContent = `${currentYear}년 ${currentMonth}월`;
+
+  const listEl = document.getElementById('indicatorList');
+  listEl.innerHTML = indicators.map(ind => {
+    if (ind.type === 'date') {
+      const rem = daysRemaining(ind.target_date);
+      return `
+        <div class="indicator-card" data-id="${ind.id}">
+          <div class="indicator-head" draggable="true">
+            <span class="swatch" style="background:${ind.color}"></span>
+            <span class="name" contenteditable="true" draggable="false" data-id="${ind.id}">${escapeHtml(ind.title)}</span>
+            <span class="type-tag">(날짜형)</span>
+            <button class="btn icon" onclick="openEditIndicatorModal('${ind.id}')" title="수정">✏️</button>
+          </div>
+          <div class="indicator-body date-type-row">
+            <div class="stat"><label>목표일자</label>
+              <input type="date" class="date-input" value="${ind.target_date || ''}"
+                onchange="updateIndicatorField('${ind.id}','target_date',this.value)"/>
+            </div>
+            <div class="stat"><label>남은일자</label><div class="val" style="border:1px solid var(--line);border-radius:6px;padding:8px 14px;font-family:var(--mono);font-size:13px;color:var(--muted);">${rem === null ? '-' : rem}</div></div>
+            <div class="stat"><label>달성률(%)</label>
+              <input type="number" class="date-input" style="width:80px;text-align:right;" min="0" max="100" placeholder="0"
+                value="${ind.progress_pct ?? ''}"
+                onchange="updateIndicatorField('${ind.id}','progress_pct', Math.max(0, Math.min(100, Number(this.value)||0)))"/>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    const subs = subitemsMap[ind.id] || [];
+    const rows = subs.map(s => {
+      const key = `${currentYear}-${currentMonth}`;
+      const thisMonthVal = (entriesMap[s.id] || {})[key];
+      const cum = cumulativeOf(s.id, currentYear, currentMonth);
+      return `
+        <tr>
+          <td class="sub-name">
+            <input class="name-input" value="${escapeHtml(s.name)}"
+              onchange="renameSubitem('${s.id}', this.value)"/>
+            <button class="row-x" onclick="deleteSubitem('${s.id}','${ind.id}')" title="삭제">✕</button>
+          </td>
+          <td><input type="number" class="month-input" placeholder="0"
+              value="${thisMonthVal ?? ''}"
+              onchange="saveEntry('${s.id}','${ind.id}', this.value)"/></td>
+          <td class="cum-val">${cum.toLocaleString()}</td>
+        </tr>`;
+    }).join('');
+
+    const total = indicatorTotal(ind, currentYear, currentMonth);
+    const pct = rawPctOf(ind, currentYear, currentMonth);
+    const targetTxt = formatTargetTxt(ind);
+
+    return `
+      <div class="indicator-card" data-id="${ind.id}">
+        <div class="indicator-head" draggable="true">
+          <span class="swatch" style="background:${ind.color}"></span>
+          <span class="name" contenteditable="true" draggable="false" data-id="${ind.id}">${escapeHtml(ind.title)}</span>
+          <span class="target-txt">목표 <span class="mono-num">${targetTxt}</span></span>
+          <button class="btn icon" onclick="openEditIndicatorModal('${ind.id}')" title="수정">✏️</button>
+        </div>
+        <div class="indicator-body">
+          <table class="sub-table">
+            <thead><tr><th>하위항목</th><th>${currentMonth}월 증가분</th><th>누적</th></tr></thead>
+            <tbody>
+              ${rows || `<tr><td colspan="3" style="color:var(--muted);">하위항목이 없습니다</td></tr>`}
+              <tr class="sum-row"><td>합계</td><td colspan="2" class="cum-val">${formatCurrentTxt(ind, total)} (${pct.toFixed(1)}%)</td></tr>
+            </tbody>
+          </table>
+          <button class="add-sub-btn" onclick="addSubitem('${ind.id}')">+ 하위항목 추가</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  enableDragReorder(listEl);
+  enableInlineTitleEdit(listEl);
+}
+
+/* ============================================================
+   CRUD - 하위항목 / 입력값
+   ============================================================ */
+async function addSubitem(indicatorId){
+  const subs = subitemsMap[indicatorId] || [];
+  try {
+    const [created] = await sb('kpi_subitems', 'POST', {
+      indicator_id: indicatorId, name: '새 항목', sort_order: subs.length, department: DEPARTMENT_ID
+    });
+    if (!subitemsMap[indicatorId]) subitemsMap[indicatorId] = [];
+    subitemsMap[indicatorId].push(created);
+    renderManage();
+  } catch(e) { console.error(e); showToast('추가 실패'); }
+}
+async function renameSubitem(id, name){
+  name = name.trim();
+  if (!name) return showToast('이름을 입력하세요');
+  try {
+    await sb(`kpi_subitems?id=eq.${id}`, 'PATCH', { name });
+    Object.values(subitemsMap).forEach(arr => {
+      const t = arr.find(s => s.id === id); if (t) t.name = name;
+    });
+    showToast('저장됨');
+  } catch(e) { console.error(e); showToast('저장 실패'); }
+}
+async function deleteSubitem(id, indicatorId){
+  if (!confirm('이 하위항목과 입력된 값을 모두 삭제할까요?')) return;
+  try {
+    await sb(`kpi_subitems?id=eq.${id}`, 'DELETE');
+    subitemsMap[indicatorId] = (subitemsMap[indicatorId] || []).filter(s => s.id !== id);
+    delete entriesMap[id];
+    renderManage(); renderDashboard();
+  } catch(e) { console.error(e); showToast('삭제 실패'); }
+}
+async function saveEntry(subitemId, indicatorId, value){
+  const num = value === '' ? 0 : Number(value);
+  if (Number.isNaN(num)) return showToast('숫자를 입력하세요');
+  try {
+    await sb(`kpi_entries?on_conflict=subitem_id,year,month`, 'POST',
+      { subitem_id: subitemId, year: currentYear, month: currentMonth, value: num },
+      { 'Prefer': 'resolution=merge-duplicates,return=representation' });
+    if (!entriesMap[subitemId]) entriesMap[subitemId] = {};
+    entriesMap[subitemId][`${currentYear}-${currentMonth}`] = num;
+    renderManage(); renderDashboard();
+  } catch(e) { console.error(e); showToast('저장 실패'); }
+}
+
+/* ============================================================
+   CRUD - 지표(indicator) 자체
+   ============================================================ */
+async function updateIndicatorField(id, field, value){
+  try {
+    await sb(`kpi_indicators?id=eq.${id}`, 'PATCH', { [field]: value || null });
+    const ind = indicators.find(i => i.id === id);
+    if (ind) ind[field] = value;
+    renderManage(); renderDashboard();
+  } catch(e) { console.error(e); showToast('저장 실패'); }
+}
+
+function openAddIndicatorModal(){
+  openIndicatorModal(null);
+}
+function openEditIndicatorModal(id){
+  openIndicatorModal(indicators.find(i => i.id === id));
+}
+
+function openIndicatorModal(existing){
+  const isEdit = !!existing;
+  let type = existing?.type || 'count';
+  let color = existing?.color || PRESET_COLORS[indicators.length % PRESET_COLORS.length];
+
+  document.getElementById('modalHead').textContent = isEdit ? '지표 수정' : '지표 추가';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="field">
+      <label>지표 이름</label>
+      <input type="text" id="indTitle" value="${escapeHtml(existing?.title || '')}" placeholder="예: 놀이시설 DB"/>
+    </div>
+    <div class="field">
+      <label>유형</label>
+      <div class="type-toggle">
+        <button type="button" id="typeCountBtn" class="${type==='count'?'selected':''}">누적건수형</button>
+        <button type="button" id="typeAmountBtn" class="${type==='amount'?'selected':''}">목표금액형</button>
+        <button type="button" id="typeDateBtn" class="${type==='date'?'selected':''}">날짜형</button>
+      </div>
+    </div>
+    <div id="countFields" style="${type==='date'?'display:none;':''}">
+      <div class="field"><label id="targetFieldLabel">${type==='amount'?'목표 금액':'목표 건수'}</label>
+        <input type="number" id="indTarget" value="${existing?.target_value ?? ''}" placeholder="${type==='amount'?'2000000':'5000'}"/></div>
+      <div class="field checkbox-row">
+        <input type="checkbox" id="indLower" ${existing?.is_lower_better ? 'checked' : ''}/>
+        <label id="lowerFieldLabel" style="margin:0;">목표보다 적어야 좋음 ("${type==='amount'?'OO원':'OO건'} 이하"로 표시)</label>
+      </div>
+    </div>
+    <div id="dateFields" style="${type==='count'?'display:none;':''}">
+      <div class="field"><label>목표일자</label><input type="date" id="indDate" value="${existing?.target_date || ''}"/></div>
+      <div class="field"><label>달성률(%)</label><input type="number" id="indProgress" min="0" max="100" placeholder="0" value="${existing?.progress_pct ?? ''}"/></div>
+    </div>
+    <div class="field">
+      <label>색상</label>
+      <div class="color-row" id="colorRow">
+        ${PRESET_COLORS.map(c => `<div class="color-dot ${c===color?'selected':''}" style="background:${c}" data-color="${c}"></div>`).join('')}
+      </div>
+    </div>
+  `;
+  document.getElementById('modalFoot').innerHTML = `
+    ${isEdit ? `<button class="btn danger" id="delIndBtn" style="margin-right:auto;">삭제</button>` : ''}
+    <button class="btn" id="cancelIndBtn">취소</button>
+    <button class="btn primary" id="saveIndBtn">${isEdit ? '저장' : '추가'}</button>
+  `;
+
+  // ★ 유형(누적건수형/목표금액형/날짜형) 버튼 3개를 한번에 처리하는 공용 함수.
+  // 버튼을 누르면: (1) 눌린 버튼만 파란색으로 표시 (2) 알맞은 입력칸(countFields/dateFields)만 보여줌
+  // (3) 목표금액형일 땐 "목표 건수"→"목표 금액", "OO건 이하"→"OO원 이하"처럼 글자도 자동으로 바뀜
+  function setIndicatorType(newType){
+    type = newType;
+    document.getElementById('typeCountBtn').classList.toggle('selected', newType === 'count');
+    document.getElementById('typeAmountBtn').classList.toggle('selected', newType === 'amount');
+    document.getElementById('typeDateBtn').classList.toggle('selected', newType === 'date');
+    document.getElementById('countFields').style.display = (newType === 'date') ? 'none' : '';
+    document.getElementById('dateFields').style.display = (newType === 'date') ? '' : 'none';
+    const isAmount = newType === 'amount';
+    document.getElementById('targetFieldLabel').textContent = isAmount ? '목표 금액' : '목표 건수';
+    document.getElementById('lowerFieldLabel').textContent = `목표보다 적어야 좋음 ("${isAmount ? 'OO원' : 'OO건'} 이하"로 표시)`;
+    document.getElementById('indTarget').placeholder = isAmount ? '2000000' : '5000';
+  }
+  document.getElementById('typeCountBtn').onclick = () => setIndicatorType('count');
+  document.getElementById('typeAmountBtn').onclick = () => setIndicatorType('amount');
+  document.getElementById('typeDateBtn').onclick = () => setIndicatorType('date');
+  document.getElementById('colorRow').querySelectorAll('.color-dot').forEach(dot => {
+    dot.onclick = () => {
+      color = dot.dataset.color;
+      document.getElementById('colorRow').querySelectorAll('.color-dot').forEach(d => d.classList.remove('selected'));
+      dot.classList.add('selected');
+    };
+  });
+
+  document.getElementById('cancelIndBtn').onclick = closeModal;
+  if (isEdit) document.getElementById('delIndBtn').onclick = async () => {
+    if (!confirm('이 지표와 모든 하위항목/입력값을 삭제할까요?')) return;
+    try {
+      await sb(`kpi_indicators?id=eq.${existing.id}`, 'DELETE');
+      await loadAll();
+      closeModal();
+    } catch(e) { console.error(e); showToast('삭제 실패'); }
+  };
+
+  document.getElementById('saveIndBtn').onclick = async () => {
+    const title = document.getElementById('indTitle').value.trim();
+    if (!title) return showToast('지표 이름을 입력하세요');
+    const payload = { title, type, color, department: DEPARTMENT_ID };
+    if (type !== 'date') { // 누적건수형/목표금액형 둘 다 동일하게 target_value/is_lower_better를 씀
+      payload.target_value = Number(document.getElementById('indTarget').value) || 0;
+      payload.is_lower_better = document.getElementById('indLower').checked;
+      payload.target_date = null;
+    } else {
+      payload.target_date = document.getElementById('indDate').value || null;
+      payload.progress_pct = Math.max(0, Math.min(100, Number(document.getElementById('indProgress').value) || 0));
+      payload.target_value = 0;
+      payload.is_lower_better = false;
+    }
+    try {
+      if (isEdit) {
+        await sb(`kpi_indicators?id=eq.${existing.id}`, 'PATCH', payload);
+      } else {
+        payload.sort_order = indicators.length;
+        await sb('kpi_indicators', 'POST', payload);
+      }
+      await loadAll();
+      closeModal();
+    } catch(e) { console.error(e); showToast('저장 실패'); }
+  };
+
+  openModalOverlay();
+}
+
+function openModalOverlay(){ document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); }
+// 바깥 클릭으로는 안 닫히고, 취소/X 버튼으로만 닫히도록 오버레이 자체 클릭 이벤트는 걸지 않음
+
+/* ============================================================
+   드래그로 지표 순서 바꾸기 (지표관리 탭)
+   ★ 주간일지 앱의 인원 순서 바꾸기 기능과 동일한 방식으로 구현:
+   1) 잡은 카드 = 반투명(.dragging)
+   2) 마우스가 올라간(놓일) 카드 = 파란 테두리(.drag-over)로 강조
+   3) 마우스를 놓으면(drop) 그 자리와 카드를 통째로 맞바꿈
+   ============================================================ */
+let dragSrcId = null; // 지금 드래그해서 잡고 있는 카드의 지표 id
+
+function enableDragReorder(container){
+  container.querySelectorAll('.indicator-card').forEach(card => {
+    const handle = card.querySelector('.indicator-head'); // 진한 회색 헤더 박스에서만 드래그 시작 가능
+    const id = card.dataset.id;
+
+    handle.addEventListener('dragstart', () => {
+      dragSrcId = id;
+      card.classList.add('dragging'); // 잡은 카드는 반투명하게
+    });
+    handle.addEventListener('dragend', () => { card.classList.remove('dragging'); });
+
+    // 카드 전체 영역이 "놓일 수 있는 자리"가 됨 (드래그 시작은 헤더에서만, 놓기는 카드 어디든 가능)
+    card.addEventListener('dragover', (e) => { e.preventDefault(); card.classList.add('drag-over'); });
+    card.addEventListener('dragleave', () => { card.classList.remove('drag-over'); });
+    card.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      if (!dragSrcId || dragSrcId === id) return;
+      const fromIdx = indicators.findIndex(x => x.id === dragSrcId);
+      const toIdx = indicators.findIndex(x => x.id === id);
+      if (fromIdx === -1 || toIdx === -1) return;
+      const [moved] = indicators.splice(fromIdx, 1); // 원래 자리에서 빼내고
+      indicators.splice(toIdx, 0, moved);              // 놓인 자리에 끼워 넣음
+      dragSrcId = null;
+      renderManage(); // 화면을 먼저 새 순서로 다시 그림 (바로 결과가 보이게)
+      try {
+        // 서버에도 새 순서(sort_order 숫자)를 저장해서, 새로고침해도 순서가 유지되게 함
+        await Promise.all(indicators.map((ind, idx) => sb(`kpi_indicators?id=eq.${ind.id}`, 'PATCH', { sort_order: idx })));
+      } catch(err) { console.error(err); showToast('순서 저장 실패'); }
+    });
+  });
+}
+
+/* ============================================================
+   지표 이름을 연필(수정) 팝업 없이 바로 클릭해서 고칠 수 있게 함
+   (제목 글자를 클릭 → 커서가 생김 → 다 고치고 다른 곳 클릭하면 자동 저장)
+   ============================================================ */
+function enableInlineTitleEdit(container){
+  container.querySelectorAll('.indicator-head .name').forEach(nameEl => {
+    const id = nameEl.dataset.id;
+    nameEl.addEventListener('mousedown', e => e.stopPropagation()); // 드래그 시작과 겹치지 않도록 안전장치
+    nameEl.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); } });
+    nameEl.addEventListener('blur', () => {
+      const newTitle = nameEl.textContent.trim();
+      const ind = indicators.find(i => i.id === id);
+      if (!newTitle) { nameEl.textContent = ind ? ind.title : ''; return; } // 빈 값이면 원래 이름으로 되돌림
+      if (ind && newTitle === ind.title) return; // 안 바뀌었으면 서버에 저장 안 함
+      updateIndicatorField(id, 'title', newTitle);
+    });
+  });
+}
+
+/* ============================================================
+   화면을 이미지로 저장하는 공용 함수 (2K 화질)
+   ★ 화면에 보이는 배율(50vw에 맞춰 축소/확대된 상태)과 무관하게, 저장할 땐 항상
+   "원본 크기(1122px 기준, transform:scale(1))"로 되돌린 다음 캡처함.
+   그래야 창 크기가 작을 때 저장해도 화질이 떨어지지 않고 항상 동일한 고화질로 저장됨.
+   캡처가 끝나면 화면은 다시 원래 배율(축소/확대된 상태)로 복원함.
+   대시보드/분기비교 탭 둘 다 이 함수를 그대로 재사용함 (outerId/innerId/filename만 다름) */
+async function saveElementAsImage(outerId, innerId, filename){
+  const outer = document.getElementById(outerId);
+  const inner = document.getElementById(innerId);
+  showToast('이미지 생성 중...');
+
+  // 지금 화면에 적용돼 있던 배율/높이/폭을 기억해뒀다가, 캡처 끝나면 그대로 되돌리기 위함
+  const originalTransform = inner.style.transform;
+  const originalHeight = outer.style.height;
+  const originalWidth = outer.style.width;
+  const originalOverflow = outer.style.overflow;
+
+  inner.style.transform = 'none';               // 원본(1122px) 크기로 잠깐 되돌림
+  outer.style.overflow = 'visible';              // 원본 크기가 바깥 박스보다 커질 수 있으니 안 잘리게 함
+  // ★★★ 바깥 박스 폭을 평소엔 "모니터 폭의 50%"(50vw)로 두지만, 캡처할 때만큼은
+  // 안쪽 콘텐츠와 똑같이 1122px로 맞춰줌. 이걸 안 하면 모니터가 넓을 때 바깥 박스(50vw)가
+  // 안쪽(1122px)보다 커져서, 캡처된 이미지에서 내용물이 왼쪽으로 쏠리고 오른쪽에
+  // 빈 공간이 남는 문제가 생김 (안쪽 폭과 바깥 박스 폭을 캡처 순간만큼은 완전히 똑같이 맞춰야
+  // 화면비율과 무관하게 항상 내용물이 꽉 차게 저장됨)
+  outer.style.width = DASHBOARD_DESIGN_WIDTH + 'px';
+  outer.style.height = inner.scrollHeight + 'px';
+
+  try {
+    // 2K(가로 약 2560px) 화질을 위해 scale을 넉넉히 잡음 (항상 1122px 기준으로 계산하므로 결과가 항상 일정함)
+    const scale = Math.max(2, 2560 / DASHBOARD_DESIGN_WIDTH);
+    const canvas = await html2canvas(outer, { scale, backgroundColor: '#ffffff', useCORS: true });
+    canvas.toBlob(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  } catch(e) {
+    console.error(e);
+    showToast('이미지 저장 실패');
+  } finally {
+    // 화면을 원래 보이던 배율/크기/폭으로 되돌림
+    inner.style.transform = originalTransform;
+    outer.style.height = originalHeight;
+    outer.style.width = originalWidth;
+    outer.style.overflow = originalOverflow;
+  }
+}
+function saveDashboardAsImage(){
+  return saveElementAsImage('dashboardCapture', 'dashboardScaleWrap', `KPI_${currentYear}년${currentMonth}월.png`);
+}
+function saveQuarterAsImage(){
+  return saveElementAsImage('quarterCapture', 'quarterScaleWrap', `KPI_분기비교_${quarterYear}년.png`);
+}
+
+/* ============================================================
+   설정(제목/배지) 저장 - blur 시 자동저장
+   ============================================================ */
+async function saveSetting(field, value){
+  try {
+    // ★ 부서별로 설정 행이 따로 있어야 하므로, id=1 고정 대신 department 기준으로 upsert(있으면 수정, 없으면 새로 생성)
+    await sb(`kpi_settings?on_conflict=department`, 'POST',
+      { department: DEPARTMENT_ID, [field]: value },
+      { 'Prefer': 'resolution=merge-duplicates,return=representation' });
+  } catch(e) { console.error(e); showToast('저장 실패'); }
+}
+
+/* ============================================================
+   초기화 및 이벤트 연결
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  // 탭 전환
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+      // ★ 숨겨져 있던(display:none) 탭은 폭이 0으로 계산돼서 확대/축소 비율이 틀어질 수 있으므로,
+      // 화면에 보이게 된 바로 그 순간 다시 한번 계산해줌
+      if (tab.dataset.tab === 'dashboard') updateDashboardScale();
+      if (tab.dataset.tab === 'quarter') updateQuarterScale();
+    });
+  });
+
+  // 대시보드 월 이동
+  document.getElementById('dashPrevBtn').addEventListener('click', () => { stepMonth(-1); });
+  document.getElementById('dashNextBtn').addEventListener('click', () => { stepMonth(1); });
+  document.getElementById('mgPrevBtn').addEventListener('click', () => { stepMonth(-1); });
+  document.getElementById('mgNextBtn').addEventListener('click', () => { stepMonth(1); });
+  // 분기비교 탭 연도 이동 (대시보드/지표관리와 별개로 움직임)
+  document.getElementById('qPrevBtn').addEventListener('click', () => { stepQuarterYear(-1); });
+  document.getElementById('qNextBtn').addEventListener('click', () => { stepQuarterYear(1); });
+
+  // 제목/배지 편집 저장
+  document.getElementById('mainTitle').addEventListener('blur', e => saveSetting('main_title', e.target.textContent.trim()));
+  document.getElementById('deptBadge').addEventListener('blur', e => saveSetting('dept_badge', e.target.textContent.trim()));
+  // 편집 중 Enter로 줄바꿈 안 되게(단일 라인 유지)
+  [document.getElementById('mainTitle'), document.getElementById('deptBadge')].forEach(el => {
+    el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); el.blur(); } });
+  });
+
+  document.getElementById('addIndicatorBtn').addEventListener('click', openAddIndicatorModal);
+  document.getElementById('printBtn').addEventListener('click', saveDashboardAsImage);
+  document.getElementById('qPrintBtn').addEventListener('click', saveQuarterAsImage);
+  // ★ 새로고침 버튼: 기준 파일(index.html/게시판 앱)의 refreshNow()와 동일한 방식
+  // - 클릭하면 아이콘이 0.6초간 빙글 돌아가는 애니메이션(.spinning)을 보여주고
+  // - 그 동안 서버(Supabase)에서 최신 데이터를 다시 불러와 화면을 다시 그림
+  document.getElementById('refreshBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('refreshBtn');
+    btn.classList.add('spinning');
+    setTimeout(() => btn.classList.remove('spinning'), 600);
+    await loadAll();
+    showToast('새로고침 완료');
+  });
+  document.getElementById('qRefreshBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('qRefreshBtn');
+    btn.classList.add('spinning');
+    setTimeout(() => btn.classList.remove('spinning'), 600);
+    await loadAll();
+    showToast('새로고침 완료');
+  });
+
+  // 브라우저 창 크기가 바뀔 때마다 대시보드 확대/축소 비율을 다시 계산 (50vw 폭 변화에 맞춰야 하므로)
+  window.addEventListener('resize', updateDashboardScale);
+  window.addEventListener('resize', updateQuarterScale);
+
+  loadAll();
+});
+
+function stepMonth(delta){
+  currentMonth += delta;
+  if (currentMonth < 1) { currentMonth = 12; currentYear--; }
+  if (currentMonth > 12) { currentMonth = 1; currentYear++; }
+  renderDashboard();
+  renderManage();
+}
+
+/* 실시간 시계 */
+function updateLiveClock(){
+  const el = document.getElementById('live-clock');
+  if (!el) return;
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  el.textContent = `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+updateLiveClock();
+setInterval(updateLiveClock, 1000);
+</script>
+</body>
+</html>
