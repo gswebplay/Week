@@ -1003,13 +1003,17 @@ function renderQuarterChart(){
   const DESIGN_W = 1058; // 다른 그래프와 동일한 기준 폭(카드 영역과 좌우 라인 맞춤)
   const availW = DESIGN_W - padL - padR;
   const totalBarsW = targetIndicators.length * groupW;
-  // ★ 지표(그룹) 사이 간격을 "남는 공간을 지표 개수만큼 똑같이 나눠서" 계산함.
-  // 이렇게 해야 지표가 5개뿐이어도 화면 전체 폭에 골고루 퍼져서 오른쪽에 빈 공간이 안 남음.
-  // 지표가 아주 많아져서 이 간격이 30px보다 좁아지면, 그때는 30px로 고정하고 대신 가로 스크롤이 생기게 함
+  // ★ 지표(그룹) 사이 간격 계산.
+  // - 지표가 많으면: 남는 공간을 지표 개수만큼 나눠서 화면 폭에 고르게 퍼지게 함
+  // - 지표가 적으면(2~3개): 간격을 억지로 넓히지 않도록 최대 90px로 제한하고,
+  //   대신 전체 그룹 묶음을 화면 가운데로 모아줌 (양 끝까지 쫙 벌어지는 문제 방지)
   let groupGap = targetIndicators.length > 1 ? (availW - totalBarsW) / (targetIndicators.length - 1) : 0;
-  if (groupGap < 30) groupGap = 30;
+  if (groupGap < 30) groupGap = 30;   // 너무 좁아지면 최소 30px 유지 (그 이상은 가로 스크롤)
+  if (groupGap > 90) groupGap = 90;   // 너무 넓어지면 최대 90px로 제한
   const plotW = totalBarsW + groupGap * (targetIndicators.length - 1);
   const W = Math.max(DESIGN_W, padL + plotW + padR);
+  // 그룹 묶음이 사용 가능한 폭보다 좁으면, 남는 공간의 절반만큼 오른쪽으로 밀어서 가운데 정렬함
+  const startX = plotW < availW ? padL + (availW - plotW) / 2 : padL;
   const H = 420;
   const plotH = H - padT - padB;
   const yFor = pct => padT + plotH - (plotH * Math.max(0, Math.min(100, pct)) / 100);
@@ -1024,7 +1028,7 @@ function renderQuarterChart(){
   svg += `<line x1="${padL}" y1="${padT+plotH}" x2="${W-padR}" y2="${padT+plotH}" stroke="#CBD5E1" stroke-width="1.5"/>`;
 
   targetIndicators.forEach((ind, gi) => {
-    const groupX = padL + gi * (groupW + groupGap);
+    const groupX = startX + gi * (groupW + groupGap);
     const unit = targetUnitLabel(ind.type); // '건' 또는 '원'
 
     // ★ 그룹 맨 위 요약 문구: "마지막으로 끝난 분기 기준 진행률% (올해 전체 증가분↑)"
