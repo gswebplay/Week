@@ -83,16 +83,20 @@ body{
   gap:10px;flex-wrap:wrap;padding:10px 20px;
   background:#fff;border-bottom:1px solid var(--line);
 }
-.toolbar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1;min-width:0;}
+.toolbar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;}
 .toolbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 
 /* 검색창 */
 .search-input{
   padding:7px 12px;border:1px solid var(--line);border-radius:7px;
   font-size:13px;font-family:var(--sans);color:var(--ink);
-  outline:none;width:200px;transition:border-color .15s;
+  outline:none;width:400px;transition:border-color .15s;
 }
 .search-input:focus{border-color:var(--blueprint);}
+/* 업무탭 검색창 — 전체 담당자 드롭다운과 함께 넓어지도록 확장 */
+.toolbar-left .search-input{ width:480px; }
+/* 경비탭 검색창 — 새로고침 버튼 바로 앞까지 꽉 채움 */
+.exp-toolbar .search-input{ flex:1; width:auto; }
 
 /* 필터 셀렉트 */
 .filter-sel{
@@ -175,21 +179,21 @@ body{
    인라인 편집 테이블
 ============================================================== */
 .table-wrap{flex:1;overflow:auto;}
-table{width:100%;border-collapse:collapse;min-width:1050px;font-size:13px;}
-thead th{
+#taskTableWrap table{width:100%;border-collapse:collapse;min-width:1050px;font-size:13px;}
+#taskTableWrap thead th{
   background:#F0F4FA;padding:9px 10px;
   font-size:12px;font-weight:700;color:var(--blueprint);
   text-align:center;border-bottom:2px solid var(--line);
   border-right:1px solid var(--line);white-space:nowrap;
   position:sticky;top:0;z-index:5;
 }
-thead th:last-child{border-right:none;}
-tbody tr{border-bottom:1px solid var(--line);transition:background .1s;}
-tbody tr:hover{background:var(--blueprint-bg);}
-tbody tr.editing-row{background:#FFFDE7;}
-tbody tr.editing-row:hover{background:#FFF9C4;}
-tbody td{padding:0;border-right:1px solid #EEF1F5;vertical-align:middle;}
-tbody td:last-child{border-right:none;}
+#taskTableWrap thead th:last-child{border-right:none;}
+#taskTableWrap tbody tr{border-bottom:1px solid var(--line);transition:background .1s;}
+#taskTableWrap tbody tr:hover{background:var(--blueprint-bg);}
+#taskTableWrap tbody tr.editing-row{background:#FFFDE7;}
+#taskTableWrap tbody tr.editing-row:hover{background:#FFF9C4;}
+#taskTableWrap tbody td{padding:0;border-right:1px solid #EEF1F5;vertical-align:middle;}
+#taskTableWrap tbody td:last-child{border-right:none;}
 
 /* 셀 뷰 (클릭 전) */
 .cell-view{
@@ -264,7 +268,7 @@ tbody td:last-child{border-right:none;}
 }
 /* 예산 현황 카드 */
 .budget-summary{
-  width:100%; max-width:1400px;
+  width:100%; max-width:900px;
   display:grid; grid-template-columns:repeat(4,1fr); gap:12px;
   margin-bottom:16px;
 }
@@ -278,7 +282,7 @@ tbody td:last-child{border-right:none;}
 .budget-card .bc-value.remain{ color:#2E7D52; }
 /* 집행률 프로그레스 */
 .budget-progress-card{
-  width:100%; max-width:1400px;
+  width:100%; max-width:900px;
   background:#fff; border:1px solid var(--line); border-radius:10px;
   padding:12px 18px; margin-bottom:16px;
   display:flex; align-items:center; gap:14px;
@@ -294,13 +298,13 @@ tbody td:last-child{border-right:none;}
 .budget-progress-card .bp-rate{ font-size:14px; font-weight:700; color:var(--ink); white-space:nowrap; }
 /* 경비 툴바 */
 .exp-toolbar{
-  width:100%; max-width:1400px;
+  width:100%; max-width:900px;
   display:flex; align-items:center; justify-content:space-between;
   gap:10px; margin-bottom:12px; flex-wrap:wrap;
 }
 /* 경비 테이블 컨테이너 */
 .exp-table-wrap{
-  width:100%; max-width:1400px;
+  width:100%; max-width:900px;
   background:#fff; border:1px solid var(--line); border-radius:10px;
   overflow:hidden;
 }
@@ -313,12 +317,20 @@ tbody td:last-child{border-right:none;}
   text-align:center; border-bottom:2px solid var(--line);
   white-space:normal; word-break:keep-all;  /* ★ nowrap 제거 — 헤더가 폭을 강제 확장하지 않음 */
 }
+/* 경비한도/집행액/잔액 헤더는 아래 금액 데이터와 맞춰 오른쪽 정렬 (5,6,7번째 컬럼) */
+.exp-table-wrap thead tr:last-child th:nth-child(5),
+.exp-table-wrap thead tr:last-child th:nth-child(6),
+.exp-table-wrap thead tr:last-child th:nth-child(7){ text-align:right; }
 .exp-table-wrap tbody tr{ border-bottom:1px solid #EEF1F5; transition:background .1s; position:relative; }
 .exp-table-wrap tbody tr:last-child{ border-bottom:none; }
 .exp-table-wrap tbody tr:hover{ background:var(--blueprint-bg); }
 .exp-table-wrap tbody td{ padding:0; vertical-align:middle; }
-/* 비고 셀 — 삭제 버튼이 hover 시 오른쪽에 나타남 */
+/* 사용일자 입력값 가운데 정렬 — .c-date는 width:100%라 부모의 justify-content:center가 무효화되므로
+   경비탭 안에서만 별도로 text-align:center 지정 (업무탭 날짜 컬럼은 영향받지 않음) */
+.exp-table-wrap .c-date{ text-align:center; }
+/* 비고 셀 — 삭제 버튼이 hover 시 오른쪽에 나타남, 내용은 가운데 정렬 */
 .exp-note-cell{ position:relative; }
+.exp-note-cell .c-text{ text-align:center; }
 .exp-del-btn{
   display:none; position:absolute; right:4px; top:50%; transform:translateY(-50%);
   background:none; border:none; color:#CBD5E1; cursor:pointer; font-size:14px; padding:2px 4px;
@@ -326,15 +338,7 @@ tbody td:last-child{border-right:none;}
 }
 .exp-del-btn:hover{ color:var(--danger); }
 .exp-table-wrap tbody tr:hover .exp-del-btn{ display:block; }
-/* "+ 경비 추가" 버튼 행 */
-.exp-add-row-btn{
-  width:100%; padding:10px;
-  background:#fff; border:none;
-  color:var(--blueprint); font-size:13px; font-weight:600; font-family:var(--sans);
-  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
-  transition:background .12s;
-}
-.exp-add-row-btn:hover{ background:var(--blueprint-bg); }
+/* "+ 경비 추가" 버튼 — 업무탭과 동일한 .add-row-btn-wrap / .add-row-btn 클래스 재사용 (균형감 통일, 별도 스타일 불필요) */
 @media(max-width:768px){
   .budget-summary{ grid-template-columns:repeat(2,1fr); }
   .exp-wrap{ padding:12px; }
@@ -413,22 +417,24 @@ tbody td:last-child{border-right:none;}
 }
 
 /* ==============================================================
-   상태별 행 배경색 - 은은하게 구분
+   상태별 행 배경색 - 원본색 대비 30% 강도 (더 연하게)
    요청=분홍, 진행중=보라, 지속=초록, 보류=노랑, 완료=파랑
 ============================================================== */
-tbody tr.row-req  { background:#FFF5F7; }   /* 요청: 연분홍 */
-tbody tr.row-ing  { background:#F8F5FF; }   /* 진행중: 연보라 */
-tbody tr.row-cont { background:#F4FBF7; }   /* 지속진행: 연초록 */
-tbody tr.row-hold { background:#FFFDF0; }   /* 보류: 연노랑 */
-tbody tr.row-done { background:#F3F8FD; }   /* 완료: 연파랑 */
-/* 호버 시 조금 더 진하게 */
-tbody tr.row-req:hover  { background:#FFE9EF; }
-tbody tr.row-ing:hover  { background:#EDE7FF; }
-tbody tr.row-cont:hover { background:#E6F7EE; }
-tbody tr.row-hold:hover { background:#FFF8D6; }
-tbody tr.row-done:hover { background:#E4F1FB; }
+tbody tr.row-req  { background:#FFFCFD; }   /* 요청: 분홍 30% */
+tbody tr.row-ing  { background:#FDFCFF; }   /* 진행중: 보라 30% */
+tbody tr.row-cont { background:#FCFEFD; }   /* 지속진행: 초록 30% */
+tbody tr.row-hold { background:#FFFEFA; }   /* 보류: 노랑 30% */
+tbody tr.row-done { background:#FBFDFE; }   /* 완료: 파랑 30% */
+/* 호버 시 조금 더 진하게 (45%) */
+tbody tr.row-req:hover  { background:#FFFAFB; }
+tbody tr.row-ing:hover  { background:#FCFAFF; }
+tbody tr.row-cont:hover { background:#FAFDFB; }
+tbody tr.row-hold:hover { background:#FFFEF8; }
+tbody tr.row-done:hover { background:#FAFCFE; }
 /* 편집 중인 행은 노란빛으로 강조 */
 tbody tr.editing-row { background:#FFFDE7 !important; }
+
+
 
 /* ==============================================================
    알약 뱃지 - 모든 드롭다운 값에 통일 적용
@@ -505,6 +511,7 @@ tbody tr.editing-row { background:#FFFDE7 !important; }
   display:flex; align-items:center;
   font-size:13px; color:var(--ink);
 }
+.c-box > *{ min-width:0; }  /* ★ 자식 요소(날짜input/뱃지/텍스트)가 콘텐츠 크기만큼 폭을 강제하지 않게 함 — table-layout:fixed가 실제로 % 폭을 지키게 하는 핵심 */
 
 /* ---- 글자 직접 입력 셀 (프로젝트명/출고지 등) ----
    contenteditable = 클릭하면 그 자리에서 바로 타이핑됨 */
@@ -524,7 +531,7 @@ tbody tr.editing-row { background:#FFFDE7 !important; }
 
 /* ---- 날짜 입력 셀 ---- */
 .c-date{
-  border:none; background:transparent; width:100%;
+  border:none; background:transparent; width:100%; min-width:0;
   font-size:12px; font-family:var(--sans); color:var(--ink);
   outline:none; cursor:pointer; padding:2px;
   border-radius:3px;
@@ -803,7 +810,9 @@ tbody tr.editing-row { background:#FFFDE7 !important; }
       <div class="budget-summary">
         <div class="budget-card">
           <div class="bc-label">총 배정금액</div>
-          <div class="bc-value" id="bTotal">-</div>
+          <div class="bc-value c-text" id="bTotal" contenteditable="true" data-ph="0"
+               onfocus="budgetTotalFocus(this)" onblur="budgetTotalBlur(this)"
+               onkeydown="budgetTotalKey(event,this)">-</div>
         </div>
         <div class="budget-card">
           <div class="bc-label">집행금액</div>
@@ -860,6 +869,8 @@ const H = {
 ============================================================ */
 let taskData = [];   // 서버에서 불러온 전체 업무 데이터
 let expData  = [];   // 서버에서 불러온 전체 경비 데이터
+let budgetTotal = 1080000;      // 총 배정금액 — app_options(opt_type='budget_total')에서 연도별로 불러옴, 카드에서 직접 수정 가능
+let budgetTotalRowId = null;    // 현재 연도의 budget_total 행 id (PATCH/INSERT 구분용)
 let editingExpId = null;  // 현재 인라인 편집 중인 경비 행 ID
 
 /* 연도 관련 — activeYear: 현재 보고 있는 연도 */
@@ -1273,7 +1284,26 @@ function updateSummary(){
   document.getElementById('cnt-cont').textContent=c.cont;
   document.getElementById('cnt-req').textContent=c.req;
   document.getElementById('cnt-all').textContent=taskData.length;
+  /* 카운트 숫자가 바뀌면 "완료" 버튼 폭도 바뀌므로, 정렬을 다음 프레임에 다시 계산 */
+  requestAnimationFrame(alignFilterSelToDone);
 }
+
+/* 검색창 폭을 조정해서 "전체 담당자" 드롭다운의 시작 위치가
+   "완료" 버튼 왼쪽 끝과 맞춰지도록 함 (상태 필터 줄과 툴바 줄의 시각적 정렬용) */
+function alignFilterSelToDone(){
+  const doneBtn = document.getElementById('flt-done');
+  const search = document.getElementById('taskSearch');
+  const fLead = document.getElementById('fLead');
+  if(!doneBtn || !search || !fLead) return;
+  const doneRect = doneBtn.getBoundingClientRect();
+  const searchRect = search.getBoundingClientRect();
+  const gap = 8;   /* .toolbar-left gap 값과 동일 */
+  const targetWidth = Math.round(doneRect.left - searchRect.left - gap);
+  if(targetWidth > 200){   /* 화면이 너무 좁을 때 검색창이 과하게 줄어드는 것 방지 */
+    search.style.width = targetWidth + 'px';
+  }
+}
+window.addEventListener('resize', () => requestAnimationFrame(alignFilterSelToDone));
 
 /* ============================================================
    정렬 함수
@@ -1526,7 +1556,8 @@ function tdDropdown(id, field, value, align='left'){
 /* ---- 보조담당자 전용 셀 ----
    ★ tdDropdown과 동일한 dd-btn 구조 사용 (hover·커서 등 완전 동일)
    ▾는 dd-btn 오른쪽 끝에 absolute로 고정 → 뱃지 줄바꿈과 독립
-   c-box에 min-height:54px으로 2줄 높이 확보 */
+   c-box는 고정 height:54px (min-height 아님) — 이름이 늘어나도 행 높이가 절대 안 커지고,
+   3명 이상처럼 다 안 들어가면 셀 안에서만 스크롤됨 → 모든 행 높이가 항상 동일하게 유지됨 */
 function tdSubCell(id, value){
   const names = value ? value.split(',').map(s=>s.trim()).filter(Boolean) : [];
 
@@ -1537,7 +1568,7 @@ function tdSubCell(id, value){
       }).join('')
     : '<span style="color:#CCC">-</span>';
 
-  return '<td><div class="c-box" style="justify-content:center;height:54px;align-items:center;overflow-y:auto;overflow-x:hidden">'
+  return '<td><div class="c-box" style="justify-content:center;height:54px;align-items:flex-start;padding-top:6px;overflow-y:auto;overflow-x:hidden">'
     /* position:relative + padding-right으로 ▾ 공간 확보 */
     +'<span class="dd-btn sub-dd-btn" style="flex-wrap:wrap;gap:3px;align-items:flex-start;'
     +'position:relative;padding-right:14px" onclick="openDD(event,\''+id+'\',\'sub\')">'
@@ -1750,6 +1781,7 @@ async function loadExpenses(){
     toast('⚠️ 경비 데이터 로드 실패');
   }
   renderExpense();
+  await loadBudgetTotal();
   updateBudget();
 }
 
@@ -1757,17 +1789,105 @@ async function loadExpenses(){
    예산 현황 카드 업데이트
 ============================================================ */
 function updateBudget(){
-  const TOTAL=1080000;
   const spent=expData.reduce((s,e)=>s+(Number(e.amount)||0),0);
-  const remain=TOTAL-spent;
-  const rate=Math.min(100,Math.round(spent/TOTAL*100));
-  document.getElementById('bTotal').textContent=fmtMoney(TOTAL);
+  const remain=budgetTotal-spent;
+  const rate=budgetTotal?Math.min(100,Math.round(spent/budgetTotal*100)):0;
+  document.getElementById('bTotal').textContent=fmtMoney(budgetTotal);
   document.getElementById('bSpent').textContent=fmtMoney(spent);
   document.getElementById('bRemain').textContent=fmtMoney(remain);
   document.getElementById('bRate').textContent=rate+'%';
   if(document.getElementById('bRateBar'))
     document.getElementById('bRateBar').textContent=rate+'%';
   document.getElementById('bBar').style.width=rate+'%';
+}
+
+/* ============================================================
+   총 배정금액 로드/저장 — app_options 테이블에 연도별로 저장
+   (opt_type='budget_total', label=연도, value=금액)
+============================================================ */
+async function loadBudgetTotal(){
+  try{
+    const res = await fetch(
+      SB_URL+'/rest/v1/app_options?opt_type=eq.budget_total&label=eq.'+activeYear,
+      {headers:H}
+    );
+    if(res.ok){
+      const rows = await res.json();
+      if(rows.length){
+        budgetTotal = Number(rows[0].value)||1080000;
+        budgetTotalRowId = rows[0].id;
+      } else {
+        budgetTotal = 1080000;   // 아직 이 연도 설정값이 없으면 기본값
+        budgetTotalRowId = null;
+      }
+    }
+  }catch(e){
+    console.error('총 배정금액 로드 실패:', e);
+    budgetTotal = 1080000;
+    budgetTotalRowId = null;
+  }
+}
+
+/* 총 배정금액 저장 + 기존 경비 행들의 한도/잔액 재계산 */
+async function saveBudgetTotal(n){
+  setSyncStatus('loading','저장중...');
+  try{
+    if(budgetTotalRowId){
+      const res = await fetch(SB_URL+'/rest/v1/app_options?id=eq.'+budgetTotalRowId,
+        {method:'PATCH',headers:H,body:JSON.stringify({value:String(n)})});
+      if(!res.ok) throw new Error(await res.text());
+    } else {
+      const res = await fetch(SB_URL+'/rest/v1/app_options',
+        {method:'POST',headers:{...H,'Prefer':'return=representation'},
+         body:JSON.stringify({opt_type:'budget_total', label:String(activeYear), value:String(n)})});
+      if(!res.ok) throw new Error(await res.text());
+      const [created]=await res.json();
+      budgetTotalRowId = created.id;
+    }
+    await recalcBudgetCascade();
+    setSyncStatus('ok','연결됨');
+  }catch(e){
+    setSyncStatus('error','오류');
+    toast('❌ 총 배정금액 저장 실패: '+e.message);
+  }
+}
+
+/* 총 배정금액이 바뀌면 기존 행들의 경비한도·잔액을 seq 순서대로 다시 계산해서 저장
+   (신규 행 추가할 때와 같은 방식 — 누적 집행액을 빼가며 순서대로 깎임) */
+async function recalcBudgetCascade(){
+  let prevSpent = 0;
+  const sorted = [...expData].sort((a,b)=>(a.seq||0)-(b.seq||0));
+  for(const row of sorted){
+    const amt = Number(row.amount)||0;
+    const newLimit = budgetTotal - prevSpent;
+    const newBalance = budgetTotal - prevSpent - amt;
+    prevSpent += amt;
+    if(row.budget_limit!==newLimit || row.balance!==newBalance){
+      try{
+        const res = await fetch(SB_URL+'/rest/v1/dept_expense?id=eq.'+row.id,
+          {method:'PATCH',headers:H,body:JSON.stringify({budget_limit:newLimit, balance:newBalance})});
+        if(res.ok){ row.budget_limit=newLimit; row.balance=newBalance; }
+      }catch(e){ console.error('잔액 재계산 실패:', row.id, e); }
+    }
+  }
+  renderExpense();
+  updateBudget();
+}
+
+/* 총 배정금액 카드 — 클릭하면 숫자만, 블러하면 포맷 + 저장 (참석인원/집행액과 동일 방식) */
+function budgetTotalFocus(el){
+  el.innerText = budgetTotal ? String(budgetTotal) : '';
+}
+function budgetTotalKey(e, el){
+  if(e.key==='Enter'){ e.preventDefault(); el.blur(); }
+  if(e.key==='Escape'){ e.preventDefault(); el.innerText=fmtMoney(budgetTotal); el.blur(); }
+}
+async function budgetTotalBlur(el){
+  const n = Number(el.innerText.replace(/[^0-9]/g,'')) || 0;
+  el.innerText = fmtMoney(n);
+  if(n === budgetTotal) return;   // 변경 없으면 저장 스킵
+  budgetTotal = n;
+  await saveBudgetTotal(n);
 }
 
 /* ============================================================
@@ -1788,19 +1908,20 @@ function renderExpense(){
     ||(e.note||'').toLowerCase().includes(search));
 
   const addBtn = '<tr><td colspan="8" style="padding:0;border:none">'
-    +'<button class="exp-add-row-btn" onclick="quickAddExp()">'
+    +'<div class="add-row-btn-wrap">'
+    +'<button class="add-row-btn" onclick="quickAddExp()">'
     +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">'
     +'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
-    +'경비 추가</button></td></tr>';
+    +'경비 추가</button></div></td></tr>';
 
   let html='<table><colgroup>'
-    +'<col style="width:5%"><col style="width:13%"><col style="width:11%">'
-    +'<col style="width:8%"><col style="width:13%"><col style="width:12%">'
-    +'<col style="width:12%"><col style="width:26%">'
+    +'<col style="width:5%"><col style="width:13%"><col style="width:10%">'
+    +'<col style="width:5%"><col style="width:13%"><col style="width:13%">'
+    +'<col style="width:13%"><col style="width:28%">'
     +'</colgroup>'
     +'<thead>'+addBtn+'<tr>'
     +'<th>번호</th><th>사용일자</th><th>경비항목</th>'
-    +'<th>참석<br>인원</th><th>경비한도</th><th>집행액</th>'
+    +'<th>참석인원</th><th>경비한도</th><th>집행액</th>'
     +'<th>잔액</th><th>비고</th>'
     +'</tr></thead><tbody>';
 
@@ -1873,10 +1994,9 @@ function renderExpense(){
    경비 — 빠른 행 추가 (표 상단 버튼)
 ============================================================ */
 async function quickAddExp(){
-  const TOTAL=1080000;
   const prevSpent=expData.reduce((s,e)=>s+(Number(e.amount)||0),0);
   const maxSeq=expData.length?Math.max(...expData.map(e=>e.seq||0)):0;
-  const payload={ seq:maxSeq+1, budget_limit:TOTAL-prevSpent, balance:TOTAL-prevSpent, amount:0, year:activeYear };
+  const payload={ seq:maxSeq+1, budget_limit:budgetTotal-prevSpent, balance:budgetTotal-prevSpent, amount:0, year:activeYear };
   setSyncStatus('loading','추가중...');
   try{
     const res=await fetch(SB_URL+'/rest/v1/dept_expense',
@@ -1935,10 +2055,9 @@ async function saveExpAmount(id, rawVal){
   const row = expData.find(x=>x.id===id);
   if(!row) return;
   if(row.amount === amount) return;
-  const TOTAL = 1080000;
   /* 이 행 제외한 나머지 집행 합계 */
   const prevSpent = expData.filter(x=>x.id!==id).reduce((s,e)=>s+(Number(e.amount)||0),0);
-  const balance = TOTAL - prevSpent - amount;
+  const balance = budgetTotal - prevSpent - amount;
   setSyncStatus('loading','저장중...');
   try{
     const res = await fetch(SB_URL+'/rest/v1/dept_expense?id=eq.'+id,
