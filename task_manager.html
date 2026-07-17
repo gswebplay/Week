@@ -1537,7 +1537,7 @@ function tdSubCell(id, value){
       }).join('')
     : '<span style="color:#CCC">-</span>';
 
-  return '<td><div class="c-box" style="justify-content:center;min-height:54px;align-items:flex-start;padding-top:6px">'
+  return '<td><div class="c-box" style="justify-content:center;height:54px;align-items:center;overflow-y:auto;overflow-x:hidden">'
     /* position:relative + padding-right으로 ▾ 공간 확보 */
     +'<span class="dd-btn sub-dd-btn" style="flex-wrap:wrap;gap:3px;align-items:flex-start;'
     +'position:relative;padding-right:14px" onclick="openDD(event,\''+id+'\',\'sub\')">'
