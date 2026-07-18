@@ -325,7 +325,7 @@ body{
   /* ★ 최소폭 — 이게 없으면 모바일에서 컬럼이 40px대로 찌그러져
      "2026-01-14", "1,080,000원" 같은 내용이 잘립니다.
      좁으면 표를 줄이지 말고 가로로 스크롤해서 봅니다. */
-  min-width:740px;
+  min-width:820px;
 }
 .exp-table-wrap thead th{
   background:#F0F4FA; padding:9px 8px;
@@ -370,6 +370,63 @@ body{
 }
 .exp-del-btn:hover{ color:var(--danger); }
 .exp-table-wrap tbody tr:hover .exp-del-btn{ display:block; }
+
+/* ==============================================================
+   영수증 첨부 칸
+============================================================== */
+/* 첨부 셀 안 아이콘들을 가로로 배치 */
+.exp-attach-cell{ text-align:center; }
+.exp-attach-box{
+  display:flex; align-items:center; justify-content:center; gap:4px;
+  min-height:38px;
+}
+/* 첨부 버튼 공통 (📎 / 👁 / ⬇ / ✕) */
+.attach-btn{
+  border:none; background:none; cursor:pointer;
+  font-size:15px; line-height:1; padding:3px 4px;
+  border-radius:5px; transition:background .12s, transform .1s;
+  color:var(--muted);
+}
+.attach-btn:hover{ background:var(--blueprint-bg); transform:scale(1.15); }
+/* 파일 없을 때 — 옅은 클립 */
+.attach-btn.empty{ color:#CBD5E1; }
+.attach-btn.empty:hover{ color:var(--blueprint); }
+/* 첨부됨 표시 — 진한 클립 */
+.attach-btn.has-file{ color:var(--blueprint); }
+/* 삭제(✕) — 빨강 계열 */
+.attach-btn.del{ color:#CBD5E1; }
+.attach-btn.del:hover{ color:var(--danger); background:#FFEBEE; }
+/* 업로드 중 스피너 표시용 */
+.attach-btn.uploading{ pointer-events:none; opacity:.6; }
+
+/* 숨겨진 실제 파일 input */
+.attach-file-input{ display:none; }
+
+/* 영수증 미리보기 모달 (이미지 전용, PDF는 새 탭) */
+.receipt-overlay{
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.75); z-index:2000;
+  align-items:center; justify-content:center; padding:24px;
+}
+.receipt-overlay.open{ display:flex; }
+.receipt-box{
+  max-width:90vw; max-height:90vh;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+}
+.receipt-box img{
+  max-width:100%; max-height:80vh;
+  border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,.5);
+  background:#fff;
+}
+.receipt-toolbar{ display:flex; gap:10px; }
+.receipt-toolbar button{
+  padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600;
+  font-family:var(--sans); cursor:pointer; border:none;
+}
+.receipt-dl-btn{ background:var(--blueprint); color:#fff; }
+.receipt-dl-btn:hover{ background:var(--blueprint-strong); }
+.receipt-close-btn{ background:#fff; color:var(--ink); }
+.receipt-close-btn:hover{ background:#F0F0F0; }
 /* "+ 경비 추가" 버튼 — 업무탭과 동일한 .add-row-btn-wrap / .add-row-btn 클래스 재사용 (균형감 통일, 별도 스타일 불필요) */
 @media(max-width:768px){
   .budget-summary{ grid-template-columns:repeat(2,1fr); }
@@ -470,22 +527,23 @@ body{
 }
 
 /* ==============================================================
-   상태별 행 배경색 - 원본색 대비 30% 강도 (더 연하게)
-   요청=분홍, 진행중=보라, 지속=초록, 보류=노랑, 완료=파랑
+   줄무늬(Zebra Stripe) — 홀수 행은 흰색, 짝수 행은 연한 회색
+   상태별 배경색은 제거하고 줄무늬로만 칸 구분
+   (편집 중인 행은 노란빛으로 강조, !important로 줄무늬 덮어씀)
 ============================================================== */
-tbody tr.row-req  { background:#FFFCFD; }   /* 요청: 분홍 30% */
-tbody tr.row-ing  { background:#FDFCFF; }   /* 진행중: 보라 30% */
-tbody tr.row-cont { background:#FCFEFD; }   /* 지속진행: 초록 30% */
-tbody tr.row-hold { background:#FFFEFA; }   /* 보류: 노랑 30% */
-tbody tr.row-done { background:#FBFDFE; }   /* 완료: 파랑 30% */
-/* 호버 시 조금 더 진하게 (45%) */
-tbody tr.row-req:hover  { background:#FFFAFB; }
-tbody tr.row-ing:hover  { background:#FCFAFF; }
-tbody tr.row-cont:hover { background:#FAFDFB; }
-tbody tr.row-hold:hover { background:#FFFEF8; }
-tbody tr.row-done:hover { background:#FAFCFE; }
+/* 홀수 행: 흰색 */
+#taskTableWrap tbody tr:nth-child(odd)  { background:#FFFFFF; }
+/* 짝수 행: 진한 무채색 */
+#taskTableWrap tbody tr:nth-child(even) { background:#F4F4F4; }
+/* 호버 시: 연한 파란색 (홀짝 공통) */
+#taskTableWrap tbody tr:hover           { background:var(--blueprint-bg) !important; }
 /* 편집 중인 행은 노란빛으로 강조 */
-tbody tr.editing-row { background:#FFFDE7 !important; }
+#taskTableWrap tbody tr.editing-row     { background:#FFFDE7 !important; }
+
+/* 상태 그룹 경계 구분선 — 정렬이 status일 때 JS가 .status-group-top 클래스 추가함 */
+#taskTableWrap tbody tr.status-group-top td {
+  border-top: 2px solid #94A3B8 !important;   /* 중간 굵기 회색선으로 그룹 구분 */
+}
 
 
 
@@ -721,22 +779,72 @@ tbody tr.editing-row { background:#FFFDE7 !important; }
 }
 .opt-del:hover{ color:var(--danger); }
 
-/* 색상 동그라미 줄 — 1줄 고정, 중앙정렬
-   ★ flex-wrap:nowrap 으로 절대 2줄 안 됨
-   동그라미 20px × 12개 + gap 5px × 11 = 295px
-   opt-item 내부 가용폭(~330px)보다 작으므로 1줄에 딱 들어감 */
+/* 색상 피커 줄 — 배경색/글자색 각각 input[type=color]로 자유 선택 */
 .color-row{
-  display:flex; flex-wrap:nowrap; gap:5px;
-  justify-content:center;
-  width:100%;
+  display:flex; align-items:center; gap:10px;
+  justify-content:center; width:100%;
+  flex-wrap:wrap;
 }
-.color-dot{
+/* 피커 한 쌍 (라벨 + input) */
+.color-pick-pair{
+  display:flex; align-items:center; gap:5px;
+  font-size:11px; color:var(--muted);
+}
+/* 색상 input — 작은 동그라미 */
+.color-pick-pair input[type="color"]{
+  width:20px; height:20px; border-radius:50%;
+  border:2px solid var(--line); padding:0;
+  cursor:pointer; background:none;
+  appearance:none; -webkit-appearance:none;
+  overflow:hidden; flex-shrink:0;
+}
+.color-pick-pair input[type="color"]::-webkit-color-swatch-wrapper{ padding:0; }
+.color-pick-pair input[type="color"]::-webkit-color-swatch{ border:none; border-radius:50%; }
+.color-pick-pair input[type="color"]:hover{ border-color:var(--blueprint); }
+
+/* 모달 상단 공용 팔레트 — 10×2 격자 배치 */
+.opt-palette-bar{
+  padding:12px 20px 10px;
+  border-bottom:1px solid var(--line);
+  display:flex; flex-direction:column; gap:7px;
+}
+.opt-palette-bar .pal-label{
+  font-size:11px; color:#B0BEC5; margin-bottom:2px;
+}
+/* 동그라미 10개씩 한 줄 — 중앙정렬, 간격 6px */
+.pal-row{
+  display:flex; justify-content:center; align-items:center; gap:6px;
+}
+/* 팔레트 동그라미 */
+.pal-dot{
   width:20px; height:20px; flex:0 0 20px;
   border-radius:50%; cursor:pointer;
-  border:2px solid transparent; transition:transform .1s;
+  border:1.5px solid rgba(0,0,0,.10);
+  transition:transform .12s, border-color .12s;
 }
-.color-dot:hover{ transform:scale(1.2); }
-.color-dot.selected{ border-color:#333; }
+.pal-dot:hover{ transform:scale(1.2); border-color:#555; }
+/* 빈 슬롯 — 색이 아직 없는 자리 */
+.pal-dot.empty{
+  background:#F0F0F0;
+  border:1.5px dashed #CBD5E1;
+  cursor:default;
+}
+.pal-dot.empty:hover{ transform:none; border-color:#CBD5E1; }
+/* 드래그 중 팔레트 슬롯 위에 올라왔을 때 강조 */
+.pal-dot.drag-over{
+  border-color:var(--blueprint) !important;
+  transform:scale(1.25);
+  box-shadow:0 0 0 3px var(--blueprint-bg);
+}
+/* 피커 동그라미 — draggable 표시 */
+.color-pick-pair input[type="color"]{
+  cursor:grab;
+}
+/* 팔레트 영역 전체 드롭 가능 표시 */
+.opt-palette-bar.drag-active{
+  background:var(--blueprint-bg);
+  border-radius:8px;
+}
 
 /* 새 옵션 추가 입력줄 */
 .opt-add-row{ display:flex; gap:6px; margin-top:10px; }
@@ -1049,6 +1157,7 @@ async function loadOptions(){
     toast('⚠️ 옵션 로드 실패 (네트워크 오류)');
   }
   renderLeadFilterOptions();   /* "전체 담당자" 검색 필터도 OPTIONS.lead 기준으로 채움 */
+  applyStatusFilterColors();   /* 상태 옵션 색상을 필터 버튼에 초기 반영 */
 }
 
 /* ------------------------------------------------------------
@@ -1324,6 +1433,9 @@ function setStatusFilter(val){
     const btn = document.getElementById('flt-'+cls);
     if(btn) btn.classList.toggle('active', k === val);
   });
+  /* active 클래스 전환 후 동기화된 색상 재적용
+     (active 여부에 따라 배경·글자색을 다르게 표시해야 하므로) */
+  applyStatusFilterColors();
   renderTask();
 }
 
@@ -1489,19 +1601,15 @@ function renderTask(){
   });
   html+='</tr></thead><tbody>';
 
-  filtered.forEach(t=>{
+  /* 상태 그룹 구분선: 정렬이 status일 때 상태값이 바뀌는 첫 행에 .status-group-top 추가 */
+  const isSortedByStatus = (sortCol === 'status');
+
+  filtered.forEach((t, idx)=>{
     const id = t.id;
     const ddayVal=(t.dday!==null&&t.dday!==undefined&&t.dday!==-33015)?t.dday:null;
     const ddayTxt=ddayVal===null?'-':ddayVal>=0?'D+'+ddayVal:'D'+ddayVal;
     const ddayStyle=ddayVal!==null&&ddayVal>=0&&ddayVal<=7?'color:#D48806;font-weight:700':
                     ddayVal!==null&&ddayVal<0&&(t.status||'').includes('진행')?'color:var(--danger);font-weight:700':'';
-
-    /* 상태에 따라 행 배경색 결정 */
-    const rowCls = (t.status||'').includes('완료') ? 'row-done'
-                 : (t.status||'').includes('진행중') ? 'row-ing'
-                 : (t.status||'').includes('지속') ? 'row-cont'
-                 : (t.status||'').includes('보류') ? 'row-hold'
-                 : (t.status||'').includes('요청') ? 'row-req' : '';
 
     /* 파생값 계산 (날짜 차이, 단위: 일) */
     const diffDays = (a, b) => {
@@ -1513,7 +1621,11 @@ function renderTask(){
     const st = t.save_time   !== undefined && t.save_time !== null ? t.save_time
              : (lt !== null && wt !== null ? lt - wt : null);
 
-    html+='<tr id="row-'+id+'" class="'+rowCls+'">';
+    /* 상태 기준 정렬 중일 때: 이전 행과 상태가 다르면 구분선 클래스 추가 (첫 행 제외) */
+    const isGroupTop = isSortedByStatus && idx > 0 && (filtered[idx-1].status || '') !== (t.status || '');
+    const trCls = isGroupTop ? ' status-group-top' : '';
+
+    html+='<tr id="row-'+id+'" class="'+trCls+'">';
 
     /* ---- COL_DEFS 순서대로 td를 동적으로 생성합니다 ----
        드래그앤드롭으로 컬럼 순서가 바뀌어도 이 루프가 그 순서를 따릅니다 */
@@ -1972,7 +2084,7 @@ function renderExpense(){
     ||(e.expense_type||'').toLowerCase().includes(search)
     ||(e.note||'').toLowerCase().includes(search));
 
-  const addBtn = '<tr><td colspan="8" style="padding:0;border:none">'
+  const addBtn = '<tr><td colspan="9" style="padding:0;border:none">'
     +'<div class="add-row-btn-wrap">'
     +'<button class="add-row-btn" onclick="quickAddExp()">'
     +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">'
@@ -1980,18 +2092,18 @@ function renderExpense(){
     +'경비 추가</button></div></td></tr>';
 
   let html='<table><colgroup>'
-    +'<col style="width:5%"><col style="width:13%"><col style="width:10%">'
-    +'<col style="width:5%"><col style="width:13%"><col style="width:13%">'
-    +'<col style="width:13%"><col style="width:28%">'
+    +'<col style="width:5%"><col style="width:12%"><col style="width:9%">'
+    +'<col style="width:5%"><col style="width:12%"><col style="width:12%">'
+    +'<col style="width:12%"><col style="width:24%"><col style="width:9%">'
     +'</colgroup>'
     +'<thead>'+addBtn+'<tr>'
     +'<th>번호</th><th>사용일자</th><th>경비항목</th>'
     +'<th>참석인원</th><th>경비한도</th><th>집행액</th>'
-    +'<th>잔액</th><th>비고</th>'
+    +'<th>잔액</th><th>비고</th><th>첨부</th>'
     +'</tr></thead><tbody>';
 
   if(!filtered.length){
-    html+='<tr><td colspan="8"><div class="empty-msg">📭 경비 내역이 없습니다.</div></td></tr>';
+    html+='<tr><td colspan="9"><div class="empty-msg">📭 경비 내역이 없습니다.</div></td></tr>';
   } else {
     const TC={
       '식사':  {bg:'#F3EEFC',fg:'#7C5CBF'},
@@ -2048,6 +2160,8 @@ function renderExpense(){
            +  '</div>'
            +  '<button class="exp-del-btn" onclick="deleteExp(\''+eid+'\')" title="삭제">✕</button>'
            +  '</td>';
+      /* 첨부 (영수증) */
+      html += '<td class="exp-attach-cell">'+attachCell(e)+'</td>';
       html += '</tr>';
     });
   }
@@ -2056,8 +2170,206 @@ function renderExpense(){
 }
 
 /* ============================================================
-   경비 — 빠른 행 추가 (표 상단 버튼)
+   ★ 영수증 첨부 기능 (Supabase Storage) ★
+   - 버킷 이름: receipts (public)
+   - dept_expense.receipt_url  : 파일 공개 URL
+   - dept_expense.receipt_name : 원본 파일명
 ============================================================ */
+const RECEIPT_BUCKET = 'receipts';
+
+/* 첨부 셀 HTML 만들기 — 파일 유무에 따라 다른 아이콘 표시 */
+function attachCell(e){
+  const eid = e.id;
+  /* 숨겨진 파일 선택 input (이미지 + PDF만 허용) */
+  const fileInput =
+    '<input type="file" class="attach-file-input" id="attach-input-'+eid+'"'
+    +' accept="image/*,application/pdf"'
+    +' onchange="uploadReceipt(\''+eid+'\', this)">';
+
+  if(e.receipt_url){
+    /* 첨부됨: 보기 / 다운로드 / 교체 / 삭제 */
+    return '<div class="exp-attach-box">'
+      + fileInput
+      + '<button class="attach-btn has-file" title="영수증 보기: '+esc(e.receipt_name||'')+'"'
+      +  ' onclick="viewReceipt(\''+eid+'\')">👁</button>'
+      + '<button class="attach-btn" title="다운로드"'
+      +  ' onclick="downloadReceipt(\''+eid+'\')">⬇</button>'
+      + '<button class="attach-btn del" title="첨부 삭제"'
+      +  ' onclick="removeReceipt(\''+eid+'\')">✕</button>'
+      + '</div>';
+  } else {
+    /* 첨부 없음: 클립 버튼(클릭 시 파일 선택) */
+    return '<div class="exp-attach-box">'
+      + fileInput
+      + '<button class="attach-btn empty" title="영수증 첨부 (이미지·PDF)"'
+      +  ' onclick="document.getElementById(\'attach-input-'+eid+'\').click()">📎</button>'
+      + '</div>';
+  }
+}
+
+/* Storage에 저장할 안전한 파일명 만들기 (경비ID + 타임스탬프 + 확장자) */
+function makeReceiptPath(eid, originalName){
+  const dot = originalName.lastIndexOf('.');
+  const ext = dot !== -1 ? originalName.slice(dot).toLowerCase() : '';
+  return eid + '_' + Date.now() + ext;
+}
+
+/* 파일 업로드 → Storage 저장 → DB에 URL/파일명 기록 */
+async function uploadReceipt(eid, inputEl){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return;
+
+  /* 용량 제한 (10MB) — 너무 큰 파일 방지 */
+  if(file.size > 10 * 1024 * 1024){
+    toast('❌ 파일이 너무 큽니다 (최대 10MB)');
+    inputEl.value = '';
+    return;
+  }
+
+  /* 업로드 중 표시 */
+  const cell = document.querySelector('#exprow-'+eid+' .exp-attach-box');
+  if(cell) cell.innerHTML = '<span style="font-size:12px;color:var(--muted)">업로드중…</span>';
+  setSyncStatus('loading','영수증 업로드중...');
+
+  try{
+    /* 기존 첨부가 있으면 Storage에서 먼저 삭제 (교체) */
+    const exp = expData.find(x=>x.id===eid);
+    if(exp && exp.receipt_path){
+      await deleteFromStorage(exp.receipt_path);
+    }
+
+    const path = makeReceiptPath(eid, file.name);
+    /* Storage 업로드 — POST /storage/v1/object/{bucket}/{path} */
+    const upRes = await fetch(SB_URL+'/storage/v1/object/'+RECEIPT_BUCKET+'/'+encodeURIComponent(path), {
+      method:'POST',
+      headers:{
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY,
+        'Content-Type':file.type || 'application/octet-stream',
+        'x-upsert':'true'
+      },
+      body:file
+    });
+    if(!upRes.ok) throw new Error(await upRes.text());
+
+    /* 공개 URL 만들기 */
+    const publicUrl = SB_URL+'/storage/v1/object/public/'+RECEIPT_BUCKET+'/'+encodeURIComponent(path);
+
+    /* DB에 저장 (URL, 원본파일명, storage 경로) */
+    await fetch(SB_URL+'/rest/v1/dept_expense?id=eq.'+eid, {
+      method:'PATCH', headers:H,
+      body:JSON.stringify({ receipt_url:publicUrl, receipt_name:file.name, receipt_path:path })
+    });
+
+    /* 메모리 갱신 후 다시 그리기 */
+    if(exp){ exp.receipt_url=publicUrl; exp.receipt_name=file.name; exp.receipt_path=path; }
+    renderExpense();
+    setSyncStatus('ok','연결됨');
+    toast('✅ 영수증이 첨부되었습니다');
+  }catch(err){
+    setSyncStatus('error','오류');
+    console.error(err);
+    /* Storage 정책(RLS)·버킷 오류 안내 */
+    const msg = (err.message||'');
+    if(msg.includes('row-level security') || msg.includes('policy') || msg.includes('Unauthorized')){
+      toast('❌ Storage 권한 오류 — receipts 버킷 정책을 확인하세요', 5000);
+    } else if(msg.includes('Bucket not found') || msg.includes('not found')){
+      toast('❌ receipts 버킷이 없습니다 — Supabase Storage에서 만들어주세요', 5000);
+    } else {
+      toast('❌ 업로드 실패: '+msg);
+    }
+    renderExpense();   /* 실패 시 원래 첨부 버튼 복구 */
+  }
+}
+
+/* Storage에서 파일 삭제 (교체·삭제 시 사용) */
+async function deleteFromStorage(path){
+  try{
+    await fetch(SB_URL+'/storage/v1/object/'+RECEIPT_BUCKET+'/'+encodeURIComponent(path), {
+      method:'DELETE',
+      headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY }
+    });
+  }catch(e){ console.warn('Storage 삭제 실패(무시):', e); }
+}
+
+/* 영수증 보기 — 이미지면 팝업, PDF면 새 탭 */
+function viewReceipt(eid){
+  const exp = expData.find(x=>x.id===eid);
+  if(!exp || !exp.receipt_url) return;
+  const name = (exp.receipt_name||'').toLowerCase();
+  const isPdf = name.endsWith('.pdf') || exp.receipt_url.toLowerCase().includes('.pdf');
+
+  if(isPdf){
+    /* PDF는 새 탭에서 열기 */
+    window.open(exp.receipt_url, '_blank');
+  } else {
+    /* 이미지는 미리보기 모달 */
+    const overlay = document.getElementById('receiptOverlay');
+    const img = document.getElementById('receiptImg');
+    img.src = exp.receipt_url;
+    /* 다운로드 버튼에 현재 파일 정보 연결 */
+    document.getElementById('receiptDlBtn').onclick = ()=>downloadReceipt(eid);
+    /* body로 옮겨서 확실히 화면 중앙에 표시 */
+    if(overlay.parentElement !== document.body) document.body.appendChild(overlay);
+    overlay.classList.add('open');
+  }
+}
+
+/* 영수증 미리보기 모달 닫기 */
+function closeReceipt(){
+  const overlay = document.getElementById('receiptOverlay');
+  overlay.classList.remove('open');
+  document.getElementById('receiptImg').src = '';
+}
+
+/* 영수증 다운로드 — 원본 파일명으로 저장 */
+async function downloadReceipt(eid){
+  const exp = expData.find(x=>x.id===eid);
+  if(!exp || !exp.receipt_url) return;
+  try{
+    /* fetch로 blob을 받아와 원본 파일명으로 저장 */
+    const res = await fetch(exp.receipt_url);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = exp.receipt_name || '영수증';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    /* 실패 시 새 탭으로 fallback */
+    window.open(exp.receipt_url, '_blank');
+  }
+}
+
+/* 영수증 삭제 — Storage 파일 + DB 기록 모두 제거 */
+async function removeReceipt(eid){
+  const exp = expData.find(x=>x.id===eid);
+  if(!exp || !exp.receipt_url) return;
+  if(!confirm('첨부된 영수증을 삭제할까요?')) return;
+
+  setSyncStatus('loading','영수증 삭제중...');
+  try{
+    /* Storage 파일 삭제 */
+    if(exp.receipt_path) await deleteFromStorage(exp.receipt_path);
+    /* DB 필드 비우기 */
+    await fetch(SB_URL+'/rest/v1/dept_expense?id=eq.'+eid, {
+      method:'PATCH', headers:H,
+      body:JSON.stringify({ receipt_url:null, receipt_name:null, receipt_path:null })
+    });
+    exp.receipt_url=null; exp.receipt_name=null; exp.receipt_path=null;
+    renderExpense();
+    setSyncStatus('ok','연결됨');
+    toast('🗑 영수증이 삭제되었습니다');
+  }catch(e){
+    setSyncStatus('error','오류');
+    toast('❌ 삭제 실패');
+  }
+}
+
+
 async function quickAddExp(){
   const prevSpent=expData.reduce((s,e)=>s+(Number(e.amount)||0),0);
   const maxSeq=expData.length?Math.max(...expData.map(e=>e.seq||0)):0;
@@ -2386,21 +2698,8 @@ document.addEventListener('keydown', e=>{
    추가·삭제·색상변경·순서변경 할 수 있습니다. 전부 Supabase에 저장됩니다.
 ============================================================ */
 
-/* 고를 수 있는 색상 12가지 (배경색 / 글자색 / 동그라미색) */
-const PALETTES = [
-  {bg:'#FFEBEE',fg:'#C0392B',dot:'#E57373'},
-  {bg:'#FFE8CC',fg:'#D35400',dot:'#FFA040'},
-  {bg:'#FFF5CC',fg:'#B7770D',dot:'#F5C842'},
-  {bg:'#E8F5E9',fg:'#2E7D32',dot:'#66BB6A'},
-  {bg:'#E3F2FD',fg:'#1565C0',dot:'#42A5F5'},
-  {bg:'#E3F4FB',fg:'#2E86AB',dot:'#4FC3F7'},
-  {bg:'#F3EEFC',fg:'#7C5CBF',dot:'#9B72E8'},
-  {bg:'#FFF0F6',fg:'#C2255C',dot:'#F06292'},
-  {bg:'#EDF2FF',fg:'#3B5BDB',dot:'#748FFC'},
-  {bg:'#F0F0F0',fg:'#555555',dot:'#AAAAAA'},
-  {bg:'#FFF8E1',fg:'#B7770D',dot:'#FFD54F'},
-  {bg:'#E8F5FE',fg:'#0277BD',dot:'#4DB6AC'},
-];
+/* ★ PALETTES 배열 제거됨 — 자유 색상 피커(input[type=color])로 교체
+   setOptColorFree() / previewOptColor() 함수가 대신 처리합니다 */
 
 let optType = '';          /* 지금 관리 중인 옵션 종류 */
 
@@ -2408,15 +2707,21 @@ function openOptModal(type){
   optType = type;
   document.getElementById('optTitle').textContent = OPT_TITLE[type] + ' 옵션 관리';
   document.getElementById('optInput').value = '';
+  renderPaletteBar();
   renderOptList();
-  document.getElementById('optOverlay').classList.add('open');
+  /* ★ overlay를 body 직속 자식으로 이동 — overflow:auto 조상이 있으면
+     position:fixed 기준이 틀어져서 모달이 한쪽으로 밀리는 문제 방지 */
+  const overlay = document.getElementById('optOverlay');
+  if(overlay.parentElement !== document.body) document.body.appendChild(overlay);
+  overlay.classList.add('open');
   setTimeout(()=>document.getElementById('optInput').focus(), 50);
 }
 
 /* ★ 배경(어두운 부분)을 눌러도 닫히지 않습니다. X 버튼으로만 닫힘 */
 function closeOptModal(){
   document.getElementById('optOverlay').classList.remove('open');
-  renderTask();       /* 바뀐 옵션을 표에 반영 */
+  renderTask();              /* 바뀐 옵션을 표에 반영 */
+  applyStatusFilterColors(); /* 상태 색상이 바뀌었을 수 있으므로 필터 버튼도 재적용 */
 }
 
 /* 모달 안의 옵션 목록 그리기 */
@@ -2438,40 +2743,341 @@ function renderOptList(){
 
   document.getElementById('optList').innerHTML = list.map((o,i)=>{
     const label = o.label || o.value;
-    /* 색상 동그라미 12개 */
-    const dots = PALETTES.map((p,pi)=>
-      '<span class="color-dot'+(p.bg===o.color_bg?' selected':'')+'"'
-      +' style="background:'+p.dot+'" title="'+p.bg+'"'
-      +' onclick="setOptColor('+i+','+pi+',this)"></span>'
-    ).join('');
     /* 상태 종류만 DB 실제값이 표시명과 달라서 괄호로 같이 보여줌 */
     const raw = (o.value !== label) ? '<span style="font-size:11px;color:var(--muted)">('+esc(o.value)+')</span>' : '';
+    /* 배경색·글자색 각각 자유롭게 고를 수 있는 컬러피커
+       동그라미를 팔레트로 드래그하면 그 색이 팔레트에 저장됩니다 */
+    const pickers =
+      '<div class="color-pick-pair"'
+      +' ondragover="event.preventDefault()" ondrop="onPickerDrop(event,'+i+',\'bg\')">'
+      +'<span>배경</span>'
+      +'<input type="color" id="pick-bg-'+i+'" value="'+esc(o.color_bg||'#F0F0F0')+'"'
+      +' title="팔레트로 드래그하면 저장 / 클릭하면 색 변경"'
+      +' draggable="true"'
+      +' ondragstart="onPickerDragStart(event,\'pick-bg-'+i+'\')"'
+      +' oninput="previewOptColor('+i+',this.value,null,this)"'
+      +' onchange="setOptColorFree('+i+',\'bg\',this.value)">'
+      +'</div>'
+      +'<div class="color-pick-pair"'
+      +' ondragover="event.preventDefault()" ondrop="onPickerDrop(event,'+i+',\'fg\')">'
+      +'<span>글자</span>'
+      +'<input type="color" id="pick-fg-'+i+'" value="'+esc(o.color_fg||'#555555')+'"'
+      +' title="팔레트로 드래그하면 저장 / 클릭하면 색 변경"'
+      +' draggable="true"'
+      +' ondragstart="onPickerDragStart(event,\'pick-fg-'+i+'\')"'
+      +' oninput="previewOptColor('+i+',null,this.value,this)"'
+      +' onchange="setOptColorFree('+i+',\'fg\',this.value)">'
+      +'</div>';
+
     return '<div class="opt-item" draggable="true"'
       +' ondragstart="optDragStart(event,'+i+')" ondragover="optDragOver(event,'+i+')"'
       +' ondragleave="optDragLeave(event)" ondrop="optDrop(event,'+i+')" ondragend="optDragEnd(event)">'
       +'<div class="opt-top">'
       +'<span class="drag-handle" title="끌어서 순서 변경">⠿</span>'
-      +'<span class="badge" style="background:'+o.color_bg+';color:'+o.color_fg+'">'+esc(label)+'</span>'
+      +'<span class="badge" id="opt-badge-'+i+'" style="background:'+o.color_bg+';color:'+o.color_fg+'">'+esc(label)+'</span>'
       +raw
       +'<button class="opt-del" onclick="delOpt('+i+')" title="삭제">✕</button>'
       +'</div>'
-      +'<div class="color-row">'+dots+'</div>'
+      +'<div class="color-row">'+pickers+'</div>'
       +'</div>';
   }).join('');
 }
 
-/* ---- 색상 변경 ---- */
-async function setOptColor(i, pi, dotEl){
+/* ============================================================
+   상태 필터 버튼 색상 동기화
+   ⚙ 옵션 모달에서 상태 뱃지 색을 바꾸면 필터 버튼도 같이 바뀝니다.
+
+   STATUS_MAP: 상태 DB값(value)의 키워드 → 필터 버튼 id
+   예) '1. 요청' → '요청' 키워드 포함 → 'flt-req' 버튼
+============================================================ */
+const STATUS_FILTER_MAP = [
+  { keyword:'요청',  id:'flt-req'  },
+  { keyword:'진행중', id:'flt-ing'  },
+  { keyword:'지속',  id:'flt-cont' },
+  { keyword:'보류',  id:'flt-hold' },
+  { keyword:'완료',  id:'flt-done' },
+];
+
+/* 상태값(value 문자열)에 해당하는 필터 버튼 요소를 반환 */
+function getFltBtn(statusValue){
+  const v = statusValue || '';
+  const match = STATUS_FILTER_MAP.find(m => v.includes(m.keyword));
+  return match ? document.getElementById(match.id) : null;
+}
+
+/* 필터 버튼 하나에 배경색/글자색 적용
+   - 비활성(기본): bg를 연하게, fg를 글자색으로
+   - 활성(.active): bg/fg 그대로 채워진 스타일
+   CSS .active{ color:#fff } 보다 inline style이 우선하므로
+   활성 색도 inline으로 넣어야 합니다 */
+function applyFltBtnColor(btn, bg, fg){
+  if(!btn) return;
+  /* 비활성 기본 스타일 */
+  btn.style.background   = bg;
+  btn.style.color        = fg;
+  btn.style.borderColor  = fg;   /* 테두리도 글자색 계열로 */
+  /* 활성(.active)일 때는 배경을 글자색으로, 글자를 흰색으로 */
+  btn.dataset.colorBg = bg;
+  btn.dataset.colorFg = fg;
+  /* 현재 활성 상태라면 즉시 활성 스타일도 반영 */
+  if(btn.classList.contains('active')){
+    btn.style.background  = fg;
+    btn.style.color       = '#fff';
+    btn.style.borderColor = fg;
+  }
+}
+
+/* 앱 로딩 시 / ⚙ 모달 닫힐 때 OPTIONS.status 전체를 필터 버튼에 반영 */
+function applyStatusFilterColors(){
+  (OPTIONS.status || []).forEach(o => {
+    const btn = getFltBtn(o.value);
+    applyFltBtnColor(btn, o.color_bg, o.color_fg);
+  });
+}
+
+/* setStatusFilter 호출 시 활성/비활성 전환에 맞춰 색상도 유지되어야 함
+   기존 setStatusFilter 를 래핑해서 전환 직후 색상 재적용 */
+const _origSetStatusFilter = typeof setStatusFilter === 'function' ? setStatusFilter : null;
+
+/* ============================================================
+   공용 색상 팔레트 — 옵션 관리 모달 상단에 1개만 표시 (20칸 고정)
+   피커 동그라미를 팔레트 슬롯으로 드래그해서 직접 저장 (같은 색 중복 허용)
+   localStorage 키: taskMgr_colorPalette
+   팔레트 동그라미 클릭 → 마지막으로 조작한 피커(배경 or 글자)에 적용
+============================================================ */
+const COLOR_PAL_KEY = 'taskMgr_colorPalette';
+const COLOR_PAL_MAX = 20;   /* 팔레트 슬롯 수 (항상 이 길이 고정) */
+
+/* 팔레트 불러오기 — 항상 길이 20짜리 배열로 정규화해서 반환
+   (빈 칸은 null). 예전 형식(짧은 배열)도 자동으로 20칸으로 맞춰줌 */
+function getColorPalette(){
+  let raw;
+  try{ raw = JSON.parse(localStorage.getItem(COLOR_PAL_KEY)||'[]'); }
+  catch(e){ raw = []; }
+  if(!Array.isArray(raw)) raw = [];
+  /* 길이 20으로 강제 정규화 — 부족하면 null 채우고, 넘치면 자름 */
+  const pal = [];
+  for(let i = 0; i < COLOR_PAL_MAX; i++){
+    pal[i] = (raw[i] === undefined || raw[i] === null) ? null : raw[i];
+  }
+  return pal;
+}
+
+/* 팔레트 배열을 그대로 저장 (항상 길이 20 유지) */
+function saveColorPalette(pal){
+  try{
+    /* 안전하게 20칸으로 정규화 후 저장 */
+    const fixed = [];
+    for(let i = 0; i < COLOR_PAL_MAX; i++){
+      fixed[i] = (pal[i] === undefined || pal[i] === null) ? null : pal[i];
+    }
+    localStorage.setItem(COLOR_PAL_KEY, JSON.stringify(fixed));
+  }catch(e){}
+}
+
+/* 특정 슬롯(idx)에 색 저장 — 같은 색이 다른 칸에 있어도 그대로 둠(중복 허용) */
+function setPaletteSlot(idx, color){
+  const pal = getColorPalette();
+  pal[idx] = color;
+  saveColorPalette(pal);
+}
+
+/* 빈 슬롯 중 가장 앞쪽에 색 추가 (여백 드롭용) — 중복 허용 */
+function addToFirstEmptySlot(color){
+  const pal = getColorPalette();
+  const empty = pal.indexOf(null);
+  if(empty === -1) return;             /* 빈 칸 없으면 무시 */
+  pal[empty] = color;
+  saveColorPalette(pal);
+}
+
+/* 특정 슬롯 비우기 */
+function clearPaletteSlot(idx){
+  const pal = getColorPalette();
+  pal[idx] = null;
+  saveColorPalette(pal);
+}
+
+/* 팔레트 바 렌더링 — 항상 COLOR_PAL_MAX개 슬롯 표시 (빈 자리는 점선 원)
+   각 슬롯은 드롭 타겟 — 피커 동그라미를 끌어다 놓으면 그 색이 저장됩니다 */
+function renderPaletteBar(){
+  const bar = document.getElementById('optPaletteBar');
+  if(!bar) return;
+  const slots = getColorPalette();   /* 항상 길이 20 (빈칸은 null) */
+
+  /* 슬롯을 10개씩 두 줄로 나눔 */
+  const makeSlot = (c, idx) => {
+    const base = ' ondragover="onPalDragOver(event,'+idx+')"'
+               + ' ondragleave="onPalDragLeave(event)"'
+               + ' ondrop="onPalDrop(event,'+idx+')"';
+    const draggable = c ? ' draggable="true" ondragstart="onPalDotDragStart(event,\''+c+'\',' + idx + ')"' : '';
+    return c
+      ? '<span class="pal-dot" style="background:'+c+'" title="'+c+' | 피커로 드래그하거나 클릭해서 적용"'
+        + base + draggable +' onclick="applyPalColor(\''+c+'\')"></span>'
+      : '<span class="pal-dot empty" title="피커 동그라미를 여기로 드래그해서 저장"'
+        + base +'></span>';
+  };
+
+  const row1 = slots.slice(0, 10).map((c,i) => makeSlot(c, i)).join('');
+  const row2 = slots.slice(10, 20).map((c,i) => makeSlot(c, i+10)).join('');
+
+  bar.innerHTML =
+    '<span class="pal-label">팔레트</span>'
+    +'<div class="pal-row">'+row1+'</div>'
+    +'<div class="pal-row">'+row2+'</div>';
+
+  /* 팔레트 바 자체도 드롭 타겟 (슬롯 사이 여백 드롭 시 빈 슬롯 첫 번째에 저장) */
+  bar.ondragover = e => { e.preventDefault(); bar.classList.add('drag-active'); };
+  bar.ondragleave = e => { if(!bar.contains(e.relatedTarget)) bar.classList.remove('drag-active'); };
+  bar.ondrop = e => {
+    e.preventDefault();
+    bar.classList.remove('drag-active');
+    /* 슬롯의 drop이 먼저 처리되므로, 여기 도달하면 슬롯 사이 여백에 떨어진 것 */
+    const color = e.dataTransfer.getData('text/plain');
+    const source = e.dataTransfer.getData('application/x-drag-source');
+    /* 팔레트 dot을 여백에 떨어뜨린 경우는 아무것도 안 함 (제자리 유지) */
+    if(source === 'palette') return;
+    if(!color) return;
+    addToFirstEmptySlot(color);
+    renderPaletteBar();
+  };
+}
+
+/* ---- 피커 동그라미 dragstart (피커→팔레트) ---- */
+function onPickerDragStart(e, inputId){
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  e.dataTransfer.setData('text/plain', input.value);
+  e.dataTransfer.setData('application/x-drag-source', 'picker'); /* 출처 표시 */
+  e.dataTransfer.effectAllowed = 'copy';
+  const bar = document.getElementById('optPaletteBar');
+  if(bar) bar.classList.add('drag-active');
+}
+
+/* ---- 팔레트 dot dragstart (팔레트→피커 또는 팔레트 슬롯 이동) ---- */
+function onPalDotDragStart(e, color, fromIdx){
+  e.dataTransfer.setData('text/plain', color);
+  e.dataTransfer.setData('application/x-drag-source', 'palette'); /* 출처 표시 */
+  e.dataTransfer.setData('application/x-pal-from', String(fromIdx)); /* 출발 슬롯 */
+  e.dataTransfer.effectAllowed = 'copyMove';
+  e.stopPropagation(); /* opt-item draggable 이벤트와 충돌 방지 */
+}
+
+/* ---- 피커 div에 드롭 (팔레트→피커) ---- */
+function onPickerDrop(e, i, which){
+  e.preventDefault();
+  e.stopPropagation();
+  const color = e.dataTransfer.getData('text/plain');
+  if(!color) return;
+  /* 피커 input 값 변경 */
+  const input = document.getElementById('pick-'+which+'-'+i);
+  if(input) input.value = color;
+  /* 미리보기 + DB 저장 */
+  const bgVal = which === 'bg' ? color : null;
+  const fgVal = which === 'fg' ? color : null;
+  previewOptColor(i, bgVal, fgVal, input);
+  setOptColorFree(i, which, color);
+}
+
+/* ---- 팔레트 슬롯 dragover / dragleave / drop ---- */
+function onPalDragOver(e, idx){
+  e.preventDefault();
+  e.stopPropagation();
+  /* 해당 슬롯 강조 */
+  const dots = document.querySelectorAll('#optPaletteBar .pal-dot');
+  dots.forEach(d => d.classList.remove('drag-over'));
+  if(dots[idx]) dots[idx].classList.add('drag-over');
+}
+
+function onPalDragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onPalDrop(e, idx){
+  e.preventDefault();
+  e.stopPropagation();
+  /* 모든 강조 제거 */
+  document.querySelectorAll('#optPaletteBar .pal-dot').forEach(d => d.classList.remove('drag-over'));
+  document.getElementById('optPaletteBar').classList.remove('drag-active');
+
+  const color = e.dataTransfer.getData('text/plain');
+  const source = e.dataTransfer.getData('application/x-drag-source');
+  if(!color) return;
+
+  /* 팔레트 dot을 다른 슬롯으로 옮긴 경우 → 원래 슬롯 비우고 새 슬롯에 넣기 (자리 이동) */
+  if(source === 'palette'){
+    const fromIdx = parseInt(e.dataTransfer.getData('application/x-pal-from'), 10);
+    if(!isNaN(fromIdx) && fromIdx !== idx){
+      const pal = getColorPalette();
+      /* 대상 슬롯에 이미 색이 있으면 서로 자리 교환(swap), 없으면 이동 */
+      const tmp = pal[idx];
+      pal[idx] = color;
+      pal[fromIdx] = tmp;    /* 비어있었으면 null이 들어가 원래 자리는 비워짐 */
+      saveColorPalette(pal);
+    }
+    renderPaletteBar();
+    return;
+  }
+
+  /* 피커에서 끌어온 색을 해당 슬롯에 저장 (덮어쓰기) */
+  setPaletteSlot(idx, color);
+  renderPaletteBar();
+}
+
+/* 팔레트 동그라미 클릭 — 마지막으로 조작한 피커에 색 적용 */
+let _lastPickTarget = null;   /* { i(옵션인덱스), which('bg'|'fg') } */
+
+function applyPalColor(color){
+  if(!_lastPickTarget) return;
+  const { i, which } = _lastPickTarget;
+  const input = document.getElementById('pick-'+which+'-'+i);
+  if(input){ input.value = color; }
+  const bgVal = which === 'bg' ? color : null;
+  const fgVal = which === 'fg' ? color : null;
+  previewOptColor(i, bgVal, fgVal, input);
+  setOptColorFree(i, which, color);
+}
+
+/* ---- 색상 실시간 미리보기 (피커 드래그 중 — DB 저장 안 함) ---- */
+function previewOptColor(i, bgVal, fgVal, inputEl){
+  /* 어느 피커를 조작 중인지 기억 (히스토리 클릭 시 같은 타겟에 적용하기 위해) */
+  if(inputEl){
+    _lastPickTarget = {
+      i,
+      which: inputEl.id && inputEl.id.startsWith('pick-fg') ? 'fg' : 'bg'
+    };
+  }
+  const badge = document.getElementById('opt-badge-'+i);
+  if(!badge) return;
+  if(bgVal !== null) badge.style.background = bgVal;
+  if(fgVal !== null) badge.style.color = fgVal;
+  /* 상태 옵션이면 필터 버튼도 실시간 미리보기 */
+  if(optType === 'status'){
+    const o = OPTIONS.status[i];
+    if(o){
+      const bg = bgVal !== null ? bgVal : o.color_bg;
+      const fg = fgVal !== null ? fgVal : o.color_fg;
+      applyFltBtnColor(getFltBtn(o.value), bg, fg);
+    }
+  }
+}
+
+/* ---- 색상 확정 저장 (input change — 피커 닫힐 때) ---- */
+async function setOptColorFree(i, which, val){
   const o = OPTIONS[optType][i];
-  const p = PALETTES[pi];
-  o.color_bg = p.bg; o.color_fg = p.fg;
-  /* 화면 먼저 갱신 (반응 빠르게) */
-  dotEl.closest('.color-row').querySelectorAll('.color-dot')
-    .forEach((d,k)=>d.classList.toggle('selected', k===pi));
-  const badge = dotEl.closest('.opt-item').querySelector('.badge');
-  badge.style.background = p.bg; badge.style.color = p.fg;
+  if(!o) return;
+  /* 메모리 업데이트 */
+  if(which === 'bg') o.color_bg = val;
+  if(which === 'fg') o.color_fg = val;
+  /* ★ 팔레트 자동저장 없음 — 피커 동그라미를 직접 드래그해서 팔레트에 추가하는 방식 */
   /* DB 저장 */
-  await patchOpt(o.id, {color_bg:p.bg, color_fg:p.fg});
+  await patchOpt(o.id, {color_bg: o.color_bg, color_fg: o.color_fg});
+  /* 상태 옵션이면 필터 버튼도 확정 반영 */
+  if(optType === 'status'){
+    applyFltBtnColor(getFltBtn(o.value), o.color_bg, o.color_fg);
+  }
+  /* 히스토리 동그라미 갱신 (모든 opt-item의 히스토리 줄 새로 그리기) */
+  renderOptList();
 }
 
 /* ---- 옵션 추가 ---- */
@@ -2739,6 +3345,10 @@ function initColResize(){
       <h3 id="optTitle">옵션 관리</h3>
       <button class="opt-x" onclick="closeOptModal()">✕</button>
     </div>
+    <!-- 공용 색상 팔레트 — 피커로 확정한 색이 여기 쌓임, 클릭하면 마지막 피커에 적용 -->
+    <div class="opt-palette-bar" id="optPaletteBar">
+      <span class="pal-label">팔레트</span>
+    </div>
     <div class="opt-body">
       <div id="optList"></div>
       <!-- 새 항목 추가: Enter 키로도 추가됨 -->
@@ -2753,6 +3363,20 @@ function initColResize(){
 
 <!-- 컬럼 폭 리사이즈 툴팁 — 드래그 중 마우스 옆에 px 값 표시 -->
 
+
+<!-- ============================================================
+     영수증 미리보기 모달 (이미지 전용, PDF는 새 탭)
+     배경 클릭하면 닫힘
+============================================================ -->
+<div class="receipt-overlay" id="receiptOverlay" onclick="if(event.target===this)closeReceipt()">
+  <div class="receipt-box">
+    <img id="receiptImg" src="" alt="영수증">
+    <div class="receipt-toolbar">
+      <button class="receipt-dl-btn" id="receiptDlBtn">⬇ 다운로드</button>
+      <button class="receipt-close-btn" onclick="closeReceipt()">닫기</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
