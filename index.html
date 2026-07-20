@@ -37,6 +37,12 @@
 }
 *{box-sizing:border-box;}
 html,body{margin:0;padding:0;height:100%;overflow:hidden;}
+/* ★ body를 flex 세로 배치로 — 헤더+탭바+main 합이 정확히 화면 높이(100%)에 맞음.
+   예전엔 .main{height:calc(100vh - 60px)}이 탭바 높이(약 50px)를 빼먹어서
+   페이지가 화면보다 50px 커졌고, 렌더 후 자동 스크롤 시 탭바가 sticky 헤더
+   뒤로 밀려 사라지는 버그가 있었음 → flex로 근본 해결 */
+body{display:flex;flex-direction:column;}
+.header,.tab-bar{flex-shrink:0;}
 body{
   background:var(--paper);color:var(--ink);
   font-family:var(--sans);font-size:14px;
@@ -276,7 +282,7 @@ body{
 /* ==============================================================
    탭 패널
 ============================================================== */
-.main{display:flex;flex-direction:column;height:calc(100vh - 60px);}
+.main{display:flex;flex-direction:column;flex:1;min-height:0;}
 .tab-panel{display:none;flex:1;flex-direction:column;overflow:hidden;}
 .tab-panel.active{display:flex;}
 
@@ -1072,7 +1078,7 @@ body{
      dept-title/toolbar-nav는 고정 높이, wlTabWeekly/wlTabMonthly가 남는 공간(flex:1)을 차지 */
   .wl-main{
     max-width:1400px; margin:0 auto; padding:20px; width:100%;
-    flex:1; min-height:0; overflow:hidden;
+    flex:1; min-height:0;
     display:flex; flex-direction:column;
   }
   /* 주간일지/월간일지 내용 영역 - 표시된 쪽만 남는 세로 공간을 채움 */
@@ -3982,13 +3988,20 @@ function renderBody(){
     }
   }
 
-  // 앱을 맨 처음 열었을 때 딱 한 번만, "오늘" 날짜 줄이 화면 가운데 오도록 자동 스크롤
+  // 앱을 맨 처음 열었을 때 딱 한 번만, "오늘" 날짜 줄이 표 가운데 오도록 자동 스크롤
+  // ★ scrollIntoView는 문서(페이지) 전체까지 스크롤시켜서 탭바가 헤더 뒤로 숨는 버그가 있었음
+  //   → 표 박스(.grid-wrap) "안에서만" 스크롤하도록 scrollTop 직접 계산 방식으로 교체
   if(!didInitialScroll){
     didInitialScroll = true;
     setTimeout(() => {
       const todayStr = toDateStr(TODAY);
       const row = body.querySelector(`tr[data-date="${todayStr}"]`);
-      if(row) row.scrollIntoView({ block:'center', behavior:'auto' });
+      const wrap = document.querySelector('#wlTabWeekly .grid-wrap');
+      if(row && wrap){
+        /* 오늘 행이 표 박스의 세로 가운데쯤 오도록 컨테이너 스크롤만 이동 */
+        const target = row.offsetTop - (wrap.clientHeight / 2) + (row.offsetHeight / 2);
+        wrap.scrollTop = Math.max(0, target);
+      }
     }, 30);
   }
 }
