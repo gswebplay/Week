@@ -1,0 +1,3729 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1"/>
+<title>기술전략팀 업무관리</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📋</text></svg>">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css"/>
+<style>
+/* ==============================================================
+   CSS 변수 - index.html과 동일한 색상 시스템
+   여기 색상 하나만 바꿔도 전체에 반영됩니다
+============================================================== */
+:root{
+  --blueprint:#2B6CB0;        /* 메인 파란색 */
+  --blueprint-strong:#1B4D89; /* 파란색 hover */
+  --blueprint-bg:#EAF2FB;     /* 연한 파란 배경 */
+  --line:#D3DEE9;             /* 테두리 색 */
+  --paper:#F5F7FA;            /* 페이지 배경 */
+  --ink:#1A2332;              /* 기본 글자색 */
+  --muted:#64748B;            /* 보조 글자색 */
+  --danger:#C0392B;           /* 삭제·빨간색 */
+  --success:#34A853;          /* 초록색 */
+  --warning:#FBBC04;          /* 노란색 */
+  --plan:#7C5CBF;             /* 보라색 */
+  --plan-bg:#F3EEFC;
+  --sans:'Pretendard',-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;}
+body{
+  background:var(--paper);color:var(--ink);
+  font-family:var(--sans);font-size:14px;
+  -webkit-font-smoothing:antialiased;
+  word-break:keep-all;overflow-wrap:break-word;
+}
+
+/* ==============================================================
+   헤더 - index.html .header와 완전 동일
+============================================================== */
+.header{
+  background:#fff;border-bottom:1px solid var(--line);
+  padding:0 20px;display:flex;align-items:center;justify-content:space-between;
+  height:60px;position:sticky;top:0;z-index:30;
+  box-shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.08);
+}
+.header h1{
+  font-size:18px;font-weight:600;
+  display:flex;align-items:center;gap:8px;
+  color:var(--ink);white-space:nowrap;
+  /* ★ flex:1 + min-width:0 + overflow:hidden — 화면이 좁아지면 제목이 넘쳐서
+     오른쪽 요소(연도탭 등) 위로 겹치던 문제 방지. 좁으면 말줄임(…)으로 잘림 */
+  flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+}
+/* "기술전략팀" 글자만 파란색 - index.html과 동일 패턴 */
+.header h1 span{color:var(--blueprint);}
+/* "업무관리" 부분 — 기본 글자색 유지, 모바일에서는 숨겨서 공간 확보 */
+.header h1 .h1-sub{color:var(--ink);}
+.header-right{display:flex;align-items:center;gap:14px;flex-shrink:0;min-width:0;}
+.app-version{font-size:12px;color:#B8C0CC;white-space:nowrap;}
+.sync-status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0;}
+.sync-dot.loading{background:var(--warning);animation:pulse 1s infinite;}
+.sync-dot.error{background:var(--danger);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ==============================================================
+   탭바 - index.html .tab-bar / .tab과 완전 동일
+============================================================== */
+.tab-bar{
+  background:#fff;border-bottom:1px solid var(--line);
+  padding:0 20px;display:flex;
+}
+.tab{
+  padding:14px 20px;font-size:14px;font-weight:500;
+  color:var(--muted);border:none;background:none;cursor:pointer;
+  border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;
+}
+.tab:hover{color:var(--ink);}
+.tab.active{color:var(--blueprint);border-bottom-color:var(--blueprint);}
+
+/* ==============================================================
+   툴바
+============================================================== */
+.toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;flex-wrap:wrap;padding:10px 20px;
+  background:#fff;border-bottom:1px solid var(--line);
+}
+.toolbar-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;}
+.toolbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+
+/* 검색창 */
+.search-input{
+  padding:7px 12px;border:1px solid var(--line);border-radius:7px;
+  font-size:13px;font-family:var(--sans);color:var(--ink);
+  outline:none;width:400px;transition:border-color .15s;
+}
+.search-input:focus{border-color:var(--blueprint);}
+/* 업무탭 검색창 — 전체 담당자 드롭다운과 함께 넓어지도록 확장 */
+.toolbar-left .search-input{ width:480px; }
+/* 경비탭 검색창 — 새로고침 버튼 바로 앞까지 꽉 채움 */
+.exp-toolbar .search-input{ flex:1; width:auto; }
+
+/* 필터 셀렉트 */
+.filter-sel{
+  padding:7px 10px;border:1px solid var(--line);border-radius:7px;
+  font-size:13px;font-family:var(--sans);color:var(--ink);
+  background:#fff;outline:none;cursor:pointer;
+}
+.filter-sel:focus{border-color:var(--blueprint);}
+
+/* 새로고침 버튼 - index.html .refresh-btn 완전 동일 */
+.refresh-btn{
+  background:#FDF1F5;color:#D6558C;border:1px solid #F3C4D6;
+  font-size:13px;padding:8px 14px;border-radius:7px;cursor:pointer;
+  font-family:var(--sans);font-weight:600;
+  display:inline-flex;align-items:center;gap:4px;
+  white-space:nowrap;transition:background .15s;
+}
+.refresh-btn:hover{background:#FBE4ED;}
+
+/* 📅 공휴일 관리 버튼 — 새로고침과 같은 크기/스타일, 파란 계열 */
+.holiday-btn{
+  background:#EAF2FB; color:var(--blueprint); border:1px solid #BFD9F2;
+  font-size:13px; padding:8px 12px; border-radius:7px; cursor:pointer;
+  font-family:var(--sans); font-weight:600;
+  display:inline-flex; align-items:center; gap:4px;
+  white-space:nowrap; transition:background .15s;
+}
+.holiday-btn:hover{ background:#D3E8F8; }
+
+/* 공휴일 관리 팝업 오버레이 */
+.holiday-overlay{
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.35); z-index:1500;
+  align-items:center; justify-content:center;
+}
+.holiday-overlay.open{ display:flex; }
+
+/* 팝업 모달 */
+.holiday-modal{
+  background:#fff; border-radius:12px;
+  width:420px; max-height:80vh;
+  display:flex; flex-direction:column;
+  box-shadow:0 8px 32px rgba(0,0,0,.18);
+}
+.holiday-head{
+  padding:14px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+}
+.holiday-head h3{ font-size:14px; font-weight:700; }
+.holiday-head .opt-x{ border:none; background:none; font-size:17px; cursor:pointer; color:var(--muted); }
+.holiday-body{
+  padding:14px 20px; overflow-y:auto; flex:1;
+  display:flex; flex-direction:column; gap:8px;
+}
+.holiday-foot{
+  padding:12px 20px; border-top:1px solid var(--line);
+  display:flex; justify-content:flex-end; flex-shrink:0;
+}
+
+/* 공휴일 한 행 */
+.holiday-row{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px; border:1px solid var(--line);
+  border-radius:8px; background:#FAFBFC;
+}
+/* 날짜 클릭 영역 — 숫자처럼 보이지만 클릭하면 달력 피커 */
+.holiday-date-btn{
+  font-size:14px; font-weight:600; color:var(--blueprint);
+  cursor:pointer; background:none; border:none;
+  font-family:var(--sans); padding:2px 4px; border-radius:4px;
+  transition:background .12s;
+  white-space:nowrap;
+}
+.holiday-date-btn:hover{ background:var(--blueprint-bg); }
+/* 날짜 input — 버튼 위에 완전히 겹쳐서 숨김
+   showPicker() 호출 시 달력이 버튼 위치에서 뜨도록 position:absolute 사용
+   opacity:0 + pointer-events:none 으로 보이지 않게 처리 */
+.holiday-date-input{
+  position:absolute; opacity:0; pointer-events:none;
+  width:1px; height:1px; top:0; left:0;
+}
+.holiday-tilde{
+  font-size:14px; color:var(--muted); flex-shrink:0;
+}
+.holiday-name-input{
+  flex:1; border:none; border-bottom:1px solid var(--line);
+  font-size:13px; font-family:var(--sans); padding:2px 4px;
+  background:transparent; outline:none; color:var(--ink);
+  min-width:60px;
+}
+.holiday-name-input:focus{ border-bottom-color:var(--blueprint); }
+.holiday-del-btn{
+  border:none; background:none; cursor:pointer;
+  font-size:14px; color:#CBD5E1; padding:2px 4px; border-radius:4px;
+  transition:color .12s;
+}
+.holiday-del-btn:hover{ color:var(--danger); }
+
+/* 추가 버튼 — 점선 박스 스타일 (add-row-btn 계열) */
+.holiday-add-btn{
+  width:100%; padding:10px; border:1.5px dashed #CBD5E1;
+  border-radius:8px; background:#FAFBFC; cursor:pointer;
+  font-size:13px; color:var(--muted); font-family:var(--sans);
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  transition:border-color .15s, color .15s;
+}
+.holiday-add-btn:hover{ border-color:var(--blueprint); color:var(--blueprint); }
+
+/* 추가 버튼 - 파란 꽉찬 스타일 */
+.add-btn{
+  background:var(--blueprint);color:#fff;border:1px solid var(--blueprint);
+  font-size:13px;padding:8px 14px;border-radius:7px;cursor:pointer;
+  font-family:var(--sans);font-weight:600;
+  display:inline-flex;align-items:center;gap:4px;
+  white-space:nowrap;transition:background .15s;
+}
+.add-btn:hover{background:var(--blueprint-strong);border-color:var(--blueprint-strong);}
+
+/* 초기 업로드 버튼 삭제됨 */
+
+/* ==============================================================
+   상태 필터 버튼 바
+   클릭 시 해당 상태만 필터링, 활성화된 버튼은 채워진 스타일
+============================================================== */
+.filter-bar{
+  display:flex; gap:7px; flex-wrap:wrap;
+  background:#fff; border-bottom:1px solid var(--line);
+  padding:8px 20px;
+}
+/* 기본 상태 버튼 */
+.flt-btn{
+  display:inline-flex; align-items:center; gap:5px;
+  padding:5px 13px; border-radius:20px; font-size:13px; font-weight:600;
+  border:1.5px solid var(--line); background:#fff; color:var(--muted);
+  cursor:pointer; transition:all .15s; white-space:nowrap; user-select:none;
+}
+.flt-btn .flt-num{ font-size:14px; font-weight:700; }
+.flt-btn:hover{ border-color:#B0BEC5; color:var(--ink); }
+/* 활성화(선택된) 상태 */
+.flt-btn.active{ color:#fff; border-color:transparent; }
+/* 전체 */
+.flt-btn.all          { }
+.flt-btn.all.active   { background:#334155; border-color:#334155; }
+/* 완료 */
+.flt-btn.done         { color:#1565C0; border-color:#B3D9F0; background:#EAF4FB; }
+.flt-btn.done.active  { background:#1565C0; border-color:#1565C0; color:#fff; }
+/* 진행중 */
+.flt-btn.ing          { color:var(--plan); border-color:#C9B8F0; background:var(--plan-bg); }
+.flt-btn.ing.active   { background:var(--plan); border-color:var(--plan); color:#fff; }
+/* 지속진행 */
+.flt-btn.cont         { color:#2E7D52; border-color:#A5D6A7; background:#E8F5E9; }
+.flt-btn.cont.active  { background:#2E7D52; border-color:#2E7D52; color:#fff; }
+/* 보류 */
+.flt-btn.hold         { color:#B7770D; border-color:#FFD54F; background:#FFF8E1; }
+.flt-btn.hold.active  { background:#B7770D; border-color:#B7770D; color:#fff; }
+/* 요청 */
+.flt-btn.req          { color:var(--danger); border-color:#FFCDD2; background:#FFEBEE; }
+.flt-btn.req.active   { background:var(--danger); border-color:var(--danger); color:#fff; }
+@media(max-width:480px){ .filter-bar{padding:6px 14px;} }
+
+/* ==============================================================
+   탭 패널
+============================================================== */
+.main{display:flex;flex-direction:column;height:calc(100vh - 60px);}
+.tab-panel{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.tab-panel.active{display:flex;}
+
+/* ==============================================================
+   인라인 편집 테이블
+============================================================== */
+.table-wrap{flex:1;overflow:auto;}
+#taskTableWrap table{width:100%;border-collapse:collapse;min-width:1929px;font-size:13px;}  /* min-width = 고정컬럼합(1729px)+프로젝트명최소(200px). 이 미만 화면에서는 표 안 가로스크롤 */
+#taskTableWrap thead th{
+  background:#F0F4FA;padding:9px 2px;
+  font-size:12px;font-weight:700;color:var(--blueprint);
+  text-align:center;border-bottom:2px solid var(--line);
+  border-right:1px solid var(--line);white-space:nowrap;
+  position:sticky;top:0;z-index:5;
+}
+#taskTableWrap thead th:last-child{border-right:none;}
+#taskTableWrap tbody tr{border-bottom:1px solid var(--line);transition:background .1s;}
+#taskTableWrap tbody tr:hover{background:var(--blueprint-bg);}
+#taskTableWrap tbody tr.editing-row{background:#FFFDE7;}
+#taskTableWrap tbody tr.editing-row:hover{background:#FFF9C4;}
+#taskTableWrap tbody td{padding:0;border-right:1px solid #EEF1F5;vertical-align:middle;}
+#taskTableWrap tbody td:last-child{border-right:none;}
+
+/* 셀 뷰 (클릭 전) */
+.cell-view{
+  padding:8px 10px;min-height:36px;
+  display:flex;align-items:center;gap:4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px;
+}
+
+/* 셀 인풋 (클릭 후 - 인라인 편집) */
+.cell-input{
+  width:100%;padding:7px 10px;border:none;
+  border-bottom:2px solid var(--blueprint);
+  background:#FFFDE7;font-size:13px;font-family:var(--sans);
+  color:var(--ink);outline:none;min-height:36px;
+}
+.cell-select{
+  width:100%;padding:7px 8px;border:none;
+  border-bottom:2px solid var(--blueprint);
+  background:#FFFDE7;font-size:13px;font-family:var(--sans);
+  color:var(--ink);outline:none;cursor:pointer;
+}
+
+/* ==============================================================
+   뱃지
+============================================================== */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;}
+/* ★ 업무일정표 표 안의 뱃지만 가독성을 위해 2pt 크게 (11→13px).
+   상태·주담당자·보조담당자·영업담당·분류 단추에 적용됨.
+   드롭다운 팝업·⚙옵션모달·경비항목 뱃지는 전역 11px 그대로 유지되므로 여기서만 키움.
+   글자가 커진 만큼 위아래 여백(padding)도 살짝 늘려 알약 모양 균형 유지 */
+#taskTableWrap .badge{ font-size:13px; padding:3px 9px; }
+.b-done{background:#E3F2FD;color:#1565C0;}
+.b-ing{background:var(--plan-bg);color:var(--plan);}
+.b-hold{background:#FFF8E1;color:#B7770D;}
+.b-cont{background:#E8F5E9;color:#2E7D52;}
+.b-req{background:#FFEBEE;color:var(--danger);}
+
+/* pb/ib 스타일은 아래 알약형 CSS 블록에서 통합 정의됨 */
+
+/* ==============================================================
+   행 관리 버튼
+============================================================== */
+.row-action-cell{padding:5px 8px !important;white-space:nowrap;}
+.btn-row-save{padding:4px 10px;background:var(--blueprint);color:#fff;border:none;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);margin-right:4px;}
+.btn-row-save:hover{background:var(--blueprint-strong);}
+.btn-row-del{padding:4px 10px;background:#FFEBEE;color:var(--danger);border:1px solid #FFCDD2;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--sans);}
+.btn-row-del:hover{background:#FFCDD2;}
+.btn-row-edit{padding:4px 10px;background:var(--paper);color:var(--muted);border:1px solid var(--line);border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;font-family:var(--sans);white-space:nowrap;}
+.btn-row-edit:hover{background:var(--blueprint-bg);color:var(--blueprint);border-color:var(--blueprint);}
+
+/* ==============================================================
+   연도 선택 탭 (헤더 오른쪽)
+============================================================== */
+.year-tab-group{
+  display:flex; align-items:center; gap:4px; flex-shrink:0;
+}
+.year-tab{
+  padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600;
+  border:1.5px solid var(--line); background:#fff; color:var(--muted);
+  cursor:pointer; transition:all .15s; white-space:nowrap;
+}
+.year-tab:hover{ border-color:var(--blueprint); color:var(--blueprint); }
+.year-tab.active{ background:var(--blueprint); border-color:var(--blueprint); color:#fff; }
+.year-new-btn{
+  padding:4px 10px; border-radius:20px; font-size:12px; font-weight:600;
+  border:1.5px dashed var(--blueprint); background:transparent; color:var(--blueprint);
+  cursor:pointer; transition:all .15s; white-space:nowrap;
+}
+.year-new-btn:hover{ background:var(--blueprint-bg); }
+
+/* ==============================================================
+   경비사용내역 — 카드 방식 (max-width 900px 중앙 정렬)
+============================================================== */
+.exp-wrap{
+  flex:1; overflow-y:auto; padding:20px;
+  display:flex; flex-direction:column; align-items:center;
+}
+/* 예산 현황 카드 */
+.budget-summary{
+  width:100%; max-width:900px;
+  display:grid; grid-template-columns:repeat(4,1fr); gap:12px;
+  margin-bottom:16px;
+}
+.budget-card{
+  background:#fff; border:1px solid var(--line); border-radius:10px;
+  padding:14px 18px;
+}
+.budget-card .bc-label{ font-size:11px; color:var(--muted); margin-bottom:4px; }
+.budget-card .bc-value{ font-size:18px; font-weight:700; color:var(--ink); }
+.budget-card .bc-value.spent{ color:var(--danger); }
+.budget-card .bc-value.remain{ color:#2E7D52; }
+/* 집행률 프로그레스 */
+.budget-progress-card{
+  width:100%; max-width:900px;
+  background:#fff; border:1px solid var(--line); border-radius:10px;
+  padding:12px 18px; margin-bottom:16px;
+  display:flex; align-items:center; gap:14px;
+}
+.budget-progress-card .bp-label{ font-size:12px; color:var(--muted); white-space:nowrap; }
+.budget-progress-card .bp-bar-wrap{
+  flex:1; background:#EEF1F5; border-radius:20px; height:8px; overflow:hidden;
+}
+.budget-progress-card .bp-fill{
+  height:100%; background:linear-gradient(90deg,var(--blueprint),var(--plan));
+  border-radius:20px; transition:width .5s;
+}
+.budget-progress-card .bp-rate{ font-size:14px; font-weight:700; color:var(--ink); white-space:nowrap; }
+/* 경비 툴바 */
+.exp-toolbar{
+  width:100%; max-width:900px;
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; margin-bottom:12px; flex-wrap:wrap;
+}
+/* 경비 테이블 컨테이너 */
+.exp-table-wrap{
+  width:100%; max-width:900px;
+  background:#fff; border:1px solid var(--line); border-radius:10px;
+  /* 좁은 화면에서는 가로 스크롤 (업무일정표와 동일한 방식).
+     세로는 잘리지 않게 hidden 유지 → 둥근 모서리도 그대로 유지됨 */
+  overflow-x:auto; overflow-y:hidden;
+}
+.exp-table-wrap table{
+  width:100%; border-collapse:collapse; font-size:13px; table-layout:fixed;
+  /* ★ 최소폭 — 이게 없으면 모바일에서 컬럼이 40px대로 찌그러져
+     "2026-01-14", "1,080,000원" 같은 내용이 잘립니다.
+     좁으면 표를 줄이지 말고 가로로 스크롤해서 봅니다. */
+  min-width:820px;
+}
+.exp-table-wrap thead th{
+  background:#F0F4FA; padding:9px 8px;
+  font-size:12px; font-weight:700; color:var(--blueprint);
+  text-align:center; border-bottom:2px solid var(--line);
+  white-space:normal; word-break:keep-all;  /* ★ nowrap 제거 — 헤더가 폭을 강제 확장하지 않음 */
+}
+/* 경비한도/집행액/잔액 헤더는 아래 금액 데이터와 맞춰 오른쪽 정렬 (5,6,7번째 컬럼) */
+.exp-table-wrap thead tr:last-child th:nth-child(5),
+.exp-table-wrap thead tr:last-child th:nth-child(6),
+.exp-table-wrap thead tr:last-child th:nth-child(7){ text-align:right; }
+.exp-table-wrap tbody tr{ border-bottom:1px solid #EEF1F5; transition:background .1s; position:relative; }
+.exp-table-wrap tbody tr:last-child{ border-bottom:none; }
+.exp-table-wrap tbody tr:hover{ background:var(--blueprint-bg); }
+.exp-table-wrap tbody td{ padding:0; vertical-align:middle; }
+/* 사용일자 입력값 가운데 정렬 — .c-date는 width:100%라 부모의 justify-content:center가 무효화되므로
+   경비탭 안에서만 별도로 text-align:center 지정 (업무탭 날짜 컬럼은 영향받지 않음) */
+.exp-table-wrap .c-date{ text-align:center; }
+/* 비고 셀 — 삭제 버튼이 hover 시 오른쪽에 나타남, 내용은 가운데 정렬 */
+/* 프로젝트명/업무내용 셀 — 내용이 길면 최대 3줄까지 줄바꿈, 넘치면 말줄임(…) */
+#taskTableWrap td .c-text[contenteditable]{
+  white-space:normal;        /* 줄바꿈 허용 */
+  word-break:break-all;      /* 긴 단어/영문도 칸 안에서 강제 줄바꿈 */
+  display:-webkit-box;
+  -webkit-line-clamp:3;      /* 최대 3줄 */
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+/* 편집 중(포커스)일 땐 줄수 제한 해제 — 전체 내용 보이게 */
+#taskTableWrap td .c-text[contenteditable]:focus{
+  display:block;
+  -webkit-line-clamp:unset;
+  overflow:visible;
+  white-space:pre-wrap;
+}
+.exp-note-cell{ position:relative; }
+.exp-note-cell .c-text{ text-align:center; }
+.exp-del-btn{
+  display:none; position:absolute; right:4px; top:50%; transform:translateY(-50%);
+  background:none; border:none; color:#CBD5E1; cursor:pointer; font-size:14px; padding:2px 4px;
+  transition:color .1s; line-height:1;
+}
+.exp-del-btn:hover{ color:var(--danger); }
+.exp-table-wrap tbody tr:hover .exp-del-btn{ display:block; }
+
+/* ==============================================================
+   영수증 첨부 칸
+============================================================== */
+/* 첨부 셀 안 아이콘들을 가로로 배치 */
+.exp-attach-cell{ text-align:center; }
+.exp-attach-box{
+  display:flex; align-items:center; justify-content:center; gap:4px;
+  min-height:38px;
+}
+/* 첨부 버튼 공통 (📎 / 👁 / ⬇ / ✕) */
+.attach-btn{
+  border:none; background:none; cursor:pointer;
+  font-size:15px; line-height:1; padding:3px 4px;
+  border-radius:5px; transition:background .12s, transform .1s;
+  color:var(--muted);
+}
+.attach-btn:hover{ background:var(--blueprint-bg); transform:scale(1.15); }
+/* 파일 없을 때 — 옅은 클립 */
+.attach-btn.empty{ color:#CBD5E1; }
+.attach-btn.empty:hover{ color:var(--blueprint); }
+/* 첨부됨 표시 — 진한 클립 */
+.attach-btn.has-file{ color:var(--blueprint); }
+/* 삭제(✕) — 빨강 계열 */
+.attach-btn.del{ color:#CBD5E1; }
+.attach-btn.del:hover{ color:var(--danger); background:#FFEBEE; }
+/* 업로드 중 스피너 표시용 */
+.attach-btn.uploading{ pointer-events:none; opacity:.6; }
+
+/* 숨겨진 실제 파일 input */
+.attach-file-input{ display:none; }
+
+/* 영수증 미리보기 모달 (이미지 전용, PDF는 새 탭) */
+.receipt-overlay{
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.75); z-index:2000;
+  align-items:center; justify-content:center; padding:24px;
+}
+.receipt-overlay.open{ display:flex; }
+.receipt-box{
+  max-width:90vw; max-height:90vh;
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+}
+.receipt-box img{
+  max-width:100%; max-height:80vh;
+  border-radius:8px; box-shadow:0 8px 40px rgba(0,0,0,.5);
+  background:#fff;
+}
+.receipt-toolbar{ display:flex; gap:10px; }
+.receipt-toolbar button{
+  padding:8px 18px; border-radius:8px; font-size:13px; font-weight:600;
+  font-family:var(--sans); cursor:pointer; border:none;
+}
+.receipt-dl-btn{ background:var(--blueprint); color:#fff; }
+.receipt-dl-btn:hover{ background:var(--blueprint-strong); }
+.receipt-close-btn{ background:#fff; color:var(--ink); }
+.receipt-close-btn:hover{ background:#F0F0F0; }
+/* "+ 경비 추가" 버튼 — 업무탭과 동일한 .add-row-btn-wrap / .add-row-btn 클래스 재사용 (균형감 통일, 별도 스타일 불필요) */
+@media(max-width:768px){
+  .budget-summary{ grid-template-columns:repeat(2,1fr); }
+  .exp-wrap{ padding:12px; }
+}
+
+/* ==============================================================
+   빈 데이터
+============================================================== */
+.empty-msg{text-align:center;padding:48px 20px;color:#B0BEC5;font-size:14px;}
+
+/* ==============================================================
+   모달 - index.html .modal-overlay / .modal-panel과 동일
+   배경 클릭해도 닫히지 않음
+============================================================== */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.4);z-index:1000;
+  align-items:center;justify-content:center;
+}
+.modal-overlay.open{display:flex;}
+.modal-panel{
+  background:#fff;border-radius:12px;
+  width:90%;max-width:560px;max-height:88vh;overflow-y:auto;
+  box-shadow:0 8px 40px rgba(0,0,0,.18);
+}
+.modal-header{
+  padding:16px 20px;border-bottom:1px solid var(--line);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.modal-header h3{margin:0;font-size:15px;font-weight:700;}
+.modal-close{border:none;background:none;font-size:18px;cursor:pointer;color:var(--muted);}
+.modal-body{padding:16px 20px;}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;}
+
+/* 폼 필드 */
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:5px;}
+.field input,.field select,.field textarea{
+  width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:7px;
+  font-size:13px;font-family:var(--sans);color:var(--ink);
+  outline:none;background:#fff;transition:border-color .15s;
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blueprint);}
+.field textarea{resize:vertical;min-height:60px;}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* 모달 버튼 - index.html .btn과 동일 */
+.btn{padding:8px 18px;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);border:1px solid var(--line);background:#fff;color:var(--ink);}
+.btn:hover{background:var(--paper);}
+.btn.primary{background:var(--blueprint);border-color:var(--blueprint);color:#fff;}
+.btn.primary:hover{background:var(--blueprint-strong);}
+.btn.danger{color:var(--danger);border-color:#F0CBC5;}
+.btn.danger:hover{background:#FDEEEC;}
+
+/* ==============================================================
+   토스트 - index.html .toast와 동일
+============================================================== */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:#0B1220;color:#fff;padding:10px 20px;border-radius:8px;
+  font-size:13px;font-weight:500;opacity:0;transition:opacity .25s;
+  z-index:9999;pointer-events:none;white-space:nowrap;
+}
+.toast.show{opacity:1;}
+
+/* ==============================================================
+   모바일 반응형
+============================================================== */
+/* ---- 태블릿 이하 (768px 이하) ----
+   검색창을 고정폭(480px) 대신 남는 공간에 맞춰 늘어나게 함.
+   ※ 데스크톱에서 "완료" 버튼에 맞춰 폭을 계산하는 alignFilterSelToDone()은
+     이 구간에서 실행되지 않습니다(JS 쪽에서 768px 이하면 건너뜀). */
+@media(max-width:768px){
+  .toolbar-left{flex:1;min-width:0;}
+  .toolbar-left .search-input{width:auto;flex:1;min-width:110px;}
+}
+
+/* ---- 모바일 (480px 이하) ---- */
+@media(max-width:480px){
+  .header{padding:0 12px;height:56px;gap:8px;}
+  .header h1{font-size:15px;}
+  /* 제목 뒤 "업무관리"는 숨김 → "📋 기술전략팀"만 표시해 연도탭 공간 확보 */
+  .header h1 .h1-sub{display:none;}
+  /* 헤더 우측 요소 간격 축소 + 버전 표기 숨김 */
+  .header-right{gap:8px;}
+  .app-version{display:none;}
+  /* 동기화 상태는 점(●)만 남기고 글자는 숨김 */
+  .sync-status span{display:none;}
+  .year-tab{padding:4px 9px;font-size:12px;}
+  .year-new-btn{padding:4px 7px;font-size:11px;}
+
+  .toolbar{padding:8px 12px;gap:8px;}
+  .tab{padding:12px 14px;font-size:13px;}
+  .budget-bar{padding:10px 14px;gap:12px;}
+  .filter-bar{padding:6px 12px;gap:5px;}
+  .flt-btn{padding:5px 9px;font-size:11px;}
+}
+
+/* ==============================================================
+   줄무늬(Zebra Stripe) — 홀수 행은 흰색, 짝수 행은 연한 회색
+   상태별 배경색은 제거하고 줄무늬로만 칸 구분
+   (편집 중인 행은 노란빛으로 강조, !important로 줄무늬 덮어씀)
+============================================================== */
+/* 홀수 행: 흰색 */
+#taskTableWrap tbody tr:nth-child(odd)  { background:#FFFFFF; }
+/* 짝수 행: 진한 무채색 */
+#taskTableWrap tbody tr:nth-child(even) { background:#F4F4F4; }
+/* 호버 시: 연한 파란색 (홀짝 공통) */
+#taskTableWrap tbody tr:hover           { background:var(--blueprint-bg) !important; }
+/* 편집 중인 행은 노란빛으로 강조 */
+#taskTableWrap tbody tr.editing-row     { background:#FFFDE7 !important; }
+
+/* 상태 그룹 경계 구분선 — 정렬이 status일 때 JS가 .status-group-top 클래스 추가함 */
+#taskTableWrap tbody tr.status-group-top td {
+  border-top: 2px solid #94A3B8 !important;   /* 중간 굵기 회색선으로 그룹 구분 */
+}
+
+
+
+/* ==============================================================
+   알약 뱃지 - 모든 드롭다운 값에 통일 적용
+   기존 뱃지와 같은 border-radius:20px 스타일
+============================================================== */
+/* 모델링/제작도/매뉴얼 진행상태 뱃지 */
+.pb{ display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
+.pb-완료   { background:#E3F4FB; color:#2E86AB; }
+.pb-진행중 { background:#F0EBFF; color:#7C5CBF; }
+.pb-미적용 { background:#F0F0F0; color:#999; }
+.pb-보류   { background:#FFF5E0; color:#D48806; }
+/* 강도 뱃지 - 알약형으로 통일 */
+.ib{ display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
+.ib-최상 { background:#FFE0E0; color:#C0392B; }
+.ib-상   { background:#FFE8CC; color:#D35400; }
+.ib-중   { background:#FFF5CC; color:#B7770D; }
+.ib-하   { background:#E8F5E9; color:#2E7D32; }
+.ib-최하 { background:#F0F0F0; color:#666; }
+/* 영업담당 뱃지 */
+.sb{ display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; background:#EDF2FF; color:#3B5BDB; }
+/* 분류 뱃지 */
+.cb{ display:inline-block; padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; background:#FFF0F6; color:#C2255C; }
+/* 파생값 셀 (리드/워크/세이브타임) */
+.dval { font-size:12px; font-weight:700; color:var(--muted); text-align:center; }
+.dval.save-pos { color:#2E7D32; }  /* 세이브타임 양수 = 초록 */
+.dval.save-neg { color:#C0392B; }  /* 세이브타임 음수 = 빨강 */
+
+/* ============================================================
+   ★★ 셀 단위 편집 UI (2026-07 개편) ★★
+   아래 스타일들은 "행 전체가 편집모드로 바뀌던 방식"을 없애고
+   클릭한 셀 하나만 바로 편집되게 만드는 데 쓰입니다.
+============================================================ */
+
+/* ---- 테이블 컬럼 폭 조절(리사이즈) ----
+   table-layout:fixed 여야 colgroup>col 의 너비가 그대로 먹습니다.
+   width:100% 로 전체 폭을 고정 → 양끝은 안 움직이고 중간만 조절됨 */
+#taskTableWrap table{ table-layout:fixed; width:100%; }
+/* th 안에 핸들을 절대배치하므로 position:relative 필수.
+   ★ th에 overflow:hidden 주면 핸들이 잘리므로 절대 금지! */
+#taskTableWrap th{ position:relative; user-select:none; }
+/* 컬럼 경계선을 잡아 끄는 손잡이 */
+/* ---- 셀 공통 박스 ----
+   뷰/편집 상관없이 높이가 같아야 행이 안 흔들립니다. */
+.c-box{
+  min-height:38px; padding:6px 8px;
+  display:flex; align-items:center;
+  font-size:13px; color:var(--ink);
+}
+.c-box > *{ min-width:0; }  /* ★ 자식 요소(날짜input/뱃지/텍스트)가 콘텐츠 크기만큼 폭을 강제하지 않게 함 — table-layout:fixed가 실제로 % 폭을 지키게 하는 핵심 */
+
+/* ---- 글자 직접 입력 셀 (프로젝트명/출고지 등) ----
+   contenteditable = 클릭하면 그 자리에서 바로 타이핑됨 */
+.c-text{
+  outline:none; cursor:text; flex:1;
+  border-radius:3px; transition:background .12s;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.c-text:focus{                        /* 편집 중일 때만 파란 테두리 */
+  background:var(--blueprint-bg);
+  box-shadow:inset 0 0 0 2px var(--blueprint);
+  white-space:normal;                 /* 편집 중엔 전체 내용 보이게 */
+}
+.c-text:empty::before{                /* 빈 칸 안내문구 */
+  content:attr(data-ph); color:#B0BEC5; pointer-events:none;
+}
+
+/* ---- 날짜 입력 셀 ---- */
+.c-date{
+  border:none; background:transparent; width:100%; min-width:0;
+  font-size:12px; font-family:var(--sans); color:var(--ink);
+  outline:none; cursor:pointer; padding:2px;
+  border-radius:3px;
+}
+.c-date:focus{ background:var(--blueprint-bg); box-shadow:inset 0 0 0 2px var(--blueprint); }
+
+/* ---- 드롭다운 뱃지 버튼 (상태/담당자/영업/분류) ---- */
+.dd-btn{
+  cursor:pointer; display:inline-flex; align-items:center; gap:3px;
+  transition:opacity .12s; max-width:100%;
+}
+.dd-btn:hover{ opacity:.72; }
+.dd-btn::after{ content:'▾'; font-size:9px; color:var(--muted); flex-shrink:0; }
+.dd-btn .badge{ overflow:hidden; text-overflow:ellipsis; }
+
+
+
+
+/* ---- 드롭다운 팝업 ----
+   ★ position:fixed + body 바로 아래에 두어야 표 밖으로 안 잘립니다 */
+.dd-popup{
+  display:none; position:fixed;
+  background:#fff; border:1px solid var(--line); border-radius:8px;
+  box-shadow:0 4px 20px rgba(0,0,0,.15); z-index:900;
+  min-width:150px; max-height:320px; overflow-y:auto;
+  padding:4px 0; white-space:nowrap;
+}
+.dd-popup.open{ display:block; }
+.dd-item{
+  padding:7px 12px; font-size:12px; color:var(--ink);
+  cursor:pointer; display:flex; align-items:center; gap:8px;
+  transition:background .08s;
+}
+.dd-item:hover{ background:var(--paper); }
+.dd-item.selected{ background:var(--blueprint-bg); font-weight:600; }
+
+/* ---- 토글 버튼 그룹 (강도 / 진행상태) ----
+   선택 안 된 건 회색, 선택된 것만 불이 켜짐 */
+.tog-group{ display:flex; flex-wrap:nowrap; gap:3px; padding:5px 6px; }  /* nowrap: 컬럼이 좁아져도 버튼이 세로로 쌓이지 않음 → 행 높이 고정 */
+.tog{
+  display:inline-block; padding:2px 7px; border-radius:20px;
+  font-size:10px; font-weight:600; cursor:pointer;
+  border:1.5px solid #E2E8F0; background:#F8FAFC; color:#94A3B8;
+  transition:all .12s; white-space:nowrap; user-select:none;
+  flex-shrink:0;   /* 좁은 칸에서도 버튼 자체가 찌그러지지 않음 */
+}
+.tog:hover{ border-color:#CBD5E1; color:#64748B; }
+/* .tog.on 일 때의 색은 JS가 DB 색상값을 직접 style로 넣어줍니다 */
+
+/* ---- 진행상태 3줄(모델링/제작도/매뉴얼) ---- */
+.prog-group{ display:flex; flex-direction:column; gap:3px; padding:5px 6px; }
+.prog-row{ display:flex; align-items:center; gap:5px; flex-wrap:nowrap; }  /* 각 줄 안에서도 줄바꿈 금지 → 항상 정확히 3줄 */
+.prog-lbl{ font-size:9px; color:var(--muted); width:28px; flex-shrink:0; }
+
+/* ---- 컬럼 헤더 드래그앤드롭 ----
+   th를 잡아 끌어서 컬럼 순서를 바꿉니다.
+   리사이즈 핸들(경계선)을 제외한 헤더 본문 영역이 드래그 대상입니다. */
+#taskTableWrap thead tr:last-child th[draggable="true"]{
+  /* 드래그 가능한 th 표시 — 커서 변경 */
+  cursor: grab;
+}
+#taskTableWrap thead tr:last-child th[draggable="true"]:active{
+  cursor: grabbing;
+}
+/* 고정 컬럼(삭제 등)은 grab 커서 안 씀 */
+#taskTableWrap thead tr:last-child th.col-fixed{
+  cursor: default;
+}
+/* 드래그 중인 원본 컬럼 — 투명하게 */
+#taskTableWrap thead tr:last-child th.col-dragging{
+  opacity: .35;
+}
+/* 드롭 위치 표시 — 파란 세로선
+   ★ position:sticky th 에서 box-shadow는 인접 셀에 가려지므로
+     border + z-index 조합으로 대체합니다 */
+#taskTableWrap thead tr:last-child th.col-drop-left{
+  border-left: 3px solid var(--blueprint) !important;
+  background: var(--blueprint-bg) !important;
+  z-index: 10;
+}
+#taskTableWrap thead tr:last-child th.col-drop-right{
+  border-right: 3px solid var(--blueprint) !important;
+  background: var(--blueprint-bg) !important;
+  z-index: 10;
+}
+
+/* ---- 헤더의 ⚙ 옵션관리 버튼 ---- */
+.gear-btn{
+  border:none; background:none; cursor:pointer;
+  color:#CBD5E1; font-size:11px; padding:1px 3px;
+  transition:color .1s; vertical-align:middle;
+}
+.gear-btn:hover{ color:var(--blueprint); }
+
+/* ---- 표 맨 위 "+ 업무 추가" 버튼 ----
+   전체 가로를 채우는 tr 안에서 가운데 정렬된 1000px 라운드박스 */
+.add-row-btn-wrap{
+  width:100%; padding:10px 0;
+  display:flex; align-items:center; justify-content:center;
+  background:#fff; border-bottom:1.5px solid var(--line);
+}
+.add-row-btn{
+  width:1000px; max-width:calc(100% - 40px);
+  padding:9px 0;
+  background:var(--blueprint-bg); border:1.5px dashed var(--blueprint);
+  border-radius:10px;
+  color:var(--blueprint); font-size:13px; font-weight:600; font-family:var(--sans);
+  cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;
+  transition:background .15s, border-color .15s;
+}
+.add-row-btn:hover{
+  background:#D6E8F8; border-color:var(--blueprint-strong); border-style:solid;
+}
+
+/* ---- ⚙ 옵션 관리 모달 ---- */
+.opt-overlay{
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.35); z-index:1500;
+  align-items:center; justify-content:center;
+}
+.opt-overlay.open{ display:flex; }
+.opt-modal{
+  background:#fff; border-radius:12px;
+  width:400px;
+  max-height:80vh; display:flex; flex-direction:column;
+  box-shadow:0 8px 32px rgba(0,0,0,.18);
+}
+.opt-head{
+  padding:14px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+}
+.opt-head h3{ font-size:14px; font-weight:700; }
+.opt-x{ border:none; background:none; font-size:17px; cursor:pointer; color:var(--muted); }
+.opt-body{ padding:14px 20px; overflow-y:auto; flex:1; }
+
+/* 옵션 한 줄 — 중앙정렬 라운드박스 */
+.opt-item{
+  border:1px solid var(--line); border-radius:10px;
+  margin-bottom:8px; padding:11px 14px; background:#fff;
+  /* 항목 내부 전체를 가운데 정렬 */
+  display:flex; flex-direction:column; align-items:center;
+}
+.opt-top{
+  display:flex; align-items:center; gap:8px; margin-bottom:10px;
+  width:100%; justify-content:center;   /* 드래그핸들 + 뱃지 + 삭제 가로 중앙 */
+}
+/* 드래그 손잡이 — 여기를 잡아야만 순서 이동됨 */
+.drag-handle{
+  cursor:grab; color:#CBD5E1; font-size:14px; line-height:1;
+  padding:2px 4px; user-select:none; flex-shrink:0;
+}
+.drag-handle:hover{ color:var(--blueprint); }
+.drag-handle:active{ cursor:grabbing; }
+.opt-item.dragging{ opacity:.4; }
+.opt-item.drop-target{
+  outline:2px solid var(--blueprint); outline-offset:-1px;
+  background:var(--blueprint-bg);
+}
+.opt-del{
+  border:none; background:none; color:#CBD5E1; cursor:pointer;
+  font-size:15px; padding:0 2px; line-height:1; margin-left:auto; transition:color .1s;
+}
+.opt-del:hover{ color:var(--danger); }
+
+/* 색상 피커 줄 — 배경색/글자색 각각 input[type=color]로 자유 선택 */
+.color-row{
+  display:flex; align-items:center; gap:10px;
+  justify-content:center; width:100%;
+  flex-wrap:wrap;
+}
+/* 피커 한 쌍 (라벨 + input) */
+.color-pick-pair{
+  display:flex; align-items:center; gap:5px;
+  font-size:11px; color:var(--muted);
+}
+/* 색상 input — 작은 동그라미 */
+.color-pick-pair input[type="color"]{
+  width:20px; height:20px; border-radius:50%;
+  border:2px solid var(--line); padding:0;
+  cursor:pointer; background:none;
+  appearance:none; -webkit-appearance:none;
+  overflow:hidden; flex-shrink:0;
+}
+.color-pick-pair input[type="color"]::-webkit-color-swatch-wrapper{ padding:0; }
+.color-pick-pair input[type="color"]::-webkit-color-swatch{ border:none; border-radius:50%; }
+.color-pick-pair input[type="color"]:hover{ border-color:var(--blueprint); }
+
+/* 모달 상단 공용 팔레트 — 10×2 격자 배치 */
+.opt-palette-bar{
+  padding:12px 20px 10px;
+  border-bottom:1px solid var(--line);
+  display:flex; flex-direction:column; gap:7px;
+}
+.opt-palette-bar .pal-label{
+  font-size:11px; color:#B0BEC5; margin-bottom:2px;
+}
+/* 동그라미 10개씩 한 줄 — 중앙정렬, 간격 6px */
+.pal-row{
+  display:flex; justify-content:center; align-items:center; gap:6px;
+}
+/* 팔레트 동그라미 */
+.pal-dot{
+  width:20px; height:20px; flex:0 0 20px;
+  border-radius:50%; cursor:pointer;
+  border:1.5px solid rgba(0,0,0,.10);
+  transition:transform .12s, border-color .12s;
+}
+.pal-dot:hover{ transform:scale(1.2); border-color:#555; }
+/* 빈 슬롯 — 색이 아직 없는 자리 */
+.pal-dot.empty{
+  background:#F0F0F0;
+  border:1.5px dashed #CBD5E1;
+  cursor:default;
+}
+.pal-dot.empty:hover{ transform:none; border-color:#CBD5E1; }
+/* 드래그 중 팔레트 슬롯 위에 올라왔을 때 강조 */
+.pal-dot.drag-over{
+  border-color:var(--blueprint) !important;
+  transform:scale(1.25);
+  box-shadow:0 0 0 3px var(--blueprint-bg);
+}
+/* 피커 동그라미 — draggable 표시 */
+.color-pick-pair input[type="color"]{
+  cursor:grab;
+}
+/* 팔레트 영역 전체 드롭 가능 표시 */
+.opt-palette-bar.drag-active{
+  background:var(--blueprint-bg);
+  border-radius:8px;
+}
+
+/* 새 옵션 추가 입력줄 */
+.opt-add-row{ display:flex; gap:6px; margin-top:10px; }
+.opt-add-input{
+  flex:1; padding:8px 10px; border:1px solid var(--line); border-radius:7px;
+  font-size:13px; font-family:var(--sans); color:var(--ink); outline:none;
+}
+.opt-add-input:focus{ border-color:var(--blueprint); }
+.opt-add-btn{
+  padding:8px 14px; background:var(--blueprint); color:#fff; border:none;
+  border-radius:7px; font-size:13px; font-weight:600; font-family:var(--sans); cursor:pointer;
+}
+.opt-add-btn:hover{ background:var(--blueprint-strong); }
+
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     헤더
+============================================================ -->
+<div class="header">
+  <h1>📋 <span>기술전략팀</span> <span class="h1-sub">업무관리</span></h1>
+  <div class="header-right">
+    <!-- 연도 선택 탭 — 클릭 시 해당 연도 데이터만 표시 -->
+    <div class="year-tab-group" id="yearTabGroup"></div>
+    <button class="year-new-btn" onclick="addNewYear()" title="새 연도 시작">+ 연도 추가</button>
+    <span class="app-version">v3.0 · 260717</span>
+    <div class="sync-status">
+      <div class="sync-dot" id="syncDot"></div>
+      <span id="syncText">연결중...</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     탭바
+============================================================ -->
+<div class="tab-bar">
+  <button class="tab active" id="tab-task" onclick="switchTab('task')">📋 업무일정표</button>
+  <button class="tab" id="tab-expense" onclick="switchTab('expense')">💰 경비사용내역</button>
+</div>
+
+<!-- ============================================================
+     메인
+============================================================ -->
+<div class="main">
+
+  <!-- ======== 업무일정표 패널 ======== -->
+  <div class="tab-panel active" id="panel-task">
+    <!-- 상태 필터 버튼 바 (클릭 시 해당 상태만 필터링) -->
+    <div class="filter-bar">
+      <button class="flt-btn all active" id="flt-all"  onclick="setStatusFilter('')">
+        <span class="flt-num" id="cnt-all">-</span> 전체
+      </button>
+      <button class="flt-btn req"  id="flt-req"  onclick="setStatusFilter('요청')">
+        📌 <span class="flt-num" id="cnt-req">-</span> 요청
+      </button>
+      <button class="flt-btn ing"  id="flt-ing"  onclick="setStatusFilter('진행중')">
+        🔄 <span class="flt-num" id="cnt-ing">-</span> 진행중
+      </button>
+      <button class="flt-btn cont" id="flt-cont" onclick="setStatusFilter('지속')">
+        ♻️ <span class="flt-num" id="cnt-cont">-</span> 지속진행
+      </button>
+      <button class="flt-btn hold" id="flt-hold" onclick="setStatusFilter('보류')">
+        ⏸ <span class="flt-num" id="cnt-hold">-</span> 보류
+      </button>
+      <button class="flt-btn done" id="flt-done" onclick="setStatusFilter('완료')">
+        ✅ <span class="flt-num" id="cnt-done">-</span> 완료
+      </button>
+    </div>
+    <!-- 툴바 -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <input class="search-input" id="taskSearch" placeholder="🔍 업무명·담당자·출고지 검색" oninput="renderTask()">
+        <select class="filter-sel" id="fLead" onchange="renderTask()">
+          <option value="">전체 담당자</option>
+        </select>
+      </div>
+      <div class="toolbar-right">
+        <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()">↻ 새로고침</button>
+        <button class="holiday-btn" onclick="openHolidayModal()" title="공휴일 관리">📅</button>
+      </div>
+    </div>
+    <!-- 테이블 -->
+    <div class="table-wrap" id="taskTableWrap">
+      <div class="empty-msg">⏳ 데이터를 불러오는 중...</div>
+    </div>
+  </div>
+
+  <!-- ======== 경비사용내역 패널 ======== -->
+  <div class="tab-panel" id="panel-expense">
+    <div class="exp-wrap" id="expWrap">
+      <!-- 예산 현황 카드 4개 -->
+      <div class="budget-summary">
+        <div class="budget-card">
+          <div class="bc-label">총 배정금액</div>
+          <div class="bc-value c-text" id="bTotal" contenteditable="true" data-ph="0"
+               onfocus="budgetTotalFocus(this)" onblur="budgetTotalBlur(this)"
+               onkeydown="budgetTotalKey(event,this)">-</div>
+        </div>
+        <div class="budget-card">
+          <div class="bc-label">집행금액</div>
+          <div class="bc-value spent" id="bSpent">-</div>
+        </div>
+        <div class="budget-card">
+          <div class="bc-label">미집행 잔액</div>
+          <div class="bc-value remain" id="bRemain">-</div>
+        </div>
+        <div class="budget-card">
+          <div class="bc-label">집행률</div>
+          <div class="bc-value" id="bRate">-</div>
+        </div>
+      </div>
+      <!-- 집행률 프로그레스 바 -->
+      <div class="budget-progress-card">
+        <span class="bp-label">집행 현황</span>
+        <div class="bp-bar-wrap"><div class="bp-fill" id="bBar" style="width:0%"></div></div>
+        <span class="bp-rate" id="bRateBar">0%</span>
+      </div>
+      <!-- 툴바 -->
+      <div class="exp-toolbar">
+        <input class="search-input" id="expSearch" placeholder="🔍 항목·비고 검색" oninput="renderExpense()">
+        <button class="refresh-btn" onclick="refreshAll()">↻ 새로고침</button>
+      </div>
+      <!-- 경비 테이블 -->
+      <div class="exp-table-wrap" id="expTableWrap">
+        <div class="empty-msg">⏳ 데이터를 불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div id="modalRoot"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   Supabase 연결 설정
+   URL과 anon 키 - 여기서 관리합니다
+============================================================ */
+const SB_URL = 'https://zrhwdvuehaelintkfoqn.supabase.co';
+const SB_KEY = 'sb_publishable_oQ7F4Q9KRS22lpiE9uILFA_zN7n2V4V';
+const H = {
+  'Content-Type':'application/json',
+  'apikey':SB_KEY,
+  'Authorization':'Bearer '+SB_KEY,
+  'Prefer':'return=representation'
+};
+
+/* ============================================================
+   전역 상태 변수
+============================================================ */
+let taskData = [];   // 서버에서 불러온 전체 업무 데이터
+let expData  = [];   // 서버에서 불러온 전체 경비 데이터
+let budgetTotal = 1080000;      // 총 배정금액 — app_options(opt_type='budget_total')에서 연도별로 불러옴, 카드에서 직접 수정 가능
+let budgetTotalRowId = null;    // 현재 연도의 budget_total 행 id (PATCH/INSERT 구분용)
+let editingExpId = null;  // 현재 인라인 편집 중인 경비 행 ID
+
+/* 연도 관련 — activeYear: 현재 보고 있는 연도 */
+let activeYear = new Date().getFullYear();   /* 기본값: 올해 */
+let availableYears = [];                      /* DB에 존재하는 연도 목록 */
+
+/* ============================================================
+   컬럼 정의 — 전역 배열 COL_DEFS
+   [표시명, 정렬키, 기본너비(px), 옵션종류, 고정여부]
+   - 정렬키 null → 헤더 클릭 정렬 안 됨
+   - 옵션종류 있으면 헤더에 ⚙ 버튼 붙음
+   - 고정여부 true → 드래그앤드롭 순서 변경 불가 (삭제 버튼 등)
+   ★ 이 배열의 순서가 실제 표 컬럼 순서입니다.
+      드래그앤드롭으로 바꾸면 여기가 업데이트되고 localStorage에 저장됩니다.
+============================================================ */
+const COL_DEFS_DEFAULT = [
+  /* [표시명,              정렬키,         기본너비(px), 옵션종류,   고정]
+     ★ 기본너비는 initColResize()에서 px 고정값으로 직접 적용됩니다.
+        프로젝트명만 0으로 설정 → 다른 컬럼 폭 합산 후 남는 공간 전부 배정 */
+  ['상태',                'status',         90, 'status',    false],
+  ['주담당자',            'lead',           90, 'lead',      false],
+  ['보조담당자',          'sub',            90, 'sub',       false],
+  ['프로젝트명 / 업무내용','title',           0, null,        false],
+  ['출고지',              'location',       80, null,        false],
+  ['시작일',              'start_date',    110, null,        false],
+  ['종료일',              'end_date',      110, null,        false],
+  ['워크타임',            'work_time',      60, null,        false],
+  ['세이브타임',          'save_time',      60, null,        false],
+  ['요청일',              'request_date',  110, null,        false],
+  ['요청마감',            'deadline',      110, null,        false],
+  ['리드타임',            'lead_time',      60, null,        false],
+  ['D-day',               'dday',           60, null,        false],
+  ['영업담당',            'sales',          90, 'sales',     false],
+  ['분류',                'category',      100, 'category',  false],
+  ['진행상태',            null,            200, 'prog',      false],
+  ['강도',                'intensity',     165, 'intensity', false],
+  ['삭제',                null,             44, null,        true ],
+];
+
+/* 컬럼 순서 localStorage 키 */
+const COL_ORDER_KEY   = 'taskMgr_colOrder';
+/* 컬럼 구조 변경 감지용 서명 — 컬럼 수 + 기본폭 합계 + 순서 해시로 만듦
+   이 값이 localStorage에 저장된 값과 다르면 순서·폭을 전부 초기화해서
+   "이전 저장값이 새 컬럼 정의를 덮어씌워 지정한 폭이 안 먹히는" 문제를 방지함 */
+const COL_DEFS_SIGNATURE = COL_DEFS_DEFAULT.length + '_'
+  + COL_DEFS_DEFAULT.reduce((s,c)=>s+(c[2]||0),0) + '_'
+  + COL_DEFS_DEFAULT.map(c=>c[0][0]).join('');  /* 각 컬럼 첫 글자 연결 — 순서 변경도 감지 */
+const COL_SIGNATURE_KEY  = 'taskMgr_colSignature';
+
+/* 컬럼 구조가 바뀌었으면 순서·폭 localStorage를 모두 초기화 */
+(function clearIfChanged(){
+  try{
+    const saved = localStorage.getItem(COL_SIGNATURE_KEY);
+    if(saved !== COL_DEFS_SIGNATURE){
+      localStorage.removeItem(COL_ORDER_KEY);
+      localStorage.setItem(COL_SIGNATURE_KEY, COL_DEFS_SIGNATURE);
+    }
+  }catch(e){}
+})();
+
+/* 저장된 컬럼 순서를 불러와 COL_DEFS_DEFAULT를 재배열해서 반환
+   저장된 게 없거나 컬럼 수가 다르면 기본 순서 그대로 반환 */
+function loadColOrder(){
+  try{
+    const saved = localStorage.getItem(COL_ORDER_KEY);
+    if(!saved) return [...COL_DEFS_DEFAULT];
+    const order = JSON.parse(saved);
+    const byName = Object.fromEntries(COL_DEFS_DEFAULT.map(c=>[c[0],c]));
+    const reordered = order.map(n=>byName[n]).filter(Boolean);
+    COL_DEFS_DEFAULT.forEach(c=>{ if(!reordered.includes(c)) reordered.push(c); });
+    return reordered;
+  }catch(e){ return [...COL_DEFS_DEFAULT]; }
+}
+
+/* 현재 COL_DEFS 순서를 localStorage에 저장 */
+function saveColOrder(){
+  try{
+    localStorage.setItem(COL_ORDER_KEY, JSON.stringify(COL_DEFS.map(c=>c[0])));
+  }catch(e){}
+}
+
+/* ★ 앱 전체에서 쓰는 실제 컬럼 배열 — 초기값은 저장된 순서 or 기본 순서 */
+let COL_DEFS = loadColOrder();
+
+/* ============================================================
+   정렬 설정
+   sortCol: 현재 정렬 중인 컬럼 키
+   sortDir: 'asc'(오름차순) or 'desc'(내림차순)
+   기본은 status 기준 커스텀 순서 정렬
+============================================================ */
+let sortCol = 'status';
+let sortDir = 'asc';
+
+// 상태별 정렬 우선순위 - 요청→진행중→지속진행→보류→완료 순
+const STATUS_ORDER = {
+  '1. 요청': 1,
+  '2 진행중': 2,
+  '3. 지속적진행': 3,
+  '4. 보류': 4,
+  '5. 완료': 5,
+};
+
+/* ============================================================
+   드롭다운 옵션 정의
+   각 셀에서 공통으로 쓰는 선택지들
+============================================================ */
+/* ★★ 2026-07 개편: 옵션을 코드에 박아두지 않고 Supabase에서 불러옵니다 ★★
+   app_options 테이블에 저장 → ⚙ 버튼으로 추가/삭제/색상/순서 변경 → 팀 전체 공유
+
+   OPTIONS 안에는 이렇게 들어갑니다:
+   OPTIONS.status = [ {id, opt_type, value, label, color_bg, color_fg, sort_order}, ... ] */
+let OPTIONS = { status:[], lead:[], sub:[], sales:[], category:[], prog:[], intensity:[] };
+
+/* ⚙ 모달 제목에 쓸 한글 이름 */
+const OPT_TITLE = {
+  status:'상태', lead:'주담당자', sub:'보조담당자', sales:'영업담당',
+  category:'분류', prog:'진행상태 (모델링·제작도·매뉴얼 공용)', intensity:'강도'
+};
+
+/* ------------------------------------------------------------
+   옵션 전체를 Supabase에서 읽어오기
+   opt_type(종류)별로 sort_order(순서)대로 정렬해서 가져옵니다.
+------------------------------------------------------------ */
+async function loadOptions(){
+  /* ★ 옵션 로드 실패해도 앱 전체가 멈추지 않게 try-catch로 감쌉니다.
+     실패 시 OPTIONS는 빈 상태로 유지되고, 경고 토스트만 띄웁니다. */
+  try{
+    const res = await fetch(SB_URL+'/rest/v1/app_options?order=opt_type.asc,sort_order.asc', {headers:H});
+    if(!res.ok){
+      const errText = await res.text();
+      console.warn('옵션 로드 실패:', errText);
+      /* RLS 오류면 콘솔에 SQL 안내 출력 */
+      if(errText.includes('42501') || errText.includes('row-level security')){
+        console.error(
+          '▼▼▼ app_options 테이블 RLS 오류 — Supabase SQL Editor에서 실행하세요 ▼▼▼\n'
+          +'ALTER TABLE app_options DISABLE ROW LEVEL SECURITY;\n'
+          +'GRANT ALL ON app_options TO anon;\n'
+          +'GRANT ALL ON app_options TO authenticated;\n'
+          +'▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲'
+        );
+        toast('⚠️ app_options RLS 오류 — 브라우저 콘솔(F12)에서 SQL을 확인하세요', 5000);
+      } else {
+        toast('⚠️ 옵션 로드 실패 — app_options 테이블을 확인하세요');
+      }
+      renderLeadFilterOptions();
+      return;   /* OPTIONS는 빈 상태로 두고 계속 진행 */
+    }
+    const rows = await res.json();
+    Object.keys(OPTIONS).forEach(k => OPTIONS[k] = []);   /* 비우고 */
+    rows.forEach(r => { if(OPTIONS[r.opt_type]) OPTIONS[r.opt_type].push(r); });  /* 다시 채우기 */
+  }catch(e){
+    console.warn('옵션 로드 중 네트워크 오류:', e);
+    toast('⚠️ 옵션 로드 실패 (네트워크 오류)');
+  }
+  renderLeadFilterOptions();   /* "전체 담당자" 검색 필터도 OPTIONS.lead 기준으로 채움 */
+  applyStatusFilterColors();   /* 상태 옵션 색상을 필터 버튼에 초기 반영 */
+}
+
+/* ------------------------------------------------------------
+   "전체 담당자" 검색 필터 드롭다운을 OPTIONS.lead 기준으로 동적 렌더링
+   (예전엔 HTML에 4명이 하드코딩되어 있었음 → ⚙ 옵션관리에서 담당자를
+   추가/삭제해도 반영이 안 되는 문제가 있어서 동적으로 바꿈)
+   ⚙ 모달에서 담당자 옵션을 추가/삭제/순서변경할 때도 다시 호출됨(renderOptList 안에서)
+------------------------------------------------------------ */
+function renderLeadFilterOptions(){
+  const sel = document.getElementById('fLead');
+  if(!sel) return;
+  const current = sel.value;   /* 지금 선택돼 있던 값 기억 */
+  let html = '<option value="">전체 담당자</option>';
+  (OPTIONS['lead']||[]).forEach(o=>{
+    html += '<option value="'+esc(o.value)+'">'+esc(o.label||o.value)+'</option>';
+  });
+  sel.innerHTML = html;
+  /* 새 목록에도 이전 선택값이 여전히 있으면 유지 (없어졌으면 "전체 담당자"로 자동 복귀) */
+  if(Array.from(sel.options).some(op=>op.value===current)) sel.value = current;
+}
+
+/* 특정 종류에서 값 하나 찾기 */
+function findOpt(type, value){
+  return (OPTIONS[type]||[]).find(o => o.value === value) || null;
+}
+/* 화면에 보여줄 이름 (label 없으면 value 그대로) */
+function optLabel(type, value){
+  const o = findOpt(type, value);
+  return o ? (o.label || o.value) : (value || '');
+}
+/* 뱃지 색상 {bg:배경, fg:글자} */
+function optColor(type, value){
+  const o = findOpt(type, value);
+  return o ? { bg:o.color_bg||'#F0F0F0', fg:o.color_fg||'#555555' }
+           : { bg:'#F0F0F0', fg:'#999999' };
+}
+/* <select> 만들 때 쓰는 형태로 변환 (업무추가 모달에서 사용) */
+function optsFor(type){
+  return (OPTIONS[type]||[]).map(o => ({ val:o.value, label:o.label||o.value }));
+}
+
+/* ============================================================
+   초기화 - 앱 시작 시 자동 실행
+============================================================ */
+async function init(){
+  setSyncStatus('loading','로딩중...');
+  /* 각 로드를 독립적으로 try-catch — 하나 실패해도 나머지는 계속 */
+  await loadOptions();
+  loadHolidays().catch(e => console.warn('공휴일 로드 실패(무시):', e)); /* 실패해도 앱 계속 동작 */
+  await loadYears();
+
+  /* 업무 데이터 로드 */
+  try{
+    await loadTasks();
+  }catch(e){
+    console.error('loadTasks 실패:', e);
+    taskData = [];
+    renderTask();
+    updateSummary();
+    toast('⚠️ 업무 데이터 로드 실패: '+e.message);
+  }
+
+  /* 경비 데이터 로드 */
+  try{
+    await loadExpenses();
+  }catch(e){
+    console.error('loadExpenses 실패:', e);
+    expData = [];
+    renderExpense();
+    updateBudget();
+    toast('⚠️ 경비 데이터 로드 실패: '+e.message);
+  }
+
+  setSyncStatus('ok','연결됨');
+}
+
+/* ============================================================
+   연결 상태 표시 (헤더 우측 점)
+   state: 'ok' | 'loading' | 'error'
+============================================================ */
+function setSyncStatus(state, text){
+  const dot = document.getElementById('syncDot');
+  const sp  = document.getElementById('syncText');
+  dot.className = 'sync-dot'+(state==='loading'?' loading':state==='error'?' error':'');
+  sp.textContent = text;
+}
+
+/* ============================================================
+   탭 전환 (업무일정표 ↔ 경비사용내역)
+============================================================ */
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+}
+
+/* ============================================================
+   새로고침 버튼
+============================================================ */
+async function refreshAll(){
+  const btn = document.getElementById('refreshBtn');
+  if(btn){btn.textContent='↻ 로딩중...';btn.disabled=true;}
+  setSyncStatus('loading','동기화중...');
+  try{
+    await Promise.all([loadTasks(), loadExpenses()]);
+    setSyncStatus('ok','연결됨');
+  } catch(e){ setSyncStatus('error','오류'); }
+  if(btn){btn.textContent='↻ 새로고침';btn.disabled=false;}
+}
+
+/* ============================================================
+   토스트 알림 (화면 하단 잠깐 나타나는 메시지)
+   msg: 표시할 메시지, dur: 표시 시간(ms)
+============================================================ */
+function toast(msg, dur=2200){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), dur);
+}
+
+/* ============================================================
+   유틸 함수들
+============================================================ */
+// 날짜 문자열 "YYYY-MM-DD" → "MM/DD" 형식으로 변환
+function fmtDate(d){ if(!d) return '-'; const p=d.split('-'); return p.length>=3?p[1]+'/'+p[2]:d; }
+
+// 숫자 → "1,234원" 형식으로 변환
+function fmtMoney(n){ if(n===null||n===undefined||n==='') return '-'; return Number(n).toLocaleString('ko-KR')+'원'; }
+
+// HTML 특수문자 이스케이프 (XSS 방지 + 따옴표 오류 방지)
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ============================================================
+   상태 뱃지 HTML 생성
+   상태 문자열에 따라 색깔 있는 뱃지를 만들어 반환
+============================================================ */
+function statusBadge(s){
+  if(!s) return '<span style="color:#CCC">-</span>';
+  const c = optColor('status', s);          /* DB에 저장된 색 */
+  const l = optLabel('status', s);          /* DB에 저장된 표시명 */
+  return '<span class="badge" style="background:'+c.bg+';color:'+c.fg+'">'+esc(l)+'</span>';
+}
+
+/* 진행상태 뱃지 (모델링/제작도/매뉴얼 공용) */
+function pbadge(v){
+  if(!v || v==='-') return '<span style="color:#CCC">-</span>';
+  const c = optColor('prog', v);
+  return '<span class="pb" style="background:'+c.bg+';color:'+c.fg+'">'+esc(optLabel('prog',v))+'</span>';
+}
+
+/* 업무강도 뱃지 */
+function ibadge(v){
+  if(!v) return '<span style="color:#CCC">-</span>';
+  const c = optColor('intensity', v);
+  return '<span class="ib" style="background:'+c.bg+';color:'+c.fg+'">'+esc(optLabel('intensity',v))+'</span>';
+}
+
+/* ============================================================
+   SELECT 옵션 HTML 생성 헬퍼
+   opts: 옵션 배열, cur: 현재 선택값, empty: 빈 옵션 라벨
+============================================================ */
+function mkOpts(opts, cur, empty=''){
+  let h = empty ? '<option value="">'+empty+'</option>' : '';
+  opts.forEach(o=>{
+    const v=typeof o==='object'?o.val:o;
+    const l=typeof o==='object'?o.label:o;
+    h+='<option value="'+esc(v)+'" '+(cur===v?'selected':'')+'>'+l+'</option>';
+  });
+  return h;
+}
+
+/* ============================================================
+   업무일정표 데이터 로드 (Supabase → taskData 배열)
+============================================================ */
+async function loadTasks(){
+  /* year 컬럼이 DB에 있으면 해당 연도만, 없으면 전체를 가져옵니다.
+     컬럼이 없을 때 Supabase는 400을 반환하므로 폴백으로 전체 로드합니다. */
+  let res = await fetch(
+    SB_URL+'/rest/v1/task_schedule?year=eq.'+activeYear+'&order=created_at.asc',
+    {headers:H}
+  );
+  /* year 컬럼 없음(400) → 전체 로드로 폴백 */
+  if(!res.ok){
+    res = await fetch(
+      SB_URL+'/rest/v1/task_schedule?order=created_at.asc',
+      {headers:H}
+    );
+  }
+  if(!res.ok) throw new Error('task load fail');
+  taskData = await res.json();
+  renderTask();
+  updateSummary();
+}
+
+/* ============================================================
+   ★ 연도 관리 ★
+============================================================ */
+
+/* DB에 존재하는 연도 목록 조회 */
+async function loadYears(){
+  try{
+    const res = await fetch(
+      SB_URL+'/rest/v1/task_schedule?select=year&order=year.asc',
+      {headers:{...H, 'Prefer':'count=none'}}
+    );
+    /* year 컬럼이 없거나 오류 → 현재 연도만 탭으로 표시하고 계속 진행 */
+    if(!res.ok){
+      availableYears = [activeYear];
+      renderYearTabs();
+      return;
+    }
+    const rows = await res.json();
+    const years = [...new Set(rows.map(r=>r.year).filter(Boolean))].sort();
+    if(!years.includes(activeYear)) years.push(activeYear);
+    availableYears = years.sort();
+    activeYear = availableYears[availableYears.length-1];
+    renderYearTabs();
+  }catch(e){
+    availableYears = [activeYear];
+    renderYearTabs();
+  }
+}
+
+/* 연도 탭 버튼 렌더링 */
+function renderYearTabs(){
+  const wrap = document.getElementById('yearTabGroup');
+  if(!wrap) return;
+  wrap.innerHTML = availableYears.map(y=>
+    '<button class="year-tab'+(y===activeYear?' active':'')+'" onclick="setYear('+y+')">'+y+'</button>'
+  ).join('');
+}
+
+/* 연도 전환 — 클릭 시 해당 연도 데이터 다시 로드 */
+async function setYear(y){
+  if(activeYear === y) return;
+  activeYear = y;
+  renderYearTabs();
+  setSyncStatus('loading','로딩중...');
+  try{
+    await Promise.all([loadTasks(), loadExpenses()]);
+    setSyncStatus('ok','연결됨');
+  }catch(e){ setSyncStatus('error','오류'); }
+}
+
+/* 새 연도 추가 버튼 — 다음 연도를 목록에 추가하고 전환 */
+async function addNewYear(){
+  const nextYear = Math.max(...availableYears) + 1;
+  if(!confirm(nextYear+'년을 새로 시작합니다.\n업무·경비 데이터는 비어있는 상태로 시작됩니다.\n계속할까요?')) return;
+  if(!availableYears.includes(nextYear)) availableYears.push(nextYear);
+  availableYears.sort();
+  activeYear = nextYear;
+  renderYearTabs();
+  /* 새 연도엔 데이터가 없으므로 빈 상태로 렌더 */
+  taskData = [];
+  expData = [];
+  renderTask();
+  renderExpense();
+  updateSummary();
+  updateBudget();
+  toast('✅ '+nextYear+'년이 추가됐습니다. 업무·경비를 새로 추가해주세요.');
+}
+
+/* ============================================================
+   상태 필터 — 전역 변수로 관리 (기존 select#fStatus 대체)
+============================================================ */
+let activeStatusFilter = '';
+
+function setStatusFilter(val){
+  activeStatusFilter = val;
+  const map = { '':'all', '요청':'req', '진행중':'ing', '지속':'cont', '보류':'hold', '완료':'done' };
+  Object.entries(map).forEach(([k, cls])=>{
+    const btn = document.getElementById('flt-'+cls);
+    if(btn) btn.classList.toggle('active', k === val);
+  });
+  /* active 클래스 전환 후 동기화된 색상 재적용
+     (active 여부에 따라 배경·글자색을 다르게 표시해야 하므로) */
+  applyStatusFilterColors();
+  renderTask();
+}
+
+/* ============================================================
+   요약 카드 숫자 업데이트
+============================================================ */
+function updateSummary(){
+  const c={done:0,ing:0,hold:0,cont:0,req:0};
+  taskData.forEach(t=>{
+    const s=(t.status||'').toLowerCase();
+    if(s.includes('완료'))       c.done++;
+    else if(s.includes('진행중')) c.ing++;
+    else if(s.includes('보류'))  c.hold++;
+    else if(s.includes('지속'))  c.cont++;
+    else if(s.includes('요청'))  c.req++;
+  });
+  document.getElementById('cnt-done').textContent=c.done;
+  document.getElementById('cnt-ing').textContent=c.ing;
+  document.getElementById('cnt-hold').textContent=c.hold;
+  document.getElementById('cnt-cont').textContent=c.cont;
+  document.getElementById('cnt-req').textContent=c.req;
+  document.getElementById('cnt-all').textContent=taskData.length;
+  /* 카운트 숫자가 바뀌면 "완료" 버튼 폭도 바뀌므로, 정렬을 다음 프레임에 다시 계산 */
+  requestAnimationFrame(alignFilterSelToDone);
+}
+
+/* 검색창 폭을 조정해서 "전체 담당자" 드롭다운의 시작 위치가
+   "완료" 버튼 왼쪽 끝과 맞춰지도록 함 (상태 필터 줄과 툴바 줄의 시각적 정렬용) */
+function alignFilterSelToDone(){
+  const doneBtn = document.getElementById('flt-done');
+  const search = document.getElementById('taskSearch');
+  const fLead = document.getElementById('fLead');
+  if(!doneBtn || !search || !fLead) return;
+  /* ★ 태블릿·모바일(768px 이하)에서는 상태 버튼이 두 줄로 접히므로
+     "완료" 버튼 위치에 맞추면 엉뚱한 폭이 나옵니다.
+     이 구간에서는 인라인 폭을 지우고 CSS(flex:1)에 맡깁니다. */
+  if(window.innerWidth <= 768){ search.style.width = ''; return; }
+  const doneRect = doneBtn.getBoundingClientRect();
+  const searchRect = search.getBoundingClientRect();
+  const gap = 8;   /* .toolbar-left gap 값과 동일 */
+  const targetWidth = Math.round(doneRect.left - searchRect.left - gap);
+  if(targetWidth > 200){   /* 화면이 너무 좁을 때 검색창이 과하게 줄어드는 것 방지 */
+    search.style.width = targetWidth + 'px';
+  }
+}
+window.addEventListener('resize', () => requestAnimationFrame(alignFilterSelToDone));
+
+/* ============================================================
+   정렬 함수
+   컬럼 헤더 클릭 시 호출됨
+   같은 컬럼 두 번 클릭하면 방향 반전
+============================================================ */
+function sortBy(col){
+  if(sortCol===col) sortDir = sortDir==='asc'?'desc':'asc';
+  else { sortCol=col; sortDir='asc'; }
+  renderTask();
+}
+
+/* ============================================================
+   데이터 정렬 로직
+============================================================ */
+function sortedData(data){
+  return [...data].sort((a,b)=>{
+    let va, vb;
+    if(sortCol==='status'){
+      // 상태는 커스텀 순서(STATUS_ORDER)로 정렬
+      va = STATUS_ORDER[a.status] || 99;
+      vb = STATUS_ORDER[b.status] || 99;
+    } else {
+      va = a[sortCol] || '';
+      vb = b[sortCol] || '';
+    }
+    if(va<vb) return sortDir==='asc'?-1:1;
+    if(va>vb) return sortDir==='asc'?1:-1;
+    return 0;
+  });
+}
+
+/* ============================================================
+   정렬 표시 아이콘 생성
+   현재 정렬 중인 컬럼에만 화살표 표시
+============================================================ */
+function sortIcon(col){
+  if(sortCol!==col) return '';   /* ⇅ 제거 — 정렬 안 된 컬럼엔 아무 기호도 표시 안 함 */
+  return sortDir==='asc'
+    ? ' <span style="color:var(--blueprint);font-size:10px">▲</span>'
+    : ' <span style="color:var(--blueprint);font-size:10px">▼</span>';
+}
+
+/* ============================================================
+   업무 테이블 렌더링 (엑셀 스타일 인라인 편집)
+
+   동작 방식:
+   - 기본: 뷰 모드 (텍스트/뱃지 표시)
+   - 셀 클릭: 해당 셀만 편집 컨트롤로 전환
+   - 행 밖 클릭 / Enter: 자동 저장
+   - 헤더 클릭: 해당 컬럼 기준 정렬
+============================================================ */
+function renderTask(){
+  /* DOM 요소가 없으면 조용히 종료 (탭 전환 전 호출 시 방어) */
+  const wrap = document.getElementById('taskTableWrap');
+  if(!wrap) return;
+
+  const search=((document.getElementById('taskSearch')||{value:''}).value||'').toLowerCase();
+  const fSt = activeStatusFilter;
+  const fLd=((document.getElementById('fLead')||{value:''}).value||'');
+
+  // 필터 적용
+  let filtered=taskData.filter(t=>{
+    const ms=!search||(t.title||'').toLowerCase().includes(search)
+      ||(t.lead||'').toLowerCase().includes(search)
+      ||(t.location||'').toLowerCase().includes(search)
+      ||(t.sub||'').toLowerCase().includes(search)
+      ||(t.sales||'').toLowerCase().includes(search);
+    const mst=!fSt||(t.status||'').toLowerCase().includes(fSt.toLowerCase());
+    const mld=!fLd||t.lead===fLd;
+    return ms&&mst&&mld;
+  });
+
+  // 정렬 적용
+  filtered = sortedData(filtered);
+
+  /* ------------------------------------------------------------
+     COL_DEFS 전역 변수에서 현재 컬럼 순서를 가져옵니다.
+     드래그앤드롭으로 순서가 바뀌면 COL_DEFS도 함께 바뀝니다.
+     localStorage에 저장된 순서가 있으면 그걸로 복원합니다.
+  ------------------------------------------------------------ */
+  const cols = COL_DEFS;
+
+  /* ---- 표 맨 위 "+ 업무 추가" 가로 전체 버튼 ----
+     thead 안에 td colspan 으로 넣어서 표 폭 전체를 차지하게 함 */
+  const addBtnRow =
+    '<tr><td colspan="'+cols.length+'" style="padding:0;border:none">'
+    +'<div class="add-row-btn-wrap">'
+    +'<button class="add-row-btn" onclick="quickAddTask()">'
+    +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">'
+    +'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+    +'업무 추가</button></div></td></tr>';
+
+  /* 조건에 맞는 게 없어도 "추가" 버튼은 보여야 하므로 표는 항상 그립니다 */
+  if(!filtered.length){
+    wrap.innerHTML=
+      '<table><thead>'+addBtnRow+'</thead></table>'
+      +'<div class="empty-msg">📭 조건에 맞는 업무가 없습니다.</div>';
+    return;
+  }
+
+  let html='<table><thead>'+addBtnRow+'<tr>';
+  cols.forEach(([label,key,w,optType])=>{
+    /* ⚙ 버튼: 그 컬럼의 선택지를 추가/삭제/색상변경/순서변경 */
+    const gear = optType
+      ? ' <button class="gear-btn" onclick="event.stopPropagation();openOptModal(\'' + optType + '\')" title="'+OPT_TITLE[optType]+' 옵션 관리">⚙</button>'
+      : '';
+    if(key){
+      /* ★ onclick 대신 data-sort-key 속성으로 정렬키를 기록합니다.
+         실제 클릭 이벤트는 initColResize() 안에서 addEventListener로 붙입니다.
+         이렇게 해야 리사이즈 핸들 드래그 중에 정렬이 실수로 실행되는 걸 막을 수 있습니다. */
+      html+='<th style="width:'+w+'px;cursor:pointer" data-sort-key="'+key+'">'
+        +label+sortIcon(key)+gear+'</th>';
+    } else {
+      html+='<th style="width:'+w+'px">'+label+gear+'</th>';
+    }
+  });
+  html+='</tr></thead><tbody>';
+
+  /* 상태 그룹 구분선: 정렬이 status일 때 상태값이 바뀌는 첫 행에 .status-group-top 추가 */
+  const isSortedByStatus = (sortCol === 'status');
+
+  filtered.forEach((t, idx)=>{
+    const id = t.id;
+    const ddayVal=(t.dday!==null&&t.dday!==undefined&&t.dday!==-33015)?t.dday:null;
+    const ddayTxt=ddayVal===null?'-':ddayVal>=0?'D+'+ddayVal:'D'+ddayVal;
+    const ddayStyle=ddayVal!==null&&ddayVal>=0&&ddayVal<=7?'color:#D48806;font-weight:700':
+                    ddayVal!==null&&ddayVal<0&&(t.status||'').includes('진행')?'color:var(--danger);font-weight:700':'';
+
+    /* ★ 파생값 4개 — DB 저장값 무시하고 날짜 컬럼 기준 실시간 계산
+       워크타임  = 종료일 - 시작일 (영업일, 주말 제외)
+       리드타임  = 요청마감 - 요청일 (영업일, 주말 제외)
+       세이브타임 = 리드타임 - 워크타임
+       D-day    = 요청마감 - 오늘 (달력 일수, 마감까지 남은 날) */
+
+    /* 영업일 계산 — 시작일 포함, 종료일도 포함 (당일 = 1일)
+       토/일 + HOLIDAYS Set에 등록된 공휴일 제외
+       시작 > 종료(역순 입력)이면 null 반환 → '-' 표시 */
+    const diffBizDays = (a, b) => {
+      if(!a || !b) return null;
+      let start = new Date(a + 'T00:00:00Z');
+      const end  = new Date(b + 'T00:00:00Z');
+      if(start > end) return null;   /* 역순이면 null (잘못된 입력) */
+      let count = 0;
+      while(start <= end){
+        const dow = start.getUTCDay();
+        const ds  = start.toISOString().slice(0,10);
+        /* 토(6)/일(0) 이 아니고, 등록된 공휴일도 아닌 날만 카운트 */
+        if(dow !== 0 && dow !== 6 && !HOLIDAYS.has(ds)) count++;
+        start.setUTCDate(start.getUTCDate() + 1);
+      }
+      return count;
+    };
+
+    /* D-day는 달력 일수 그대로 (주말 포함, 남은 날 체감 기준) */
+    const diffDays = (a, b) => {
+      if(!a || !b) return null;
+      const da = new Date(a + 'T00:00:00Z');
+      const db = new Date(b + 'T00:00:00Z');
+      return Math.round((db - da) / 86400000);
+    };
+
+    const wt = diffBizDays(t.start_date,   t.end_date);        /* 워크타임 (영업일) */
+    const lt = diffBizDays(t.request_date, t.deadline);        /* 리드타임 (영업일) */
+    const st = (lt !== null && wt !== null) ? lt - wt : null;  /* 세이브타임 */
+
+    /* D-day: 오늘(로컬 날짜) 기준으로 요청마감까지 남은 달력 일수 */
+    const todayStr = new Date().toLocaleDateString('sv-SE');
+    const dday = t.deadline ? diffDays(todayStr, t.deadline) : null;
+    const ddayCalcTxt = dday === null ? '-'
+                      : dday === 0   ? 'D-day'
+                      : dday > 0     ? 'D-' + dday
+                      :                '-';   /* 마감 지난 D+는 표시 안 함 */
+    const ddayCalcStyle = dday !== null && dday >= 0 && dday <= 7
+                          ? 'color:#D48806;font-weight:700' : '';
+
+    /* 상태 기준 정렬 중일 때: 이전 행과 상태가 다르면 구분선 클래스 추가 (첫 행 제외) */
+    const isGroupTop = isSortedByStatus && idx > 0 && (filtered[idx-1].status || '') !== (t.status || '');
+    const trCls = isGroupTop ? ' status-group-top' : '';
+
+    html+='<tr id="row-'+id+'" class="'+trCls+'">';
+
+    /* ---- COL_DEFS 순서대로 td를 동적으로 생성합니다 ----
+       드래그앤드롭으로 컬럼 순서가 바뀌어도 이 루프가 그 순서를 따릅니다 */
+    cols.forEach(([label, key])=>{
+      switch(key || label){
+        /* 드롭다운 셀들 */
+        case 'status':    html+=tdDropdown(id,'status',   t.status,   'center'); break;
+        case 'lead':      html+=tdDropdown(id,'lead',     t.lead,     'center'); break;
+        case 'sub':       html+=tdSubCell(id, t.sub); break;  /* 복수선택 전용 셀 */
+        case 'sales':     html+=tdDropdown(id,'sales',    t.sales,    'center'); break;
+        case 'category':  html+=tdDropdown(id,'category', t.category, 'center'); break;
+        /* 텍스트 직접입력 셀 */
+        case 'title':     html+=tdText(id,'title',    t.title,    '업무내용 입력'); break;
+        case 'location':  html+=tdText(id,'location', t.location, '출고지');       break;
+        /* 날짜 셀 */
+        case 'request_date': html+=tdDate(id,'request_date', t.request_date); break;
+        case 'deadline':     html+=tdDate(id,'deadline',     t.deadline);     break;
+        case 'start_date':   html+=tdDate(id,'start_date',   t.start_date);   break;
+        case 'end_date':     html+=tdDate(id,'end_date',     t.end_date);     break;
+        /* 읽기전용 파생값 */
+        case 'dday':
+          html+='<td><div class="c-box" style="justify-content:center;font-size:12px;'+ddayCalcStyle+'">'+ddayCalcTxt+'</div></td>'; break;
+        case 'lead_time':
+          html+='<td><div class="dval">'+(lt!==null?lt+'일':'-')+'</div></td>'; break;
+        case 'work_time':
+          html+='<td><div class="dval">'+(wt!==null?wt+'일':'-')+'</div></td>'; break;
+        case 'save_time':
+          html+='<td><div class="dval '+(st===null?'':(st>=0?'save-pos':'save-neg'))+'">'+(st!==null?st+'일':'-')+'</div></td>'; break;
+        /* 진행상태 (모델링/제작도/매뉴얼 3줄) */
+        case '진행상태':
+          html+='<td><div class="prog-group">'
+            + progRow(id,'modeling','모델링', t.modeling)
+            + progRow(id,'drawing', '제작도', t.drawing)
+            + progRow(id,'manual',  '매뉴얼', t.manual)
+            + '</div></td>'; break;
+        /* 강도 토글 */
+        case 'intensity':
+          html+='<td>'+togGroup(id,'intensity','intensity',t.intensity)+'</td>'; break;
+        /* 삭제 버튼 */
+        case '삭제':
+          html+='<td style="padding:5px 6px;text-align:center">'
+            +'<button class="btn-row-del" onclick="deleteTask(\''+id+'\')">🗑</button>'
+            +'</td>'; break;
+        default:
+          html+='<td></td>';
+      }
+    });
+
+    html+='</tr>';
+  });
+
+  html+='</tbody></table>';
+  wrap.innerHTML=html;
+
+  /* 표를 새로 그렸으니 컬럼 폭 조절 손잡이도 다시 붙임 */
+  initColResize();
+}
+
+/* ============================================================
+   ★ 셀 생성 헬퍼들 ★
+   행 전체가 아니라 "셀 하나"만 편집되도록 만드는 부품들입니다.
+============================================================ */
+
+/* ---- 글자 입력 셀 ----
+   contenteditable="true" → 클릭하면 그 자리에서 바로 타이핑
+   onblur(칸 밖 클릭) 시 자동 저장 */
+function tdText(id, field, value, placeholder){
+  return '<td><div class="c-box"><div class="c-text" contenteditable="true"'
+    +' data-ph="'+placeholder+'"'
+    +' title="'+esc(value)+'"'
+    +' onblur="saveField(\''+id+'\',\''+field+'\',this.innerText.trim())"'
+    +' onkeydown="textCellKey(event,this)"'
+    +'>'+esc(value)+'</div></div></td>';
+}
+
+/* 글자 셀에서 Enter=저장(줄바꿈 방지), Esc=취소 */
+function textCellKey(e, el){
+  if(e.key==='Enter'){ e.preventDefault(); el.blur(); }
+  if(e.key==='Escape'){ e.preventDefault(); renderTask(); }
+}
+
+/* ---- 날짜 입력 셀 ---- */
+function tdDate(id, field, value){
+  return '<td><div class="c-box" style="justify-content:center">'
+    +'<input type="date" class="c-date" value="'+(value||'')+'"'
+    +' onchange="saveField(\''+id+'\',\''+field+'\',this.value||null)">'
+    +'</div></td>';
+}
+
+/* ---- 드롭다운 셀 (상태/담당자/영업/분류) ----
+   평소엔 뱃지만 보이다가, 클릭하면 팝업이 뜹니다.
+   ★ 팝업은 표 밖(body)에 fixed로 뜨므로 절대 잘리지 않습니다 */
+function tdDropdown(id, field, value, align='left'){
+  const type = field;                 /* 필드명 = 옵션 종류명 (동일하게 맞춰둠) */
+  const c = optColor(type, value);
+  const l = value ? optLabel(type, value) : '-';
+  const badge = value
+    ? '<span class="badge" style="background:'+c.bg+';color:'+c.fg+'">'+esc(l)+'</span>'
+    : '<span style="color:#CCC">-</span>';
+  return '<td><div class="c-box" style="justify-content:'+align+'">'
+    +'<span class="dd-btn" onclick="openDD(event,\''+id+'\',\''+field+'\')">'+badge+'</span>'
+    +'</div></td>';
+}
+
+
+/* ---- 보조담당자 전용 셀 ----
+   ★ 주담당자(tdDropdown)와 완전히 동일한 1줄 구조
+   여러 명이어도 뱃지를 가로로 나란히 표시 (줄바꿈 없음 → 행 높이 항상 동일)
+   이름이 많아 칸 폭을 넘치면 잘려 보임 — 컬럼 경계를 끌어 넓히면 다 보임 */
+function tdSubCell(id, value){
+  const names = value ? value.split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+  const inner = names.length
+    ? names.map(n=>{
+        const c = optColor('sub', n);
+        return '<span class="badge" style="font-size:11px;background:'+c.bg+';color:'+c.fg+'">'+esc(n)+'</span>';
+      }).join('')
+    : '<span style="color:#CCC">-</span>';
+
+  /* ▾ 화살표를 td 오른쪽 끝 + 수직 중앙에 absolute로 고정
+     뱃지가 1줄이든 3줄이든 항상 셀 높이 기준 중앙에 위치함 */
+  return '<td style="position:relative;padding-right:16px">'
+    +'<div class="c-box" style="justify-content:center;align-items:flex-start;flex-wrap:wrap;gap:3px;padding:5px 8px;min-height:38px;cursor:pointer" onclick="openDD(event,\''+id+'\',\'sub\')">'
+    +inner
+    +'</div>'
+    +'<span style="position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:9px;color:var(--muted);pointer-events:none">▾</span>'
+    +'</td>';
+}
+
+/* ---- 토글 버튼 그룹 ----
+   선택지를 전부 나열하고, 지금 값인 것만 색이 켜집니다. */
+function togGroup(id, field, type, value, extraStyle=''){
+  let h='<div class="tog-group" style="'+extraStyle+'">';
+  (OPTIONS[type]||[]).forEach(o=>{
+    const on = (value === o.value);
+    /* 켜진 버튼만 DB에 저장된 색을 입힘 */
+    const st = on ? 'background:'+o.color_bg+';color:'+o.color_fg+';border-color:'+o.color_bg+';' : '';
+    h+='<span class="tog'+(on?' on':'')+'" style="'+st+'"'
+      +' onclick="saveField(\''+id+'\',\''+field+'\',\''+esc(o.value).replace(/'/g,"\\'")+'\')">'
+      +esc(o.label||o.value)+'</span>';
+  });
+  return h+'</div>';
+}
+
+/* ---- 진행상태 한 줄 (라벨 + 토글버튼들) ---- */
+function progRow(id, field, label, value){
+  return '<div class="prog-row"><span class="prog-lbl">'+label+'</span>'
+    + togGroup(id, field, 'prog', value, 'padding:0;gap:2px;')
+    + '</div>';
+}
+
+/* ============================================================
+   ★ 셀 하나만 저장 (PATCH) ★
+   예전엔 행 전체를 한꺼번에 저장했지만, 이제 바뀐 칸 하나만 저장합니다.
+   id: 행 UUID / field: 컬럼명 / value: 새 값
+============================================================ */
+async function saveField(id, field, value){
+  const row = taskData.find(x=>x.id===id);
+  if(!row) return;
+  const newVal = (value === '' ? null : value);
+  if(row[field] === newVal) return;            /* 안 바뀌었으면 저장 안 함 */
+
+  setSyncStatus('loading','저장중...');
+  try{
+    const res = await fetch(SB_URL+'/rest/v1/task_schedule?id=eq.'+id,
+      {method:'PATCH', headers:H, body:JSON.stringify({[field]:newVal})});
+    if(!res.ok) throw new Error(await res.text());
+
+    /* 로컬 캐시 즉시 반영 → 새로고침 없이 화면에 바로 적용 */
+    row[field] = newVal;
+
+    renderTask();
+    updateSummary();
+    setSyncStatus('ok','연결됨');
+  } catch(e){
+    setSyncStatus('error','오류');
+    toast('❌ 저장 실패: '+e.message);
+  }
+}
+
+/* ============================================================
+   ★ 표 맨 위 "+ 업무 추가" — 빈 행을 바로 추가 ★
+   모달 없이 즉시 행이 생기고, 프로젝트명 칸에 커서가 갑니다.
+============================================================ */
+async function quickAddTask(){
+  const firstStatus = OPTIONS.status[0] ? OPTIONS.status[0].value : '1. 요청';
+  setSyncStatus('loading','추가중...');
+  try{
+    const res = await fetch(SB_URL+'/rest/v1/task_schedule',
+      {method:'POST', headers:{...H,'Prefer':'return=representation'},
+       body:JSON.stringify({status:firstStatus, year:activeYear})});
+    if(!res.ok) throw new Error(await res.text());
+    const [created] = await res.json();
+    taskData.push(created);
+    renderTask(); updateSummary();
+    setSyncStatus('ok','연결됨');
+    /* 새로 생긴 행의 프로젝트명 칸에 커서 놓기 */
+    setTimeout(()=>{
+      const tr = document.getElementById('row-'+created.id);
+      if(tr){
+        tr.scrollIntoView({block:'center', behavior:'smooth'});
+        const cell = tr.querySelectorAll('.c-text')[0];
+        if(cell) cell.focus();
+      }
+    }, 80);
+  } catch(e){
+    setSyncStatus('error','오류');
+    toast('❌ 추가 실패: '+e.message);
+  }
+}
+
+/* ============================================================
+   업무 삭제
+============================================================ */
+async function deleteTask(id){
+  if(!confirm('정말 삭제하시겠습니까?')) return;
+  setSyncStatus('loading','삭제중...');
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/task_schedule?id=eq.'+id,{method:'DELETE',headers:H});
+    if(!res.ok) throw new Error();
+    taskData=taskData.filter(x=>x.id!==id);
+    renderTask(); updateSummary();
+    setSyncStatus('ok','연결됨');
+    toast('🗑️ 삭제되었습니다.');
+  } catch(e){ setSyncStatus('error','오류'); toast('❌ 삭제 실패'); }
+}
+
+/* ============================================================
+   업무 추가 모달 (+ 업무 추가 버튼)
+============================================================ */
+function openAddTaskModal(){
+  const body=
+    '<div class="field-row">'
+    +'<div class="field"><label>상태 *</label><select id="af-status">'
+    +mkOpts(optsFor('status'),'1. 요청')
+    +'</select></div>'
+    +'<div class="field"><label>업무강도</label><select id="af-int">'
+    +mkOpts(optsFor('intensity'),'중')
+    +'</select></div></div>'
+    +'<div class="field-row">'
+    +'<div class="field"><label>주담당자</label><select id="af-lead">'
+    +mkOpts(optsFor('lead'),'','-')
+    +'</select></div>'
+    +'<div class="field"><label>보조담당자</label><select id="af-sub">'
+    +mkOpts(optsFor('sub'),'','-')
+    +'</select></div></div>'
+    +'<div class="field"><label>프로젝트명 / 업무내용 *</label>'
+    +'<input id="af-title" placeholder="업무내용을 입력하세요"></div>'
+    +'<div class="field-row">'
+    +'<div class="field"><label>출고지</label><input id="af-loc" placeholder="예: 김제, 태국"></div>'
+    +'<div class="field"><label>영업담당</label><select id="af-sales">'
+    +mkOpts(optsFor('sales'),'','-')
+    +'</select></div></div>'
+    +'<div class="field-row">'
+    +'<div class="field"><label>요청일 (영업기준)</label><input type="date" id="af-request"></div>'
+    +'<div class="field"><label>요청마감 (영업기준)</label><input type="date" id="af-deadline"></div></div>'
+    +'<div class="field-row">'
+    +'<div class="field"><label>시작일 (실제)</label><input type="date" id="af-start"></div>'
+    +'<div class="field"><label>종료일 (실제)</label><input type="date" id="af-end"></div></div>'
+    +'<div class="field-row">'
+    +'<div class="field"><label>업무분류</label>'
+    +'<input id="af-cat" list="cat-list" placeholder="분류 입력 또는 선택">'
+    +'<datalist id="cat-list">'+optsFor('category').map(c=>'<option value="'+esc(c.val)+'">').join('')+'</datalist>'
+    +'</div>'
+    +'<div class="field"><label>업무성격</label><input id="af-nature" placeholder="예: 놀이시설 DB"></div></div>'
+    +'<div class="field-row">'
+    +'<div class="field"><label>모델링</label><select id="af-mod"><option value="">-</option>'
+    +mkOpts(optsFor('prog'),'')+'</select></div>'
+    +'<div class="field"><label>제작도</label><select id="af-drw"><option value="">-</option>'
+    +mkOpts(optsFor('prog'),'')+'</select></div></div>'
+    +'<div class="field"><label>매뉴얼/체크리스트</label><select id="af-man"><option value="">-</option>'
+    +mkOpts(optsFor('prog'),'')+'</select></div>'
+    +'<div class="field"><label>업무내용 상세</label>'
+    +'<textarea id="af-memo" placeholder="상세 내용"></textarea></div>';
+
+  openModal('업무 추가', body,
+    '<button class="btn" onclick="closeModal()">취소</button>'
+    +'<button class="btn primary" onclick="addTask()">추가</button>');
+  setTimeout(()=>{ const e=document.getElementById('af-title'); if(e) e.focus(); },100);
+}
+
+async function addTask(){
+  const g=id=>(document.getElementById(id)||{}).value||null;
+  const title=(g('af-title')||'').trim();
+  if(!title){ toast('⚠️ 업무내용을 입력하세요.'); return; }
+  const payload={
+    status:g('af-status'), lead:g('af-lead'), sub:g('af-sub'), title,
+    location:g('af-loc'), sales:g('af-sales'),
+    request_date:g('af-request')||null,   /* 요청일 */
+    deadline:g('af-deadline')||null,       /* 요청마감일 */
+    start_date:g('af-start')||null,        /* 시작일 */
+    end_date:g('af-end')||null,            /* 종료일 */
+    category:g('af-cat'), nature:g('af-nature'),
+    modeling:g('af-mod'), drawing:g('af-drw'), manual:g('af-man'),
+    intensity:g('af-int'), memo:g('af-memo'),
+  };
+  setSyncStatus('loading','저장중...');
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/task_schedule',{method:'POST',headers:H,body:JSON.stringify(payload)});
+    if(!res.ok) throw new Error(await res.text());
+    const added=await res.json();
+    taskData.push(added[0]);
+    closeModal(); renderTask(); updateSummary();
+    setSyncStatus('ok','연결됨');
+    toast('✅ 업무가 추가되었습니다.');
+  } catch(e){ setSyncStatus('error','오류'); toast('❌ 추가 실패: '+e.message); }
+}
+
+/* ============================================================
+   경비사용내역 로드
+============================================================ */
+/* ============================================================
+   경비사용내역 로드
+============================================================ */
+async function loadExpenses(){
+  try{
+    /* year 컬럼이 있으면 해당 연도만, 없으면(400) 전체 로드 폴백 */
+    let res = await fetch(
+      SB_URL+'/rest/v1/dept_expense?year=eq.'+activeYear+'&order=seq.asc',
+      {headers:H}
+    );
+    if(!res.ok){
+      res = await fetch(SB_URL+'/rest/v1/dept_expense?order=seq.asc',{headers:H});
+    }
+    if(!res.ok) throw new Error(await res.text());
+    expData = await res.json();
+  }catch(e){
+    console.error('경비 로드 실패:', e);
+    expData = [];
+    toast('⚠️ 경비 데이터 로드 실패');
+  }
+  renderExpense();
+  await loadBudgetTotal();
+  updateBudget();
+}
+
+/* ============================================================
+   예산 현황 카드 업데이트
+============================================================ */
+function updateBudget(){
+  const spent=expData.reduce((s,e)=>s+(Number(e.amount)||0),0);
+  const remain=budgetTotal-spent;
+  const rate=budgetTotal?Math.min(100,Math.round(spent/budgetTotal*100)):0;
+  document.getElementById('bTotal').textContent=fmtMoney(budgetTotal);
+  document.getElementById('bSpent').textContent=fmtMoney(spent);
+  document.getElementById('bRemain').textContent=fmtMoney(remain);
+  document.getElementById('bRate').textContent=rate+'%';
+  if(document.getElementById('bRateBar'))
+    document.getElementById('bRateBar').textContent=rate+'%';
+  document.getElementById('bBar').style.width=rate+'%';
+}
+
+/* ============================================================
+   총 배정금액 로드/저장 — app_options 테이블에 연도별로 저장
+   (opt_type='budget_total', label=연도, value=금액)
+============================================================ */
+async function loadBudgetTotal(){
+  try{
+    const res = await fetch(
+      SB_URL+'/rest/v1/app_options?opt_type=eq.budget_total&label=eq.'+activeYear,
+      {headers:H}
+    );
+    if(res.ok){
+      const rows = await res.json();
+      if(rows.length){
+        budgetTotal = Number(rows[0].value)||1080000;
+        budgetTotalRowId = rows[0].id;
+      } else {
+        budgetTotal = 1080000;   // 아직 이 연도 설정값이 없으면 기본값
+        budgetTotalRowId = null;
+      }
+    }
+  }catch(e){
+    console.error('총 배정금액 로드 실패:', e);
+    budgetTotal = 1080000;
+    budgetTotalRowId = null;
+  }
+}
+
+/* 총 배정금액 저장 + 기존 경비 행들의 한도/잔액 재계산 */
+async function saveBudgetTotal(n){
+  setSyncStatus('loading','저장중...');
+  try{
+    if(budgetTotalRowId){
+      const res = await fetch(SB_URL+'/rest/v1/app_options?id=eq.'+budgetTotalRowId,
+        {method:'PATCH',headers:H,body:JSON.stringify({value:String(n)})});
+      if(!res.ok) throw new Error(await res.text());
+    } else {
+      const res = await fetch(SB_URL+'/rest/v1/app_options',
+        {method:'POST',headers:{...H,'Prefer':'return=representation'},
+         body:JSON.stringify({opt_type:'budget_total', label:String(activeYear), value:String(n)})});
+      if(!res.ok) throw new Error(await res.text());
+      const [created]=await res.json();
+      budgetTotalRowId = created.id;
+    }
+    await recalcBudgetCascade();
+    setSyncStatus('ok','연결됨');
+  }catch(e){
+    setSyncStatus('error','오류');
+    toast('❌ 총 배정금액 저장 실패: '+e.message);
+  }
+}
+
+/* 총 배정금액이 바뀌면 기존 행들의 경비한도·잔액을 seq 순서대로 다시 계산해서 저장
+   (신규 행 추가할 때와 같은 방식 — 누적 집행액을 빼가며 순서대로 깎임) */
+async function recalcBudgetCascade(){
+  let prevSpent = 0;
+  const sorted = [...expData].sort((a,b)=>(a.seq||0)-(b.seq||0));
+  for(const row of sorted){
+    const amt = Number(row.amount)||0;
+    const newLimit = budgetTotal - prevSpent;
+    const newBalance = budgetTotal - prevSpent - amt;
+    prevSpent += amt;
+    if(row.budget_limit!==newLimit || row.balance!==newBalance){
+      try{
+        const res = await fetch(SB_URL+'/rest/v1/dept_expense?id=eq.'+row.id,
+          {method:'PATCH',headers:H,body:JSON.stringify({budget_limit:newLimit, balance:newBalance})});
+        if(res.ok){ row.budget_limit=newLimit; row.balance=newBalance; }
+      }catch(e){ console.error('잔액 재계산 실패:', row.id, e); }
+    }
+  }
+  renderExpense();
+  updateBudget();
+}
+
+/* 총 배정금액 카드 — 클릭하면 숫자만, 블러하면 포맷 + 저장 (참석인원/집행액과 동일 방식) */
+function budgetTotalFocus(el){
+  el.innerText = budgetTotal ? String(budgetTotal) : '';
+}
+function budgetTotalKey(e, el){
+  if(e.key==='Enter'){ e.preventDefault(); el.blur(); }
+  if(e.key==='Escape'){ e.preventDefault(); el.innerText=fmtMoney(budgetTotal); el.blur(); }
+}
+async function budgetTotalBlur(el){
+  const n = Number(el.innerText.replace(/[^0-9]/g,'')) || 0;
+  el.innerText = fmtMoney(n);
+  if(n === budgetTotal) return;   // 변경 없으면 저장 스킵
+  budgetTotal = n;
+  await saveBudgetTotal(n);
+}
+
+/* ============================================================
+   경비 테이블 렌더링 — 셀 단위 편집 방식 (업무탭과 동일)
+   - 날짜: <input type="date"> 상시 노출
+   - 경비항목: 드롭다운 dd-popup
+   - 금액/비고: contenteditable
+   - 번호/한도/잔액: 읽기전용
+============================================================ */
+const EXP_TYPES = ['식사','커피','교통','물품구입','기타'];
+
+function renderExpense(){
+  const expWrap = document.getElementById('expTableWrap');
+  if(!expWrap) return;
+  const search=((document.getElementById('expSearch')||{value:''}).value||'').toLowerCase();
+  const filtered=expData.filter(e=>!search
+    ||(e.expense_type||'').toLowerCase().includes(search)
+    ||(e.note||'').toLowerCase().includes(search));
+
+  const addBtn = '<tr><td colspan="9" style="padding:0;border:none">'
+    +'<div class="add-row-btn-wrap">'
+    +'<button class="add-row-btn" onclick="quickAddExp()">'
+    +'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">'
+    +'<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+    +'경비 추가</button></div></td></tr>';
+
+  let html='<table><colgroup>'
+    +'<col style="width:5%"><col style="width:12%"><col style="width:9%">'
+    +'<col style="width:5%"><col style="width:12%"><col style="width:12%">'
+    +'<col style="width:12%"><col style="width:24%"><col style="width:9%">'
+    +'</colgroup>'
+    +'<thead>'+addBtn+'<tr>'
+    +'<th>번호</th><th>사용일자</th><th>경비항목</th>'
+    +'<th>참석인원</th><th>경비한도</th><th>집행액</th>'
+    +'<th>잔액</th><th>비고</th><th>첨부</th>'
+    +'</tr></thead><tbody>';
+
+  if(!filtered.length){
+    html+='<tr><td colspan="9"><div class="empty-msg">📭 경비 내역이 없습니다.</div></td></tr>';
+  } else {
+    const TC={
+      '식사':  {bg:'#F3EEFC',fg:'#7C5CBF'},
+      '커피':  {bg:'#E8F5E9',fg:'#2E7D32'},
+      '교통':  {bg:'#E3F2FD',fg:'#1565C0'},
+      '물품구입':{bg:'#FFF8E1',fg:'#B7770D'},
+      '기타':  {bg:'#F0F0F0',fg:'#555'},
+    };
+    filtered.forEach(function(e){
+      const tc = e.expense_type ? (TC[e.expense_type]||{bg:'#F0F0F0',fg:'#555'}) : null;
+      const typeBadge = tc
+        ? '<span class="badge" style="background:'+tc.bg+';color:'+tc.fg+'">'+esc(e.expense_type)+'</span>'
+        : '<span style="color:#CCC">-</span>';
+      const amtDisplay = e.amount ? Number(e.amount).toLocaleString('ko-KR')+'원' : '';
+      const eid = e.id;
+
+      html += '<tr id="exprow-'+eid+'">';
+      /* 번호 */
+      html += '<td><div class="c-box" style="justify-content:center;color:var(--muted);font-size:12px">'+(e.seq||'-')+'</div></td>';
+      /* 사용일자 */
+      html += '<td><div class="c-box" style="justify-content:center">'
+           +  '<input type="date" class="c-date" value="'+(e.used_date||'')+'"'
+           +  ' onchange="saveExpField(\''+eid+'\',\'used_date\',this.value||null)">'
+           +  '</div></td>';
+      /* 경비항목 드롭다운 */
+      html += '<td><div class="c-box" style="justify-content:center">'
+           +  '<span class="dd-btn" onclick="openExpTypeDD(event,\''+eid+'\')">'+typeBadge+'</span>'
+           +  '</div></td>';
+      /* 참석인원 */
+      html += '<td><div class="c-box" style="justify-content:center">'
+           +  '<div class="c-text" contenteditable="true" data-ph="명"'
+           +  ' onblur="saveExpField(\''+eid+'\',\'attendees\',this.innerText.replace(/[^0-9]/g,\'\')||null)"'
+           +  ' onkeydown="textCellKey(event,this)"'
+           +  ' style="text-align:center;min-width:28px">'+(e.attendees!=null?e.attendees:'')+'</div>'
+           +  '</div></td>';
+      /* 경비한도 읽기전용 */
+      html += '<td><div class="c-box" style="justify-content:flex-end;color:var(--muted);font-size:12px">'+fmtMoney(e.budget_limit)+'</div></td>';
+      /* 집행액 */
+      html += '<td><div class="c-box" style="justify-content:flex-end">'
+           +  '<div class="c-text" contenteditable="true" data-ph="금액"'
+           +  ' data-id="'+eid+'" data-raw="'+(e.amount||0)+'"'
+           +  ' onfocus="expAmtFocus(this)"'
+           +  ' onblur="expAmtBlur(this)"'
+           +  ' onkeydown="textCellKey(event,this)"'
+           +  ' style="color:var(--danger);font-weight:600;text-align:right;min-width:60px">'+amtDisplay+'</div>'
+           +  '</div></td>';
+      /* 잔액 읽기전용 */
+      html += '<td><div class="c-box" style="justify-content:flex-end;color:#2E7D32;font-weight:600">'+fmtMoney(e.balance)+'</div></td>';
+      /* 비고 — 삭제 버튼이 hover 시 오른쪽에 나타남 */
+      html += '<td class="exp-note-cell"><div class="c-box" style="padding-right:22px">'
+           +  '<div class="c-text" contenteditable="true" data-ph="사용목적"'
+           +  ' onblur="saveExpField(\''+eid+'\',\'note\',this.innerText.trim()||null)"'
+           +  ' onkeydown="textCellKey(event,this)">'+esc(e.note||'')+'</div>'
+           +  '</div>'
+           +  '<button class="exp-del-btn" onclick="deleteExp(\''+eid+'\')" title="삭제">✕</button>'
+           +  '</td>';
+      /* 첨부 (영수증) */
+      html += '<td class="exp-attach-cell">'+attachCell(e)+'</td>';
+      html += '</tr>';
+    });
+  }
+  html += '</tbody></table>';
+  expWrap.innerHTML = html;
+}
+
+/* ============================================================
+   ★ 공휴일 관리 ★
+   Supabase app_options 테이블에 저장
+   opt_type = 'holiday'
+   value    = 'YYYY-MM-DD'  (하루짜리 또는 범위의 각 날짜)
+   label    = '공휴일명'
+   color_bg = 'start'(범위 시작) or 'end'(범위 끝) or 'single'
+   ※ 범위 입력(2026.01.01~2026.01.03)하면 각 날짜를 개별 레코드로 저장
+
+   영업일 계산(diffBizDays)에서 HOLIDAYS Set을 참조합니다.
+============================================================ */
+
+/* 전역 공휴일 Set — 'YYYY-MM-DD' 문자열 */
+let HOLIDAYS = new Set();
+
+/* DB에서 공휴일 로드 → HOLIDAYS Set 갱신
+   실패해도 HOLIDAYS = 빈 Set 유지 (앱 동작에 영향 없음) */
+async function loadHolidays(){
+  try{
+    const res = await fetch(
+      SB_URL+'/rest/v1/app_options?opt_type=eq.holiday&order=value.asc&limit=500',
+      { headers:H }
+    );
+    if(!res.ok){ console.warn('공휴일 로드 HTTP 오류:', res.status); return; }
+    const rows = await res.json();
+    if(!Array.isArray(rows)){ console.warn('공휴일 데이터 형식 오류'); return; }
+    HOLIDAYS = new Set(rows.map(r => r.value).filter(Boolean));
+    if(taskData.length) renderTask();
+  }catch(e){
+    console.warn('공휴일 로드 실패(무시):', e);
+    HOLIDAYS = new Set();   /* 실패 시 빈 Set — 주말만 제외로 동작 */
+  }
+}
+
+/* 공휴일 팝업 열기 */
+async function openHolidayModal(){
+  const overlay = document.getElementById('holidayOverlay');
+  if(overlay.parentElement !== document.body) document.body.appendChild(overlay);
+  overlay.classList.add('open');
+  await renderHolidayList();
+}
+
+/* 공휴일 팝업 닫기 */
+function closeHolidayModal(){
+  document.getElementById('holidayOverlay').classList.remove('open');
+  /* 닫을 때 공휴일 재로드 → 표 리드타임 갱신 */
+  loadHolidays();
+}
+
+/* 공휴일 목록 렌더링 — DB에서 불러와 날짜별로 행 표시 */
+async function renderHolidayList(){
+  const list = document.getElementById('holidayList');
+  list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px">불러오는 중...</div>';
+  try{
+    const res = await fetch(
+      SB_URL+'/rest/v1/app_options?opt_type=eq.holiday&order=value.asc&limit=500',
+      { headers:H }
+    );
+    const rows = await res.json();
+    if(!rows.length){
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">등록된 공휴일이 없습니다</div>';
+      return;
+    }
+    /* 날짜별로 묶어서 표시 (같은 이름 + 연속 날짜는 범위로 표시) */
+    list.innerHTML = rows.map(r =>
+      '<div class="holiday-row" id="hrow-'+r.id+'">'
+      +'<span class="holiday-date-label" style="font-size:13px;font-weight:600;color:var(--blueprint);min-width:90px">'
+      +r.value.replace(/-/g,'.')+'</span>'
+      +'<input class="holiday-name-input" value="'+esc(r.label||'')+'" placeholder="공휴일명"'
+      +' onblur="saveHolidayName(\''+r.id+'\',this.value)"'
+      +' onkeydown="if(event.key===\'Enter\')this.blur()">'
+      +'<button class="holiday-del-btn" onclick="deleteHoliday(\''+r.id+'\')" title="삭제">✕</button>'
+      +'</div>'
+    ).join('');
+  }catch(e){
+    list.innerHTML = '<div style="color:var(--danger);font-size:13px">불러오기 실패</div>';
+  }
+}
+
+/* 공휴일 추가 행 — 범위 입력 (시작~종료) */
+function addHolidayRow(){
+  const today = new Date().toLocaleDateString('sv-SE');
+  const list = document.getElementById('holidayList');
+
+  /* 임시 입력 행 생성 */
+  const tmp = document.createElement('div');
+  tmp.className = 'holiday-row';
+  tmp.id = 'hrow-new';
+  tmp.innerHTML =
+    /* 시작 날짜 — relative 래퍼 안에 숨긴 input + 보이는 버튼 */
+    '<span style="position:relative;display:inline-flex">'
+    +'<input type="date" class="holiday-date-input" id="hdate-start" value="'+today+'"'
+    +' onchange="syncHolidayDateBtn(\'start\')">'
+    +'<button class="holiday-date-btn" id="hbtn-start"'
+    +' onclick="document.getElementById(\'hdate-start\').showPicker()">'+today.replace(/-/g,'.')+'</button>'
+    +'</span>'
+    +'<span class="holiday-tilde">~</span>'
+    /* 종료 날짜 */
+    +'<span style="position:relative;display:inline-flex">'
+    +'<input type="date" class="holiday-date-input" id="hdate-end" value="'+today+'"'
+    +' onchange="syncHolidayDateBtn(\'end\')">'
+    +'<button class="holiday-date-btn" id="hbtn-end"'
+    +' onclick="document.getElementById(\'hdate-end\').showPicker()">'+today.replace(/-/g,'.')+'</button>'
+    +'</span>'
+    +'<input class="holiday-name-input" id="hname-new" placeholder="공휴일명 (예: 추석)"'
+    +' onkeydown="if(event.key===\'Enter\')saveNewHoliday()">'
+    +'<button class="add-btn" style="padding:5px 10px;font-size:12px" onclick="saveNewHoliday()">저장</button>'
+    +'<button class="holiday-del-btn" onclick="cancelNewHoliday()" title="취소">✕</button>';
+
+  /* 기존 임시행 있으면 제거 후 맨 아래 추가 */
+  const existing = document.getElementById('hrow-new');
+  if(existing) existing.remove();
+  list.appendChild(tmp);
+  setTimeout(()=>document.getElementById('hname-new').focus(), 50);
+}
+
+/* 날짜 버튼 텍스트 동기화 */
+function syncHolidayDateBtn(which){
+  const input = document.getElementById('hdate-'+which);
+  const btn   = document.getElementById('hbtn-'+which);
+  if(input && btn) btn.textContent = input.value.replace(/-/g,'.');
+}
+
+/* 임시 행 취소 */
+function cancelNewHoliday(){
+  const row = document.getElementById('hrow-new');
+  if(row) row.remove();
+}
+
+/* 새 공휴일 저장 — 시작~종료 범위의 날짜를 각각 개별 레코드로 저장 */
+async function saveNewHoliday(){
+  const startVal = document.getElementById('hdate-start').value;
+  const endVal   = document.getElementById('hdate-end').value;
+  const name     = (document.getElementById('hname-new').value||'').trim() || '공휴일';
+  if(!startVal){ toast('시작 날짜를 선택해주세요'); return; }
+
+  /* 시작~종료 사이 날짜 목록 생성 */
+  const dates = [];
+  let cur = new Date(startVal + 'T00:00:00Z');
+  const end = new Date((endVal||startVal) + 'T00:00:00Z');
+  if(cur > end){ toast('종료일이 시작일보다 앞에 있습니다'); return; }
+  while(cur <= end){
+    dates.push(cur.toISOString().slice(0,10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+
+  setSyncStatus('loading','공휴일 저장중...');
+  try{
+    /* 각 날짜를 개별 레코드로 upsert (이미 있으면 label만 업데이트) */
+    const records = dates.map(d => ({
+      opt_type : 'holiday',
+      value    : d,
+      label    : name,
+      color_bg : '#FFF3CD',
+      color_fg : '#856404',
+      sort_order: 0
+    }));
+    await fetch(SB_URL+'/rest/v1/app_options', {
+      method:'POST',
+      headers:{ ...H, 'Prefer':'resolution=merge-duplicates,return=representation' },
+      body:JSON.stringify(records)
+    });
+    setSyncStatus('ok','연결됨');
+    toast('✅ 공휴일 '+dates.length+'일이 등록되었습니다');
+    await renderHolidayList();
+  }catch(e){
+    setSyncStatus('error','오류');
+    toast('❌ 저장 실패');
+  }
+}
+
+/* 공휴일 이름 수정 */
+async function saveHolidayName(id, name){
+  try{
+    await fetch(SB_URL+'/rest/v1/app_options?id=eq.'+id, {
+      method:'PATCH', headers:H,
+      body:JSON.stringify({ label: name||'공휴일' })
+    });
+  }catch(e){ toast('❌ 이름 저장 실패'); }
+}
+
+/* 공휴일 삭제 */
+async function deleteHoliday(id){
+  try{
+    await fetch(SB_URL+'/rest/v1/app_options?id=eq.'+id, {
+      method:'DELETE', headers:H
+    });
+    const row = document.getElementById('hrow-'+id);
+    if(row) row.remove();
+    /* 목록 비었으면 안내 메시지 */
+    const list = document.getElementById('holidayList');
+    if(list && !list.querySelector('.holiday-row')){
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">등록된 공휴일이 없습니다</div>';
+    }
+  }catch(e){ toast('❌ 삭제 실패'); }
+}
+
+
+/* ============================================================
+   ★ 영수증 첨부 기능 (Supabase Storage) ★
+   - 버킷 이름: receipts (public)
+   - dept_expense.receipt_url  : 파일 공개 URL
+   - dept_expense.receipt_name : 원본 파일명
+============================================================ */
+const RECEIPT_BUCKET = 'receipts';
+
+/* 첨부 셀 HTML 만들기 — 파일 유무에 따라 다른 아이콘 표시 */
+function attachCell(e){
+  const eid = e.id;
+  /* 숨겨진 파일 선택 input (이미지 + PDF만 허용) */
+  const fileInput =
+    '<input type="file" class="attach-file-input" id="attach-input-'+eid+'"'
+    +' accept="image/*,application/pdf"'
+    +' onchange="uploadReceipt(\''+eid+'\', this)">';
+
+  if(e.receipt_url){
+    /* 첨부됨: 보기 / 다운로드 / 교체 / 삭제 */
+    return '<div class="exp-attach-box">'
+      + fileInput
+      + '<button class="attach-btn has-file" title="영수증 보기: '+esc(e.receipt_name||'')+'"'
+      +  ' onclick="viewReceipt(\''+eid+'\')">👁</button>'
+      + '<button class="attach-btn" title="다운로드"'
+      +  ' onclick="downloadReceipt(\''+eid+'\')">⬇</button>'
+      + '<button class="attach-btn del" title="첨부 삭제"'
+      +  ' onclick="removeReceipt(\''+eid+'\')">✕</button>'
+      + '</div>';
+  } else {
+    /* 첨부 없음: 클립 버튼(클릭 시 파일 선택) */
+    return '<div class="exp-attach-box">'
+      + fileInput
+      + '<button class="attach-btn empty" title="영수증 첨부 (이미지·PDF)"'
+      +  ' onclick="document.getElementById(\'attach-input-'+eid+'\').click()">📎</button>'
+      + '</div>';
+  }
+}
+
+/* Storage에 저장할 안전한 파일명 만들기 (경비ID + 타임스탬프 + 확장자) */
+function makeReceiptPath(eid, originalName){
+  const dot = originalName.lastIndexOf('.');
+  const ext = dot !== -1 ? originalName.slice(dot).toLowerCase() : '';
+  return eid + '_' + Date.now() + ext;
+}
+
+/* 파일 업로드 → Storage 저장 → DB에 URL/파일명 기록 */
+async function uploadReceipt(eid, inputEl){
+  const file = inputEl.files && inputEl.files[0];
+  if(!file) return;
+
+  /* 용량 제한 (10MB) — 너무 큰 파일 방지 */
+  if(file.size > 10 * 1024 * 1024){
+    toast('❌ 파일이 너무 큽니다 (최대 10MB)');
+    inputEl.value = '';
+    return;
+  }
+
+  /* 업로드 중 표시 */
+  const cell = document.querySelector('#exprow-'+eid+' .exp-attach-box');
+  if(cell) cell.innerHTML = '<span style="font-size:12px;color:var(--muted)">업로드중…</span>';
+  setSyncStatus('loading','영수증 업로드중...');
+
+  try{
+    /* 기존 첨부가 있으면 Storage에서 먼저 삭제 (교체) */
+    const exp = expData.find(x=>x.id===eid);
+    if(exp && exp.receipt_path){
+      await deleteFromStorage(exp.receipt_path);
+    }
+
+    const path = makeReceiptPath(eid, file.name);
+    /* Storage 업로드 — POST /storage/v1/object/{bucket}/{path} */
+    const upRes = await fetch(SB_URL+'/storage/v1/object/'+RECEIPT_BUCKET+'/'+encodeURIComponent(path), {
+      method:'POST',
+      headers:{
+        'apikey':SB_KEY,
+        'Authorization':'Bearer '+SB_KEY,
+        'Content-Type':file.type || 'application/octet-stream',
+        'x-upsert':'true'
+      },
+      body:file
+    });
+    if(!upRes.ok) throw new Error(await upRes.text());
+
+    /* 공개 URL 만들기 */
+    const publicUrl = SB_URL+'/storage/v1/object/public/'+RECEIPT_BUCKET+'/'+encodeURIComponent(path);
+
+    /* DB에 저장 (URL, 원본파일명, storage 경로) */
+    await fetch(SB_URL+'/rest/v1/dept_expense?id=eq.'+eid, {
+      method:'PATCH', headers:H,
+      body:JSON.stringify({ receipt_url:publicUrl, receipt_name:file.name, receipt_path:path })
+    });
+
+    /* 메모리 갱신 후 다시 그리기 */
+    if(exp){ exp.receipt_url=publicUrl; exp.receipt_name=file.name; exp.receipt_path=path; }
+    renderExpense();
+    setSyncStatus('ok','연결됨');
+    toast('✅ 영수증이 첨부되었습니다');
+  }catch(err){
+    setSyncStatus('error','오류');
+    console.error(err);
+    /* Storage 정책(RLS)·버킷 오류 안내 */
+    const msg = (err.message||'');
+    if(msg.includes('row-level security') || msg.includes('policy') || msg.includes('Unauthorized')){
+      toast('❌ Storage 권한 오류 — receipts 버킷 정책을 확인하세요', 5000);
+    } else if(msg.includes('Bucket not found') || msg.includes('not found')){
+      toast('❌ receipts 버킷이 없습니다 — Supabase Storage에서 만들어주세요', 5000);
+    } else {
+      toast('❌ 업로드 실패: '+msg);
+    }
+    renderExpense();   /* 실패 시 원래 첨부 버튼 복구 */
+  }
+}
+
+/* Storage에서 파일 삭제 (교체·삭제 시 사용) */
+async function deleteFromStorage(path){
+  try{
+    await fetch(SB_URL+'/storage/v1/object/'+RECEIPT_BUCKET+'/'+encodeURIComponent(path), {
+      method:'DELETE',
+      headers:{ 'apikey':SB_KEY, 'Authorization':'Bearer '+SB_KEY }
+    });
+  }catch(e){ console.warn('Storage 삭제 실패(무시):', e); }
+}
+
+/* 영수증 보기 — 이미지면 팝업, PDF면 새 탭 */
+function viewReceipt(eid){
+  const exp = expData.find(x=>x.id===eid);
+  if(!exp || !exp.receipt_url) return;
+  const name = (exp.receipt_name||'').toLowerCase();
+  const isPdf = name.endsWith('.pdf') || exp.receipt_url.toLowerCase().includes('.pdf');
+
+  if(isPdf){
+    /* PDF는 새 탭에서 열기 */
+    window.open(exp.receipt_url, '_blank');
+  } else {
+    /* 이미지는 미리보기 모달 */
+    const overlay = document.getElementById('receiptOverlay');
+    const img = document.getElementById('receiptImg');
+    img.src = exp.receipt_url;
+    /* 다운로드 버튼에 현재 파일 정보 연결 */
+    document.getElementById('receiptDlBtn').onclick = ()=>downloadReceipt(eid);
+    /* body로 옮겨서 확실히 화면 중앙에 표시 */
+    if(overlay.parentElement !== document.body) document.body.appendChild(overlay);
+    overlay.classList.add('open');
+  }
+}
+
+/* 영수증 미리보기 모달 닫기 */
+function closeReceipt(){
+  const overlay = document.getElementById('receiptOverlay');
+  overlay.classList.remove('open');
+  document.getElementById('receiptImg').src = '';
+}
+
+/* 영수증 다운로드 — 원본 파일명으로 저장 */
+async function downloadReceipt(eid){
+  const exp = expData.find(x=>x.id===eid);
+  if(!exp || !exp.receipt_url) return;
+  try{
+    /* fetch로 blob을 받아와 원본 파일명으로 저장 */
+    const res = await fetch(exp.receipt_url);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = exp.receipt_name || '영수증';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    /* 실패 시 새 탭으로 fallback */
+    window.open(exp.receipt_url, '_blank');
+  }
+}
+
+/* 영수증 삭제 — Storage 파일 + DB 기록 모두 제거 */
+async function removeReceipt(eid){
+  const exp = expData.find(x=>x.id===eid);
+  if(!exp || !exp.receipt_url) return;
+  if(!confirm('첨부된 영수증을 삭제할까요?')) return;
+
+  setSyncStatus('loading','영수증 삭제중...');
+  try{
+    /* Storage 파일 삭제 */
+    if(exp.receipt_path) await deleteFromStorage(exp.receipt_path);
+    /* DB 필드 비우기 */
+    await fetch(SB_URL+'/rest/v1/dept_expense?id=eq.'+eid, {
+      method:'PATCH', headers:H,
+      body:JSON.stringify({ receipt_url:null, receipt_name:null, receipt_path:null })
+    });
+    exp.receipt_url=null; exp.receipt_name=null; exp.receipt_path=null;
+    renderExpense();
+    setSyncStatus('ok','연결됨');
+    toast('🗑 영수증이 삭제되었습니다');
+  }catch(e){
+    setSyncStatus('error','오류');
+    toast('❌ 삭제 실패');
+  }
+}
+
+
+async function quickAddExp(){
+  const prevSpent=expData.reduce((s,e)=>s+(Number(e.amount)||0),0);
+  const maxSeq=expData.length?Math.max(...expData.map(e=>e.seq||0)):0;
+  const payload={ seq:maxSeq+1, budget_limit:budgetTotal-prevSpent, balance:budgetTotal-prevSpent, amount:0, year:activeYear };
+  setSyncStatus('loading','추가중...');
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/dept_expense',
+      {method:'POST',headers:{...H,'Prefer':'return=representation'},body:JSON.stringify(payload)});
+    if(!res.ok) throw new Error(await res.text());
+    const [created]=await res.json();
+    expData.push(created);
+    renderExpense(); updateBudget();
+    setSyncStatus('ok','연결됨');
+    /* 새 행의 집행액 칸에 포커스 */
+    setTimeout(()=>{
+      const row=document.getElementById('exprow-'+created.id);
+      if(row){ const c=row.querySelectorAll('.c-text')[1]; if(c) c.focus(); }
+    },80);
+  }catch(e){ setSyncStatus('error','오류'); toast('❌ 추가 실패: '+e.message); }
+}
+
+/* 집행액 셀 포커스 — 숫자만 표시 */
+function expAmtFocus(el){
+  const raw = el.dataset.raw;
+  el.innerText = (raw && raw !== '0') ? raw : '';
+}
+
+/* 집행액 셀 블러 — 포맷팅 후 저장 */
+function expAmtBlur(el){
+  const n = el.innerText.replace(/\D/g, '');
+  el.dataset.raw = n;
+  el.innerText = n ? Number(n).toLocaleString('ko-KR')+'원' : '';
+  saveExpAmount(el.dataset.id, n);
+}
+
+/* ============================================================
+   경비 — 셀 하나 저장
+============================================================ */
+async function saveExpField(id, field, value){
+  const row=expData.find(x=>x.id===id);
+  if(!row) return;
+  const newVal=(value===''?null:value);
+  if(String(row[field])===String(newVal)) return;
+  setSyncStatus('loading','저장중...');
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/dept_expense?id=eq.'+id,
+      {method:'PATCH',headers:H,body:JSON.stringify({[field]:newVal})});
+    if(!res.ok) throw new Error(await res.text());
+    row[field]=newVal;
+    renderExpense(); updateBudget();
+    setSyncStatus('ok','연결됨');
+  }catch(e){ setSyncStatus('error','오류'); toast('❌ 저장 실패: '+e.message); }
+}
+
+/* 집행액 변경 시 잔액 자동 재계산
+   rawVal: 숫자 문자열 (쉼표/원 제거된 상태로 넘어옴) */
+async function saveExpAmount(id, rawVal){
+  /* 쉼표·원·공백 제거 후 숫자 변환 */
+  const amount = Number((rawVal||'').replace(/[^0-9]/g,'')) || 0;
+  const row = expData.find(x=>x.id===id);
+  if(!row) return;
+  if(row.amount === amount) return;
+  /* 이 행 제외한 나머지 집행 합계 */
+  const prevSpent = expData.filter(x=>x.id!==id).reduce((s,e)=>s+(Number(e.amount)||0),0);
+  const balance = budgetTotal - prevSpent - amount;
+  setSyncStatus('loading','저장중...');
+  try{
+    const res = await fetch(SB_URL+'/rest/v1/dept_expense?id=eq.'+id,
+      {method:'PATCH', headers:H, body:JSON.stringify({amount, balance})});
+    if(!res.ok) throw new Error(await res.text());
+    row.amount = amount;
+    row.balance = balance;
+    renderExpense();
+    updateBudget();
+    setSyncStatus('ok','연결됨');
+  }catch(e){ setSyncStatus('error','오류'); toast('❌ 저장 실패: '+e.message); }
+}
+
+/* ============================================================
+   경비 — 경비항목 드롭다운 (dd-popup 재활용)
+============================================================ */
+function openExpTypeDD(e, id){
+  e.stopPropagation();
+  const popup=document.getElementById('ddPopup');
+  ddCtx={id, field:'__expType'};
+  const row=expData.find(x=>x.id===id);
+  const cur=row?row.expense_type:null;
+  const typeColor={
+    '식사':  {bg:'#F3EEFC',fg:'#7C5CBF'},
+    '커피':  {bg:'#E8F5E9',fg:'#2E7D32'},
+    '교통':  {bg:'#E3F2FD',fg:'#1565C0'},
+    '물품구입':{bg:'#FFF8E1',fg:'#B7770D'},
+    '기타':  {bg:'#F0F0F0',fg:'#555'},
+  };
+  let h='<div class="dd-item'+(cur?'':' selected')+'" onclick="pickExpType(\''+id+'\',null)">'
+      +'<span style="color:#BBB;font-size:12px">— 비우기 —</span></div>';
+  EXP_TYPES.forEach(t=>{
+    const c=typeColor[t]||{bg:'#F0F0F0',fg:'#555'};
+    h+='<div class="dd-item'+(cur===t?' selected':'')+'" onclick="pickExpType(\''+id+'\',\''+t+'\')">'
+      +'<span class="badge" style="background:'+c.bg+';color:'+c.fg+'">'+t+'</span></div>';
+  });
+  popup.innerHTML=h;
+  const r=e.currentTarget.getBoundingClientRect();
+  popup.classList.add('open');
+  const ph=popup.offsetHeight||200;
+  const top=(r.bottom+ph+8>window.innerHeight)?(r.top-ph-4):(r.bottom+4);
+  popup.style.top=Math.max(4,top)+'px';
+  popup.style.left=Math.min(r.left,window.innerWidth-popup.offsetWidth-8)+'px';
+}
+
+function pickExpType(id, value){
+  closeDD();
+  saveExpField(id,'expense_type',value);
+}
+
+/* ============================================================
+   경비 삭제
+============================================================ */
+async function deleteExp(id){
+  if(!confirm('정말 삭제하시겠습니까?')) return;
+  try{
+    const res=await fetch(SB_URL+'/rest/v1/dept_expense?id=eq.'+id,{method:'DELETE',headers:H});
+    if(!res.ok) throw new Error();
+    expData=expData.filter(x=>x.id!==id);
+    renderExpense(); updateBudget();
+    toast('🗑️ 삭제되었습니다.');
+  }catch(e){ toast('❌ 삭제 실패'); }
+}
+
+/* ============================================================
+   모달 공통 함수
+   배경 클릭해도 닫히지 않음 - X버튼/취소버튼만 닫힘
+============================================================ */
+function openModal(title, bodyHtml, footerHtml=''){
+  const root=document.getElementById('modalRoot');
+  root.innerHTML=
+    '<div class="modal-overlay open" id="modalOverlay">'
+    +'<div class="modal-panel">'
+    +'<div class="modal-header"><h3>'+title+'</h3>'
+    +'<button class="modal-close" onclick="closeModal()">✕</button></div>'
+    +'<div class="modal-body">'+bodyHtml+'</div>'
+    +(footerHtml?'<div class="modal-footer">'+footerHtml+'</div>':'')
+    +'</div></div>';
+
+  // Enter 키 → primary 버튼 실행
+  document.getElementById('modalOverlay').addEventListener('keydown',e=>{
+    if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA'){
+      const btn=document.querySelector('#modalOverlay .btn.primary');
+      if(btn) btn.click();
+    }
+    if(e.key==='Escape') closeModal();
+  });
+}
+function closeModal(){ document.getElementById('modalRoot').innerHTML=''; }
+/* ============================================================
+   앱 시작
+============================================================ */
+init();
+
+/* ============================================================
+   ★ 드롭다운 팝업 ★
+   뱃지를 클릭하면 그 뱃지 바로 아래에 선택지 목록이 뜹니다.
+   팝업은 표 안이 아니라 화면(body) 기준으로 뜨기 때문에
+   표 바깥으로 나가도 잘리지 않습니다. (position:fixed)
+============================================================ */
+let ddCtx = { id:null, field:null };   /* 지금 어느 셀의 팝업이 열려있는지 */
+
+/* ============================================================
+   ★ 드롭다운 팝업 ★
+   - 단일선택 필드(status/lead/sales/category): 항목 클릭 시 즉시 닫힘
+   - 복수선택 필드(sub): 항목 클릭해도 안 닫힘 → 바깥 클릭/ESC 시 닫힘
+     선택값은 "주종현,김태훈" 처럼 쉼표 구분 저장
+============================================================ */
+function openDD(e, id, field){
+  e.stopPropagation();
+  const popup = document.getElementById('ddPopup');
+
+  /* 같은 셀을 또 누르면 닫기 */
+  if(popup.classList.contains('open') && ddCtx.id===id && ddCtx.field===field){
+    closeDD(); return;
+  }
+  ddCtx = { id, field };
+
+  const row = taskData.find(x=>x.id===id);
+
+  if(field === 'sub'){
+    /* ---- 복수선택 모드 (보조담당자) ---- */
+    /* 현재 선택된 이름 Set */
+    const names = (row && row.sub) ? row.sub.split(',').map(s=>s.trim()).filter(Boolean) : [];
+
+    function buildSubContent(){
+      /* data-sub-id / data-sub-val 속성으로 값 전달 → onclick 이스케이프 문제 원천 차단 */
+      let h = '<div class="dd-item" data-sub-id="'+esc(id)+'" data-sub-val="" onclick="pickSubDD(this)">'
+            + '<span style="color:#BBB;font-size:12px">— 비우기 —</span></div>';
+      (OPTIONS['sub']||[]).forEach(o=>{
+        const curNames = (row && row.sub) ? row.sub.split(',').map(s=>s.trim()).filter(Boolean) : [];
+        const on = curNames.includes(o.value);
+        h += '<div class="dd-item'+(on?' selected':'')+'" style="display:flex;align-items:center"'
+           + ' data-sub-id="'+esc(id)+'" data-sub-val="'+esc(o.value)+'" onclick="pickSubDD(this)">'
+           + '<span class="badge" style="background:'+o.color_bg+';color:'+o.color_fg+'">'
+           + esc(o.label||o.value)+'</span>'
+           + (on ? '<span style="margin-left:auto;padding-left:8px;color:var(--blueprint);font-size:13px;font-weight:700">✓</span>' : '')
+           + '</div>';
+      });
+      return h;
+    }
+    popup.innerHTML = buildSubContent();
+
+  } else {
+    /* ---- 단일선택 모드 (status/lead/sales/category) ---- */
+    const cur = row ? row[field] : null;
+    let h = '<div class="dd-item'+(!cur?' selected':'')+'" onclick="pickDD(null)">'
+          + '<span style="color:#BBB;font-size:12px">— 비우기 —</span></div>';
+    (OPTIONS[field]||[]).forEach(o=>{
+      const sel = (cur===o.value) ? ' selected' : '';
+      h += '<div class="dd-item'+sel+'" onclick="pickDD(\''+esc(o.value).replace(/'/g,"\\'")+'\')">'+
+           '<span class="badge" style="background:'+o.color_bg+';color:'+o.color_fg+'">'+
+           esc(o.label||o.value)+'</span></div>';
+    });
+    popup.innerHTML = h;
+  }
+
+  /* 클릭한 뱃지 바로 아래에 팝업 위치시키기 */
+  const r = e.currentTarget.getBoundingClientRect();
+  popup.classList.add('open');
+  const ph = popup.offsetHeight || 200;
+  const top = (r.bottom + ph + 8 > window.innerHeight) ? (r.top - ph - 4) : (r.bottom + 4);
+  popup.style.top  = Math.max(4, top) + 'px';
+  popup.style.left = Math.min(r.left, window.innerWidth - popup.offsetWidth - 8) + 'px';
+}
+
+/* 단일선택: 고르면 바로 닫고 저장 */
+function pickDD(value){
+  const { id, field } = ddCtx;
+  closeDD();
+  if(id && field) saveField(id, field, value);
+}
+
+/* 복수선택(sub): 클릭해도 닫히지 않음
+   ★ el.dataset으로 id/value를 읽어 onclick 이스케이프 문제 완전 제거
+   ★ saveField를 먼저 호출하고 로컬캐시는 saveField 내부에서 갱신
+      (pickSubDD에서 row.sub를 먼저 바꾸면 saveField가 "변경없음"으로 건너뜀) */
+function pickSubDD(el){
+  const id    = el.dataset.subId;
+  const value = el.dataset.subVal || null;
+  const row   = taskData.find(x=>x.id===id);
+  if(!row) return;
+
+  let newVal;
+  if(!value){
+    newVal = null;   /* 비우기 */
+  } else {
+    let names = (row.sub||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const idx = names.indexOf(value);
+    if(idx === -1) names.push(value);
+    else           names.splice(idx, 1);
+    newVal = names.length ? names.join(',') : null;
+  }
+
+  /* ★ saveField를 먼저 호출해야 내부의 '변경없음' 체크를 통과합니다.
+     saveField 내부에서 row[field] = newVal 로 로컬 캐시를 갱신합니다. */
+  saveField(id, 'sub', newVal);
+
+  if(!value){ closeDD(); return; }
+
+  /* 팝업 전체 재렌더 — saveField가 비동기이므로 newVal로 직접 계산 */
+  const popup = document.getElementById('ddPopup');
+  let h = '<div class="dd-item" data-sub-id="'+esc(id)+'" data-sub-val="" onclick="pickSubDD(this)">'
+        + '<span style="color:#BBB;font-size:12px">— 비우기 —</span></div>';
+  const curNames = newVal ? newVal.split(',').map(s=>s.trim()).filter(Boolean) : [];
+  (OPTIONS['sub']||[]).forEach(o=>{
+    const on = curNames.includes(o.value);
+    h += '<div class="dd-item'+(on?' selected':'')+'" style="display:flex;align-items:center"'
+       + ' data-sub-id="'+esc(id)+'" data-sub-val="'+esc(o.value)+'" onclick="pickSubDD(this)">'
+       + '<span class="badge" style="background:'+o.color_bg+';color:'+o.color_fg+'">'
+       + esc(o.label||o.value)+'</span>'
+       + (on ? '<span style="margin-left:auto;padding-left:8px;color:var(--blueprint);font-size:13px;font-weight:700">✓</span>' : '')
+       + '</div>';
+  });
+  popup.innerHTML = h;
+}
+
+function closeDD(){
+  document.getElementById('ddPopup').classList.remove('open');
+  ddCtx = { id:null, field:null };
+}
+
+/* 빈 곳을 클릭하면 팝업 닫기 */
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.dd-btn') && !e.target.closest('#ddPopup')) closeDD();
+});
+/* 스크롤하면 팝업 위치가 틀어지므로 닫기 */
+window.addEventListener('scroll', closeDD, true);
+
+/* ============================================================
+   ★ ESC 키로 모든 팝업·모달 닫기 ★
+   - 드롭다운 팝업 (dd-popup)
+   - ⚙ 옵션 관리 모달 (opt-overlay)
+   - 경비 추가 / 업무 추가 모달 (modal-overlay)
+   우선순위: 가장 위에 열린 것부터 하나씩 닫습니다.
+============================================================ */
+document.addEventListener('keydown', e=>{
+  if(e.key !== 'Escape') return;
+
+  /* 1순위: 드롭다운 팝업이 열려 있으면 먼저 닫기 */
+  const ddPopup = document.getElementById('ddPopup');
+  if(ddPopup && ddPopup.classList.contains('open')){
+    closeDD(); return;
+  }
+
+  /* 2순위: ⚙ 옵션 관리 모달 */
+  const optOverlay = document.getElementById('optOverlay');
+  if(optOverlay && optOverlay.classList.contains('open')){
+    closeOptModal(); return;
+  }
+
+  /* 3순위: 일반 모달 (업무추가 / 경비추가 등) */
+  const modalOverlay = document.querySelector('.modal-overlay.open');
+  if(modalOverlay){ closeModal(); return; }
+});
+
+
+/* ============================================================
+   ★ ⚙ 옵션 관리 모달 ★
+   상태/담당자/영업/분류/진행상태/강도의 선택지를
+   추가·삭제·색상변경·순서변경 할 수 있습니다. 전부 Supabase에 저장됩니다.
+============================================================ */
+
+/* ★ PALETTES 배열 제거됨 — 자유 색상 피커(input[type=color])로 교체
+   setOptColorFree() / previewOptColor() 함수가 대신 처리합니다 */
+
+let optType = '';          /* 지금 관리 중인 옵션 종류 */
+
+function openOptModal(type){
+  optType = type;
+  document.getElementById('optTitle').textContent = OPT_TITLE[type] + ' 옵션 관리';
+  document.getElementById('optInput').value = '';
+  renderPaletteBar();
+  renderOptList();
+  /* ★ overlay를 body 직속 자식으로 이동 — overflow:auto 조상이 있으면
+     position:fixed 기준이 틀어져서 모달이 한쪽으로 밀리는 문제 방지 */
+  const overlay = document.getElementById('optOverlay');
+  if(overlay.parentElement !== document.body) document.body.appendChild(overlay);
+  overlay.classList.add('open');
+  setTimeout(()=>document.getElementById('optInput').focus(), 50);
+}
+
+/* ★ 배경(어두운 부분)을 눌러도 닫히지 않습니다. X 버튼으로만 닫힘 */
+function closeOptModal(){
+  document.getElementById('optOverlay').classList.remove('open');
+  renderTask();              /* 바뀐 옵션을 표에 반영 */
+  applyStatusFilterColors(); /* 상태 색상이 바뀌었을 수 있으므로 필터 버튼도 재적용 */
+}
+
+/* 모달 안의 옵션 목록 그리기 */
+function renderOptList(){
+  const list = OPTIONS[optType] || [];
+  renderLeadFilterOptions();   /* 담당자 옵션이 바뀌었을 수도 있으니 필터도 같이 갱신 */
+
+  /* 목록이 비어있으면 안내 문구를 표시합니다.
+     app_options 테이블에 데이터가 없거나 RLS로 읽기가 막힌 경우입니다. */
+  if(list.length === 0){
+    document.getElementById('optList').innerHTML =
+      '<div style="text-align:center;padding:24px 0;color:#B0BEC5;font-size:13px">'
+      +'📭 옵션이 없습니다. 아래에서 새 항목을 추가하세요.'
+      +'<br><span style="font-size:11px;color:#CFD8DC;margin-top:6px;display:block">'
+      +'※ 목록이 계속 비어있으면 Supabase의 app_options 테이블<br>RLS 정책을 확인하세요.'
+      +'</span></div>';
+    return;
+  }
+
+  document.getElementById('optList').innerHTML = list.map((o,i)=>{
+    const label = o.label || o.value;
+    /* 상태 종류만 DB 실제값이 표시명과 달라서 괄호로 같이 보여줌 */
+    const raw = (o.value !== label) ? '<span style="font-size:11px;color:var(--muted)">('+esc(o.value)+')</span>' : '';
+    /* 배경색·글자색 각각 자유롭게 고를 수 있는 컬러피커
+       동그라미를 팔레트로 드래그하면 그 색이 팔레트에 저장됩니다 */
+    const pickers =
+      '<div class="color-pick-pair"'
+      +' ondragover="event.preventDefault()" ondrop="onPickerDrop(event,'+i+',\'bg\')">'
+      +'<span>배경</span>'
+      +'<input type="color" id="pick-bg-'+i+'" value="'+esc(o.color_bg||'#F0F0F0')+'"'
+      +' title="팔레트로 드래그하면 저장 / 클릭하면 색 변경"'
+      +' draggable="true"'
+      +' ondragstart="onPickerDragStart(event,\'pick-bg-'+i+'\')"'
+      +' oninput="previewOptColor('+i+',this.value,null,this)"'
+      +' onchange="setOptColorFree('+i+',\'bg\',this.value)">'
+      +'</div>'
+      +'<div class="color-pick-pair"'
+      +' ondragover="event.preventDefault()" ondrop="onPickerDrop(event,'+i+',\'fg\')">'
+      +'<span>글자</span>'
+      +'<input type="color" id="pick-fg-'+i+'" value="'+esc(o.color_fg||'#555555')+'"'
+      +' title="팔레트로 드래그하면 저장 / 클릭하면 색 변경"'
+      +' draggable="true"'
+      +' ondragstart="onPickerDragStart(event,\'pick-fg-'+i+'\')"'
+      +' oninput="previewOptColor('+i+',null,this.value,this)"'
+      +' onchange="setOptColorFree('+i+',\'fg\',this.value)">'
+      +'</div>';
+
+    return '<div class="opt-item" draggable="true"'
+      +' ondragstart="optDragStart(event,'+i+')" ondragover="optDragOver(event,'+i+')"'
+      +' ondragleave="optDragLeave(event)" ondrop="optDrop(event,'+i+')" ondragend="optDragEnd(event)">'
+      +'<div class="opt-top">'
+      +'<span class="drag-handle" title="끌어서 순서 변경">⠿</span>'
+      +'<span class="badge" id="opt-badge-'+i+'" style="background:'+o.color_bg+';color:'+o.color_fg+'">'+esc(label)+'</span>'
+      +raw
+      +'<button class="opt-del" onclick="delOpt('+i+')" title="삭제">✕</button>'
+      +'</div>'
+      +'<div class="color-row">'+pickers+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+/* ============================================================
+   상태 필터 버튼 색상 동기화
+   ⚙ 옵션 모달에서 상태 뱃지 색을 바꾸면 필터 버튼도 같이 바뀝니다.
+
+   STATUS_MAP: 상태 DB값(value)의 키워드 → 필터 버튼 id
+   예) '1. 요청' → '요청' 키워드 포함 → 'flt-req' 버튼
+============================================================ */
+const STATUS_FILTER_MAP = [
+  { keyword:'요청',  id:'flt-req'  },
+  { keyword:'진행중', id:'flt-ing'  },
+  { keyword:'지속',  id:'flt-cont' },
+  { keyword:'보류',  id:'flt-hold' },
+  { keyword:'완료',  id:'flt-done' },
+];
+
+/* 상태값(value 문자열)에 해당하는 필터 버튼 요소를 반환 */
+function getFltBtn(statusValue){
+  const v = statusValue || '';
+  const match = STATUS_FILTER_MAP.find(m => v.includes(m.keyword));
+  return match ? document.getElementById(match.id) : null;
+}
+
+/* 필터 버튼 하나에 배경색/글자색 적용
+   - 비활성(기본): bg를 연하게, fg를 글자색으로
+   - 활성(.active): bg/fg 그대로 채워진 스타일
+   CSS .active{ color:#fff } 보다 inline style이 우선하므로
+   활성 색도 inline으로 넣어야 합니다 */
+function applyFltBtnColor(btn, bg, fg){
+  if(!btn) return;
+  /* 비활성 기본 스타일 */
+  btn.style.background   = bg;
+  btn.style.color        = fg;
+  btn.style.borderColor  = fg;   /* 테두리도 글자색 계열로 */
+  /* 활성(.active)일 때는 배경을 글자색으로, 글자를 흰색으로 */
+  btn.dataset.colorBg = bg;
+  btn.dataset.colorFg = fg;
+  /* 현재 활성 상태라면 즉시 활성 스타일도 반영 */
+  if(btn.classList.contains('active')){
+    btn.style.background  = fg;
+    btn.style.color       = '#fff';
+    btn.style.borderColor = fg;
+  }
+}
+
+/* 앱 로딩 시 / ⚙ 모달 닫힐 때 OPTIONS.status 전체를 필터 버튼에 반영 */
+function applyStatusFilterColors(){
+  (OPTIONS.status || []).forEach(o => {
+    const btn = getFltBtn(o.value);
+    applyFltBtnColor(btn, o.color_bg, o.color_fg);
+  });
+}
+
+/* setStatusFilter 호출 시 활성/비활성 전환에 맞춰 색상도 유지되어야 함
+   기존 setStatusFilter 를 래핑해서 전환 직후 색상 재적용 */
+const _origSetStatusFilter = typeof setStatusFilter === 'function' ? setStatusFilter : null;
+
+/* ============================================================
+   공용 색상 팔레트 — 옵션 관리 모달 상단에 1개만 표시 (20칸 고정)
+   피커 동그라미를 팔레트 슬롯으로 드래그해서 직접 저장 (같은 색 중복 허용)
+   localStorage 키: taskMgr_colorPalette
+   팔레트 동그라미 클릭 → 마지막으로 조작한 피커(배경 or 글자)에 적용
+============================================================ */
+const COLOR_PAL_KEY = 'taskMgr_colorPalette';
+const COLOR_PAL_MAX = 20;   /* 팔레트 슬롯 수 (항상 이 길이 고정) */
+
+/* 팔레트 불러오기 — 항상 길이 20짜리 배열로 정규화해서 반환
+   (빈 칸은 null). 예전 형식(짧은 배열)도 자동으로 20칸으로 맞춰줌 */
+function getColorPalette(){
+  let raw;
+  try{ raw = JSON.parse(localStorage.getItem(COLOR_PAL_KEY)||'[]'); }
+  catch(e){ raw = []; }
+  if(!Array.isArray(raw)) raw = [];
+  /* 길이 20으로 강제 정규화 — 부족하면 null 채우고, 넘치면 자름 */
+  const pal = [];
+  for(let i = 0; i < COLOR_PAL_MAX; i++){
+    pal[i] = (raw[i] === undefined || raw[i] === null) ? null : raw[i];
+  }
+  return pal;
+}
+
+/* 팔레트 배열을 그대로 저장 (항상 길이 20 유지) */
+function saveColorPalette(pal){
+  try{
+    /* 안전하게 20칸으로 정규화 후 저장 */
+    const fixed = [];
+    for(let i = 0; i < COLOR_PAL_MAX; i++){
+      fixed[i] = (pal[i] === undefined || pal[i] === null) ? null : pal[i];
+    }
+    localStorage.setItem(COLOR_PAL_KEY, JSON.stringify(fixed));
+  }catch(e){}
+}
+
+/* 특정 슬롯(idx)에 색 저장 — 같은 색이 다른 칸에 있어도 그대로 둠(중복 허용) */
+function setPaletteSlot(idx, color){
+  const pal = getColorPalette();
+  pal[idx] = color;
+  saveColorPalette(pal);
+}
+
+/* 빈 슬롯 중 가장 앞쪽에 색 추가 (여백 드롭용) — 중복 허용 */
+function addToFirstEmptySlot(color){
+  const pal = getColorPalette();
+  const empty = pal.indexOf(null);
+  if(empty === -1) return;             /* 빈 칸 없으면 무시 */
+  pal[empty] = color;
+  saveColorPalette(pal);
+}
+
+/* 특정 슬롯 비우기 */
+function clearPaletteSlot(idx){
+  const pal = getColorPalette();
+  pal[idx] = null;
+  saveColorPalette(pal);
+}
+
+/* 팔레트 바 렌더링 — 항상 COLOR_PAL_MAX개 슬롯 표시 (빈 자리는 점선 원)
+   각 슬롯은 드롭 타겟 — 피커 동그라미를 끌어다 놓으면 그 색이 저장됩니다 */
+function renderPaletteBar(){
+  const bar = document.getElementById('optPaletteBar');
+  if(!bar) return;
+  const slots = getColorPalette();   /* 항상 길이 20 (빈칸은 null) */
+
+  /* 슬롯을 10개씩 두 줄로 나눔 */
+  const makeSlot = (c, idx) => {
+    const base = ' ondragover="onPalDragOver(event,'+idx+')"'
+               + ' ondragleave="onPalDragLeave(event)"'
+               + ' ondrop="onPalDrop(event,'+idx+')"';
+    const draggable = c ? ' draggable="true" ondragstart="onPalDotDragStart(event,\''+c+'\',' + idx + ')"' : '';
+    return c
+      ? '<span class="pal-dot" style="background:'+c+'" title="'+c+' | 피커로 드래그하거나 클릭해서 적용"'
+        + base + draggable +' onclick="applyPalColor(\''+c+'\')"></span>'
+      : '<span class="pal-dot empty" title="피커 동그라미를 여기로 드래그해서 저장"'
+        + base +'></span>';
+  };
+
+  const row1 = slots.slice(0, 10).map((c,i) => makeSlot(c, i)).join('');
+  const row2 = slots.slice(10, 20).map((c,i) => makeSlot(c, i+10)).join('');
+
+  bar.innerHTML =
+    '<span class="pal-label">팔레트</span>'
+    +'<div class="pal-row">'+row1+'</div>'
+    +'<div class="pal-row">'+row2+'</div>';
+
+  /* 팔레트 바 자체도 드롭 타겟 (슬롯 사이 여백 드롭 시 빈 슬롯 첫 번째에 저장) */
+  bar.ondragover = e => { e.preventDefault(); bar.classList.add('drag-active'); };
+  bar.ondragleave = e => { if(!bar.contains(e.relatedTarget)) bar.classList.remove('drag-active'); };
+  bar.ondrop = e => {
+    e.preventDefault();
+    bar.classList.remove('drag-active');
+    /* 슬롯의 drop이 먼저 처리되므로, 여기 도달하면 슬롯 사이 여백에 떨어진 것 */
+    const color = e.dataTransfer.getData('text/plain');
+    const source = e.dataTransfer.getData('application/x-drag-source');
+    /* 팔레트 dot을 여백에 떨어뜨린 경우는 아무것도 안 함 (제자리 유지) */
+    if(source === 'palette') return;
+    if(!color) return;
+    addToFirstEmptySlot(color);
+    renderPaletteBar();
+  };
+}
+
+/* ---- 피커 동그라미 dragstart (피커→팔레트) ---- */
+function onPickerDragStart(e, inputId){
+  const input = document.getElementById(inputId);
+  if(!input) return;
+  e.dataTransfer.setData('text/plain', input.value);
+  e.dataTransfer.setData('application/x-drag-source', 'picker'); /* 출처 표시 */
+  e.dataTransfer.effectAllowed = 'copy';
+  const bar = document.getElementById('optPaletteBar');
+  if(bar) bar.classList.add('drag-active');
+}
+
+/* ---- 팔레트 dot dragstart (팔레트→피커 또는 팔레트 슬롯 이동) ---- */
+function onPalDotDragStart(e, color, fromIdx){
+  e.dataTransfer.setData('text/plain', color);
+  e.dataTransfer.setData('application/x-drag-source', 'palette'); /* 출처 표시 */
+  e.dataTransfer.setData('application/x-pal-from', String(fromIdx)); /* 출발 슬롯 */
+  e.dataTransfer.effectAllowed = 'copyMove';
+  e.stopPropagation(); /* opt-item draggable 이벤트와 충돌 방지 */
+}
+
+/* ---- 피커 div에 드롭 (팔레트→피커) ---- */
+function onPickerDrop(e, i, which){
+  e.preventDefault();
+  e.stopPropagation();
+  const color = e.dataTransfer.getData('text/plain');
+  if(!color) return;
+  /* 피커 input 값 변경 */
+  const input = document.getElementById('pick-'+which+'-'+i);
+  if(input) input.value = color;
+  /* 미리보기 + DB 저장 */
+  const bgVal = which === 'bg' ? color : null;
+  const fgVal = which === 'fg' ? color : null;
+  previewOptColor(i, bgVal, fgVal, input);
+  setOptColorFree(i, which, color);
+}
+
+/* ---- 팔레트 슬롯 dragover / dragleave / drop ---- */
+function onPalDragOver(e, idx){
+  e.preventDefault();
+  e.stopPropagation();
+  /* 해당 슬롯 강조 */
+  const dots = document.querySelectorAll('#optPaletteBar .pal-dot');
+  dots.forEach(d => d.classList.remove('drag-over'));
+  if(dots[idx]) dots[idx].classList.add('drag-over');
+}
+
+function onPalDragLeave(e){
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onPalDrop(e, idx){
+  e.preventDefault();
+  e.stopPropagation();
+  /* 모든 강조 제거 */
+  document.querySelectorAll('#optPaletteBar .pal-dot').forEach(d => d.classList.remove('drag-over'));
+  document.getElementById('optPaletteBar').classList.remove('drag-active');
+
+  const color = e.dataTransfer.getData('text/plain');
+  const source = e.dataTransfer.getData('application/x-drag-source');
+  if(!color) return;
+
+  /* 팔레트 dot을 다른 슬롯으로 옮긴 경우 → 원래 슬롯 비우고 새 슬롯에 넣기 (자리 이동) */
+  if(source === 'palette'){
+    const fromIdx = parseInt(e.dataTransfer.getData('application/x-pal-from'), 10);
+    if(!isNaN(fromIdx) && fromIdx !== idx){
+      const pal = getColorPalette();
+      /* 대상 슬롯에 이미 색이 있으면 서로 자리 교환(swap), 없으면 이동 */
+      const tmp = pal[idx];
+      pal[idx] = color;
+      pal[fromIdx] = tmp;    /* 비어있었으면 null이 들어가 원래 자리는 비워짐 */
+      saveColorPalette(pal);
+    }
+    renderPaletteBar();
+    return;
+  }
+
+  /* 피커에서 끌어온 색을 해당 슬롯에 저장 (덮어쓰기) */
+  setPaletteSlot(idx, color);
+  renderPaletteBar();
+}
+
+/* 팔레트 동그라미 클릭 — 마지막으로 조작한 피커에 색 적용 */
+let _lastPickTarget = null;   /* { i(옵션인덱스), which('bg'|'fg') } */
+
+function applyPalColor(color){
+  if(!_lastPickTarget) return;
+  const { i, which } = _lastPickTarget;
+  const input = document.getElementById('pick-'+which+'-'+i);
+  if(input){ input.value = color; }
+  const bgVal = which === 'bg' ? color : null;
+  const fgVal = which === 'fg' ? color : null;
+  previewOptColor(i, bgVal, fgVal, input);
+  setOptColorFree(i, which, color);
+}
+
+/* ---- 색상 실시간 미리보기 (피커 드래그 중 — DB 저장 안 함) ---- */
+function previewOptColor(i, bgVal, fgVal, inputEl){
+  /* 어느 피커를 조작 중인지 기억 (히스토리 클릭 시 같은 타겟에 적용하기 위해) */
+  if(inputEl){
+    _lastPickTarget = {
+      i,
+      which: inputEl.id && inputEl.id.startsWith('pick-fg') ? 'fg' : 'bg'
+    };
+  }
+  const badge = document.getElementById('opt-badge-'+i);
+  if(!badge) return;
+  if(bgVal !== null) badge.style.background = bgVal;
+  if(fgVal !== null) badge.style.color = fgVal;
+  /* 상태 옵션이면 필터 버튼도 실시간 미리보기 */
+  if(optType === 'status'){
+    const o = OPTIONS.status[i];
+    if(o){
+      const bg = bgVal !== null ? bgVal : o.color_bg;
+      const fg = fgVal !== null ? fgVal : o.color_fg;
+      applyFltBtnColor(getFltBtn(o.value), bg, fg);
+    }
+  }
+}
+
+/* ---- 색상 확정 저장 (input change — 피커 닫힐 때) ---- */
+async function setOptColorFree(i, which, val){
+  const o = OPTIONS[optType][i];
+  if(!o) return;
+  /* 메모리 업데이트 */
+  if(which === 'bg') o.color_bg = val;
+  if(which === 'fg') o.color_fg = val;
+  /* ★ 팔레트 자동저장 없음 — 피커 동그라미를 직접 드래그해서 팔레트에 추가하는 방식 */
+  /* DB 저장 */
+  await patchOpt(o.id, {color_bg: o.color_bg, color_fg: o.color_fg});
+  /* 상태 옵션이면 필터 버튼도 확정 반영 */
+  if(optType === 'status'){
+    applyFltBtnColor(getFltBtn(o.value), o.color_bg, o.color_fg);
+  }
+  /* 히스토리 동그라미 갱신 (모든 opt-item의 히스토리 줄 새로 그리기) */
+  renderOptList();
+}
+
+/* ---- 옵션 추가 ---- */
+async function addOpt(){
+  const val = document.getElementById('optInput').value.trim();
+  if(!val) return;
+  if((OPTIONS[optType]||[]).some(o=>o.value===val)){ toast('❗ 이미 있는 항목입니다'); return; }
+  const order = (OPTIONS[optType]||[]).length + 1;
+  setSyncStatus('loading','추가중...');
+  try{
+    const res = await fetch(SB_URL+'/rest/v1/app_options',
+      {method:'POST', headers:{...H,'Prefer':'return=representation'},
+       body:JSON.stringify({opt_type:optType, value:val, label:val,
+                            color_bg:'#F0F0F0', color_fg:'#555555', sort_order:order})});
+    if(!res.ok) throw new Error(await res.text());
+    const [created] = await res.json();
+    OPTIONS[optType].push(created);
+    document.getElementById('optInput').value='';
+    renderOptList();
+    setSyncStatus('ok','연결됨');
+  }catch(e){
+    setSyncStatus('error','오류');
+    /* RLS(Row Level Security) 정책 위반 오류인지 확인 */
+    const msg = e.message || '';
+    if(msg.includes('42501') || msg.includes('row-level security')){
+      /* RLS 때문에 막힌 경우: Supabase에서 실행할 SQL을 안내합니다 */
+      toast('❌ RLS 오류 — Supabase SQL에서 아래 명령을 실행하세요 (콘솔에 출력됨)', 5000);
+      console.error(
+        '▼▼▼ Supabase SQL Editor에서 아래 SQL을 실행하세요 ▼▼▼\n\n'
+        +'-- app_options 테이블 RLS 비활성화\n'
+        +'ALTER TABLE app_options DISABLE ROW LEVEL SECURITY;\n\n'
+        +'-- 또는 anon 역할에 모든 권한 부여\n'
+        +'GRANT ALL ON app_options TO anon;\n'
+        +'GRANT ALL ON app_options TO authenticated;\n'
+        +'▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲'
+      );
+    } else {
+      toast('❌ 추가 실패: '+msg);
+    }
+  }
+}
+
+/* ---- 옵션 삭제 ---- */
+async function delOpt(i){
+  const o = OPTIONS[optType][i];
+  if(!confirm('"'+(o.label||o.value)+'" 항목을 삭제할까요?\n\n※ 이미 이 값을 쓰고 있는 업무는 그대로 남아있지만,\n   목록에서는 더 이상 고를 수 없게 됩니다.')) return;
+  setSyncStatus('loading','삭제중...');
+  try{
+    const res = await fetch(SB_URL+'/rest/v1/app_options?id=eq.'+o.id, {method:'DELETE', headers:H});
+    if(!res.ok) throw new Error(await res.text());
+    OPTIONS[optType].splice(i,1);
+    renderOptList();
+    setSyncStatus('ok','연결됨');
+  }catch(e){ setSyncStatus('error','오류'); toast('❌ 삭제 실패'); }
+}
+
+/* 옵션 한 건 수정 (PATCH) */
+async function patchOpt(optId, payload){
+  try{
+    await fetch(SB_URL+'/rest/v1/app_options?id=eq.'+optId,
+      {method:'PATCH', headers:H, body:JSON.stringify(payload)});
+  }catch(e){ toast('❌ 저장 실패'); }
+}
+
+
+/* ============================================================
+   ★ 옵션 순서 드래그앤드롭 ★
+   ⠿ 손잡이를 잡고 끌어서 순서를 바꿉니다.
+   위/아래 절반을 따지지 않고, 그냥 "놓은 자리"로 이동시킵니다.
+   (splice가 방향을 알아서 처리해줍니다)
+============================================================ */
+let optDragFrom = null;
+
+function optDragStart(e, i){
+  optDragFrom = i;
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+function optDragOver(e, i){
+  e.preventDefault();                       /* 이게 없으면 drop이 안 일어남 */
+  if(optDragFrom===null || optDragFrom===i) return;
+  clearOptMarks();
+  e.currentTarget.classList.add('drop-target');   /* 놓일 자리에 파란 테두리 */
+}
+function optDragLeave(e){ e.currentTarget.classList.remove('drop-target'); }
+function optDragEnd(e){ e.currentTarget.classList.remove('dragging'); clearOptMarks(); optDragFrom=null; }
+function clearOptMarks(){
+  document.querySelectorAll('.opt-item').forEach(el=>el.classList.remove('drop-target'));
+}
+
+async function optDrop(e, i){
+  e.preventDefault();
+  clearOptMarks();
+  if(optDragFrom===null || optDragFrom===i) return;
+
+  const arr = OPTIONS[optType];
+  const [moved] = arr.splice(optDragFrom, 1);   /* 빼서 */
+  arr.splice(i, 0, moved);                      /* 놓은 자리에 끼워넣기 */
+  optDragFrom = null;
+  renderOptList();
+
+  /* 바뀐 순서를 DB에 저장 (sort_order 를 1,2,3... 으로 다시 매김) */
+  setSyncStatus('loading','순서 저장중...');
+  try{
+    await Promise.all(arr.map((o,idx)=>{
+      o.sort_order = idx+1;
+      return patchOpt(o.id, {sort_order: idx+1});
+    }));
+    setSyncStatus('ok','연결됨');
+  }catch(err){ setSyncStatus('error','오류'); }
+}
+
+
+/* ============================================================
+   ★ 컬럼 폭 조절 (엑셀처럼 경계선 끌기) ★
+   - 표 전체 폭은 고정 (양끝은 안 움직임)
+   - 어떤 경계선을 끌면, 왼쪽 칸이 넓어진 만큼 오른쪽 칸이 좁아짐
+   - 너비는 th가 아니라 colgroup>col 로 조절해야 브라우저가 확실히 따릅니다
+   - localStorage에 저장해서 새로고침해도 유지됩니다
+   - 헤더 클릭 정렬도 여기서 addEventListener로 붙입니다
+     (th onclick="" 방식은 핸들 드래그와 충돌하므로 사용하지 않습니다)
+============================================================ */
+
+/* 로컬스토리지 키 — 이 이름으로 컬럼 폭이 저장됩니다 */
+/* 컬럼 순서 드래그앤드롭 중 여부 — 드래그 후 click(정렬) 실수 실행 방지 */
+let _colDragDragging = false;
+
+function initColResize(){
+  const tbl = document.querySelector('#taskTableWrap table');
+  if(!tbl) return;
+
+  /* thead 안에 "추가 버튼 줄"과 "진짜 헤더 줄" 2개가 있으므로
+     :last-child 로 진짜 헤더 줄만 정확히 집습니다 */
+  const ths = [...tbl.querySelectorAll('thead tr:last-child th')];
+  if(ths.length < 2) return;
+
+  /* ---- colgroup 생성 또는 재사용 ----
+     renderTask()가 innerHTML로 표를 새로 그리므로 colgroup도 매번 새로 만듭니다.
+     단, 로컬스토리지에 저장된 폭이 있으면 그걸로 복원합니다. */
+  let cg = tbl.querySelector('colgroup');
+  if(!cg){
+    cg = document.createElement('colgroup');
+    ths.forEach(()=>{
+      cg.appendChild(document.createElement('col'));
+    });
+    tbl.insertBefore(cg, tbl.firstChild);
+  }
+  const cols = [...cg.querySelectorAll('col')];
+
+  /* requestAnimationFrame 2중 중첩 — 브라우저가 레이아웃을 완전히 계산한 뒤 실행 */
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      /* ★ 항상 COL_DEFS의 px 고정값으로 컬럼 폭 설정
+         프로젝트명(값=0)은 다른 컬럼 합산 후 남는 공간 전부 채움 */
+      const tableW = tbl.getBoundingClientRect().width || window.innerWidth;
+      const fixedTotal = COL_DEFS.reduce((s,c)=>s+(c[2]||0), 0);
+      const flexPx = Math.max(120, tableW - fixedTotal);
+      cols.forEach((col, i)=>{
+        const defPx = COL_DEFS[i] ? COL_DEFS[i][2] : 0;
+        col.style.width = (defPx === 0 ? flexPx : defPx) + 'px';
+      });
+
+      /* ---- 정렬 클릭 이벤트 부착 ----
+         th에 onclick="" 직접 넣으면 리사이즈 핸들 드래그 후 mouseup 시점에
+         click 이벤트가 실수로 발생합니다.
+         addEventListener로 붙이고, 드래그 중이면 차단합니다. */
+      ths.forEach(th=>{
+        const key = th.dataset.sortKey;  /* data-sort-key 속성값 */
+        if(!key) return;
+        th.addEventListener('click', e=>{
+          /* 컬럼 드래그 직후에 발생하는 click이면 무시 */
+          if(_colDragDragging) return;
+          sortBy(key);
+        });
+      });
+
+      /* ---- 컬럼 헤더 드래그앤드롭 ----
+         th를 잡아 끌어서 컬럼 순서를 바꿉니다.
+         고정 컬럼(삭제 버튼 등)은 이동 불가입니다.
+      ---- */
+      let colDragFrom = null;   /* 드래그 시작한 컬럼 인덱스 */
+
+      ths.forEach((th, i)=>{
+        const colDef = COL_DEFS[i];
+        const isFixed = colDef && colDef[4];   /* 5번째 요소 = 고정 여부 */
+
+        if(isFixed){
+          th.classList.add('col-fixed');
+          return;   /* 고정 컬럼은 드래그 이벤트 안 붙임 */
+        }
+
+        th.setAttribute('draggable', 'true');
+
+        /* 드래그 시작 */
+        th.addEventListener('dragstart', e=>{
+          colDragFrom = i;
+          _colDragDragging = false;
+          e.dataTransfer.effectAllowed = 'move';
+          setTimeout(()=>th.classList.add('col-dragging'), 0);
+        });
+
+        /* 드래그 중 — 다른 th 위를 지날 때 */
+        th.addEventListener('dragover', e=>{
+          e.preventDefault();
+          if(colDragFrom === null || colDragFrom === i) return;
+          _colDragDragging = true;
+          /* 모든 th에서 drop 표시 제거 후 현재 위치에만 표시 */
+          ths.forEach(t=>t.classList.remove('col-drop-left','col-drop-right'));
+          /* 드래그 출발 컬럼이 현재보다 왼쪽에 있으면 오른쪽 테두리, 반대면 왼쪽 테두리 */
+          th.classList.add(colDragFrom < i ? 'col-drop-right' : 'col-drop-left');
+        });
+
+        th.addEventListener('dragleave', e=>{
+          th.classList.remove('col-drop-left','col-drop-right');
+        });
+
+        /* 드롭 완료 */
+        th.addEventListener('drop', e=>{
+          e.preventDefault();
+          ths.forEach(t=>t.classList.remove('col-drop-left','col-drop-right','col-dragging'));
+          if(colDragFrom === null || colDragFrom === i){ colDragFrom=null; return; }
+
+          /* COL_DEFS 배열에서 꺼내서 새 위치에 끼워넣기 */
+          const [moved] = COL_DEFS.splice(colDragFrom, 1);
+          /* 고정 컬럼(삭제) 바로 앞까지만 허용 */
+          const fixedIdx = COL_DEFS.findIndex(c=>c[4]);
+          let targetIdx = i > colDragFrom ? i - 1 : i;   /* splice 후 인덱스 보정 */
+          if(fixedIdx !== -1) targetIdx = Math.min(targetIdx, fixedIdx);
+          COL_DEFS.splice(targetIdx, 0, moved);
+
+          colDragFrom = null;
+          /* 순서 저장 후 표 다시 그리기 */
+          saveColOrder();
+          renderTask();
+        });
+
+        /* 드래그 끝 (드롭 안 되고 취소된 경우도 포함) */
+        th.addEventListener('dragend', e=>{
+          th.classList.remove('col-dragging');
+          ths.forEach(t=>t.classList.remove('col-drop-left','col-drop-right'));
+          colDragFrom = null;
+          /* dragend 직후 click 이벤트(정렬) 차단 */
+          setTimeout(()=>{ _colDragDragging = false; }, 100);
+        });
+      });
+    });
+  });
+}
+
+</script>
+
+<!-- ============================================================
+     드롭다운 팝업 (화면에 딱 1개만 두고 재활용)
+     표 바깥에 있어야 잘리지 않습니다
+============================================================ -->
+<div class="dd-popup" id="ddPopup"></div>
+
+<!-- ============================================================
+     ⚙ 옵션 관리 모달
+     ★ 어두운 배경을 눌러도 안 닫힘 — X 버튼으로만 닫힙니다
+============================================================ -->
+<div class="opt-overlay" id="optOverlay">
+  <div class="opt-modal">
+    <div class="opt-head">
+      <h3 id="optTitle">옵션 관리</h3>
+      <button class="opt-x" onclick="closeOptModal()">✕</button>
+    </div>
+    <!-- 공용 색상 팔레트 — 피커로 확정한 색이 여기 쌓임, 클릭하면 마지막 피커에 적용 -->
+    <div class="opt-palette-bar" id="optPaletteBar">
+      <span class="pal-label">팔레트</span>
+    </div>
+    <div class="opt-body">
+      <div id="optList"></div>
+      <!-- 새 항목 추가: Enter 키로도 추가됨 -->
+      <div class="opt-add-row">
+        <input class="opt-add-input" id="optInput" placeholder="새 항목 입력"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();addOpt();}">
+        <button class="opt-add-btn" onclick="addOpt()">추가</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 컬럼 폭 리사이즈 툴팁 — 드래그 중 마우스 옆에 px 값 표시 -->
+
+
+<!-- ============================================================
+     공휴일 관리 팝업
+     X 버튼으로만 닫힘 (배경 클릭 닫힘 없음)
+============================================================ -->
+<div class="holiday-overlay" id="holidayOverlay">
+  <div class="holiday-modal">
+    <div class="holiday-head">
+      <h3>📅 공휴일 관리</h3>
+      <button class="opt-x" onclick="closeHolidayModal()">✕</button>
+    </div>
+    <div class="holiday-body" id="holidayList">
+      <!-- JS로 렌더링 -->
+    </div>
+    <div class="holiday-foot">
+      <button class="holiday-add-btn" onclick="addHolidayRow()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        공휴일 추가
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<div class="receipt-overlay" id="receiptOverlay" onclick="if(event.target===this)closeReceipt()">
+  <div class="receipt-box">
+    <img id="receiptImg" src="" alt="영수증">
+    <div class="receipt-toolbar">
+      <button class="receipt-dl-btn" id="receiptDlBtn">⬇ 다운로드</button>
+      <button class="receipt-close-btn" onclick="closeReceipt()">닫기</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
