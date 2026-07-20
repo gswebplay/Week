@@ -121,6 +121,90 @@ body{
 }
 .refresh-btn:hover{background:#FBE4ED;}
 
+/* 📅 공휴일 관리 버튼 — 새로고침과 같은 크기/스타일, 파란 계열 */
+.holiday-btn{
+  background:#EAF2FB; color:var(--blueprint); border:1px solid #BFD9F2;
+  font-size:13px; padding:8px 12px; border-radius:7px; cursor:pointer;
+  font-family:var(--sans); font-weight:600;
+  display:inline-flex; align-items:center; gap:4px;
+  white-space:nowrap; transition:background .15s;
+}
+.holiday-btn:hover{ background:#D3E8F8; }
+
+/* 공휴일 관리 팝업 오버레이 */
+.holiday-overlay{
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.35); z-index:1500;
+  align-items:center; justify-content:center;
+}
+.holiday-overlay.open{ display:flex; }
+
+/* 팝업 모달 */
+.holiday-modal{
+  background:#fff; border-radius:12px;
+  width:420px; max-height:80vh;
+  display:flex; flex-direction:column;
+  box-shadow:0 8px 32px rgba(0,0,0,.18);
+}
+.holiday-head{
+  padding:14px 20px; border-bottom:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+}
+.holiday-head h3{ font-size:14px; font-weight:700; }
+.holiday-head .opt-x{ border:none; background:none; font-size:17px; cursor:pointer; color:var(--muted); }
+.holiday-body{
+  padding:14px 20px; overflow-y:auto; flex:1;
+  display:flex; flex-direction:column; gap:8px;
+}
+.holiday-foot{
+  padding:12px 20px; border-top:1px solid var(--line);
+  display:flex; justify-content:flex-end; flex-shrink:0;
+}
+
+/* 공휴일 한 행 */
+.holiday-row{
+  display:flex; align-items:center; gap:8px;
+  padding:10px 12px; border:1px solid var(--line);
+  border-radius:8px; background:#FAFBFC;
+}
+/* 날짜 클릭 영역 — 숫자처럼 보이지만 클릭하면 달력 피커 */
+.holiday-date-btn{
+  font-size:14px; font-weight:600; color:var(--blueprint);
+  cursor:pointer; background:none; border:none;
+  font-family:var(--sans); padding:2px 4px; border-radius:4px;
+  transition:background .12s;
+  white-space:nowrap;
+}
+.holiday-date-btn:hover{ background:var(--blueprint-bg); }
+/* 숨겨진 date input — 버튼 클릭 시 트리거 */
+.holiday-date-input{ display:none; }
+.holiday-tilde{
+  font-size:14px; color:var(--muted); flex-shrink:0;
+}
+.holiday-name-input{
+  flex:1; border:none; border-bottom:1px solid var(--line);
+  font-size:13px; font-family:var(--sans); padding:2px 4px;
+  background:transparent; outline:none; color:var(--ink);
+  min-width:60px;
+}
+.holiday-name-input:focus{ border-bottom-color:var(--blueprint); }
+.holiday-del-btn{
+  border:none; background:none; cursor:pointer;
+  font-size:14px; color:#CBD5E1; padding:2px 4px; border-radius:4px;
+  transition:color .12s;
+}
+.holiday-del-btn:hover{ color:var(--danger); }
+
+/* 추가 버튼 — 점선 박스 스타일 (add-row-btn 계열) */
+.holiday-add-btn{
+  width:100%; padding:10px; border:1.5px dashed #CBD5E1;
+  border-radius:8px; background:#FAFBFC; cursor:pointer;
+  font-size:13px; color:var(--muted); font-family:var(--sans);
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  transition:border-color .15s, color .15s;
+}
+.holiday-add-btn:hover{ border-color:var(--blueprint); color:var(--blueprint); }
+
 /* 추가 버튼 - 파란 꽉찬 스타일 */
 .add-btn{
   background:var(--blueprint);color:#fff;border:1px solid var(--blueprint);
@@ -926,6 +1010,7 @@ body{
       </div>
       <div class="toolbar-right">
         <button class="refresh-btn" id="refreshBtn" onclick="refreshAll()">↻ 새로고침</button>
+        <button class="holiday-btn" onclick="openHolidayModal()" title="공휴일 관리">📅</button>
       </div>
     </div>
     <!-- 테이블 -->
@@ -1206,6 +1291,7 @@ async function init(){
   setSyncStatus('loading','로딩중...');
   /* 각 로드를 독립적으로 try-catch — 하나 실패해도 나머지는 계속 */
   await loadOptions();
+  await loadHolidays();   /* 공휴일 로드 — 영업일 계산에 반영 */
   await loadYears();
 
   /* 업무 데이터 로드 */
@@ -1611,15 +1697,52 @@ function renderTask(){
     const ddayStyle=ddayVal!==null&&ddayVal>=0&&ddayVal<=7?'color:#D48806;font-weight:700':
                     ddayVal!==null&&ddayVal<0&&(t.status||'').includes('진행')?'color:var(--danger);font-weight:700':'';
 
-    /* 파생값 계산 (날짜 차이, 단위: 일) */
-    const diffDays = (a, b) => {
-      if (!a || !b) return null;
-      return Math.round((new Date(b) - new Date(a)) / 86400000);
+    /* ★ 파생값 4개 — DB 저장값 무시하고 날짜 컬럼 기준 실시간 계산
+       워크타임  = 종료일 - 시작일 (영업일, 주말 제외)
+       리드타임  = 요청마감 - 요청일 (영업일, 주말 제외)
+       세이브타임 = 리드타임 - 워크타임
+       D-day    = 요청마감 - 오늘 (달력 일수, 마감까지 남은 날) */
+
+    /* 영업일 계산 — 시작일 포함, 종료일도 포함 (당일 = 1일)
+       토/일 + HOLIDAYS Set에 등록된 공휴일 제외
+       시작 > 종료(역순 입력)이면 null 반환 → '-' 표시 */
+    const diffBizDays = (a, b) => {
+      if(!a || !b) return null;
+      let start = new Date(a + 'T00:00:00Z');
+      const end  = new Date(b + 'T00:00:00Z');
+      if(start > end) return null;   /* 역순이면 null (잘못된 입력) */
+      let count = 0;
+      while(start <= end){
+        const dow = start.getUTCDay();
+        const ds  = start.toISOString().slice(0,10);
+        /* 토(6)/일(0) 이 아니고, 등록된 공휴일도 아닌 날만 카운트 */
+        if(dow !== 0 && dow !== 6 && !HOLIDAYS.has(ds)) count++;
+        start.setUTCDate(start.getUTCDate() + 1);
+      }
+      return count;
     };
-    const lt = t.lead_time   || diffDays(t.request_date, t.deadline);
-    const wt = t.work_time   || diffDays(t.start_date, t.end_date);
-    const st = t.save_time   !== undefined && t.save_time !== null ? t.save_time
-             : (lt !== null && wt !== null ? lt - wt : null);
+
+    /* D-day는 달력 일수 그대로 (주말 포함, 남은 날 체감 기준) */
+    const diffDays = (a, b) => {
+      if(!a || !b) return null;
+      const da = new Date(a + 'T00:00:00Z');
+      const db = new Date(b + 'T00:00:00Z');
+      return Math.round((db - da) / 86400000);
+    };
+
+    const wt = diffBizDays(t.start_date,   t.end_date);        /* 워크타임 (영업일) */
+    const lt = diffBizDays(t.request_date, t.deadline);        /* 리드타임 (영업일) */
+    const st = (lt !== null && wt !== null) ? lt - wt : null;  /* 세이브타임 */
+
+    /* D-day: 오늘(로컬 날짜) 기준으로 요청마감까지 남은 달력 일수 */
+    const todayStr = new Date().toLocaleDateString('sv-SE');
+    const dday = t.deadline ? diffDays(todayStr, t.deadline) : null;
+    const ddayCalcTxt = dday === null ? '-'
+                      : dday === 0   ? 'D-day'
+                      : dday > 0     ? 'D-' + dday
+                      :                '-';   /* 마감 지난 D+는 표시 안 함 */
+    const ddayCalcStyle = dday !== null && dday >= 0 && dday <= 7
+                          ? 'color:#D48806;font-weight:700' : '';
 
     /* 상태 기준 정렬 중일 때: 이전 행과 상태가 다르면 구분선 클래스 추가 (첫 행 제외) */
     const isGroupTop = isSortedByStatus && idx > 0 && (filtered[idx-1].status || '') !== (t.status || '');
@@ -1647,7 +1770,7 @@ function renderTask(){
         case 'end_date':     html+=tdDate(id,'end_date',     t.end_date);     break;
         /* 읽기전용 파생값 */
         case 'dday':
-          html+='<td><div class="c-box" style="justify-content:center;font-size:12px;'+ddayStyle+'">'+ddayTxt+'</div></td>'; break;
+          html+='<td><div class="c-box" style="justify-content:center;font-size:12px;'+ddayCalcStyle+'">'+ddayCalcTxt+'</div></td>'; break;
         case 'lead_time':
           html+='<td><div class="dval">'+(lt!==null?lt+'일':'-')+'</div></td>'; break;
         case 'work_time':
@@ -2170,7 +2293,195 @@ function renderExpense(){
 }
 
 /* ============================================================
-   ★ 영수증 첨부 기능 (Supabase Storage) ★
+   ★ 공휴일 관리 ★
+   Supabase app_options 테이블에 저장
+   opt_type = 'holiday'
+   value    = 'YYYY-MM-DD'  (하루짜리 또는 범위의 각 날짜)
+   label    = '공휴일명'
+   color_bg = 'start'(범위 시작) or 'end'(범위 끝) or 'single'
+   ※ 범위 입력(2026.01.01~2026.01.03)하면 각 날짜를 개별 레코드로 저장
+
+   영업일 계산(diffBizDays)에서 HOLIDAYS Set을 참조합니다.
+============================================================ */
+
+/* 전역 공휴일 Set — 'YYYY-MM-DD' 문자열 */
+let HOLIDAYS = new Set();
+
+/* DB에서 공휴일 로드 → HOLIDAYS Set 갱신 */
+async function loadHolidays(){
+  try{
+    const res = await fetch(
+      SB_URL+'/rest/v1/app_options?opt_type=eq.holiday&order=value.asc&limit=500',
+      { headers:H }
+    );
+    const rows = await res.json();
+    if(!Array.isArray(rows)) return;
+    HOLIDAYS = new Set(rows.map(r => r.value));
+    /* 공휴일 로드 후 화면 갱신 (리드타임/워크타임 재계산) */
+    if(taskData.length) renderTask();
+  }catch(e){ console.warn('공휴일 로드 실패:', e); }
+}
+
+/* 공휴일 팝업 열기 */
+async function openHolidayModal(){
+  const overlay = document.getElementById('holidayOverlay');
+  if(overlay.parentElement !== document.body) document.body.appendChild(overlay);
+  overlay.classList.add('open');
+  await renderHolidayList();
+}
+
+/* 공휴일 팝업 닫기 */
+function closeHolidayModal(){
+  document.getElementById('holidayOverlay').classList.remove('open');
+  /* 닫을 때 공휴일 재로드 → 표 리드타임 갱신 */
+  loadHolidays();
+}
+
+/* 공휴일 목록 렌더링 — DB에서 불러와 날짜별로 행 표시 */
+async function renderHolidayList(){
+  const list = document.getElementById('holidayList');
+  list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px">불러오는 중...</div>';
+  try{
+    const res = await fetch(
+      SB_URL+'/rest/v1/app_options?opt_type=eq.holiday&order=value.asc&limit=500',
+      { headers:H }
+    );
+    const rows = await res.json();
+    if(!rows.length){
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">등록된 공휴일이 없습니다</div>';
+      return;
+    }
+    /* 날짜별로 묶어서 표시 (같은 이름 + 연속 날짜는 범위로 표시) */
+    list.innerHTML = rows.map(r =>
+      '<div class="holiday-row" id="hrow-'+r.id+'">'
+      +'<span class="holiday-date-label" style="font-size:13px;font-weight:600;color:var(--blueprint);min-width:90px">'
+      +r.value.replace(/-/g,'.')+'</span>'
+      +'<input class="holiday-name-input" value="'+esc(r.label||'')+'" placeholder="공휴일명"'
+      +' onblur="saveHolidayName(\''+r.id+'\',this.value)"'
+      +' onkeydown="if(event.key===\'Enter\')this.blur()">'
+      +'<button class="holiday-del-btn" onclick="deleteHoliday(\''+r.id+'\')" title="삭제">✕</button>'
+      +'</div>'
+    ).join('');
+  }catch(e){
+    list.innerHTML = '<div style="color:var(--danger);font-size:13px">불러오기 실패</div>';
+  }
+}
+
+/* 공휴일 추가 행 — 범위 입력 (시작~종료) */
+function addHolidayRow(){
+  const today = new Date().toLocaleDateString('sv-SE');
+  const list = document.getElementById('holidayList');
+
+  /* 임시 입력 행 생성 */
+  const tmp = document.createElement('div');
+  tmp.className = 'holiday-row';
+  tmp.id = 'hrow-new';
+  tmp.innerHTML =
+    /* 숨겨진 date input 두 개 (시작/종료) */
+    '<input type="date" class="holiday-date-input" id="hdate-start" value="'+today+'"'
+    +' onchange="syncHolidayDateBtn(\'start\')">'
+    +'<input type="date" class="holiday-date-input" id="hdate-end" value="'+today+'"'
+    +' onchange="syncHolidayDateBtn(\'end\')">'
+    /* 보이는 날짜 버튼 */
+    +'<button class="holiday-date-btn" id="hbtn-start"'
+    +' onclick="document.getElementById(\'hdate-start\').showPicker()">'+today.replace(/-/g,'.')+'</button>'
+    +'<span class="holiday-tilde">~</span>'
+    +'<button class="holiday-date-btn" id="hbtn-end"'
+    +' onclick="document.getElementById(\'hdate-end\').showPicker()">'+today.replace(/-/g,'.')+'</button>'
+    +'<input class="holiday-name-input" id="hname-new" placeholder="공휴일명 (예: 추석)"'
+    +' onkeydown="if(event.key===\'Enter\')saveNewHoliday()">'
+    +'<button class="add-btn" style="padding:5px 10px;font-size:12px" onclick="saveNewHoliday()">저장</button>'
+    +'<button class="holiday-del-btn" onclick="cancelNewHoliday()" title="취소">✕</button>';
+
+  /* 기존 임시행 있으면 제거 후 맨 아래 추가 */
+  const existing = document.getElementById('hrow-new');
+  if(existing) existing.remove();
+  list.appendChild(tmp);
+  setTimeout(()=>document.getElementById('hname-new').focus(), 50);
+}
+
+/* 날짜 버튼 텍스트 동기화 */
+function syncHolidayDateBtn(which){
+  const input = document.getElementById('hdate-'+which);
+  const btn   = document.getElementById('hbtn-'+which);
+  if(input && btn) btn.textContent = input.value.replace(/-/g,'.');
+}
+
+/* 임시 행 취소 */
+function cancelNewHoliday(){
+  const row = document.getElementById('hrow-new');
+  if(row) row.remove();
+}
+
+/* 새 공휴일 저장 — 시작~종료 범위의 날짜를 각각 개별 레코드로 저장 */
+async function saveNewHoliday(){
+  const startVal = document.getElementById('hdate-start').value;
+  const endVal   = document.getElementById('hdate-end').value;
+  const name     = (document.getElementById('hname-new').value||'').trim() || '공휴일';
+  if(!startVal){ toast('시작 날짜를 선택해주세요'); return; }
+
+  /* 시작~종료 사이 날짜 목록 생성 */
+  const dates = [];
+  let cur = new Date(startVal + 'T00:00:00Z');
+  const end = new Date((endVal||startVal) + 'T00:00:00Z');
+  if(cur > end){ toast('종료일이 시작일보다 앞에 있습니다'); return; }
+  while(cur <= end){
+    dates.push(cur.toISOString().slice(0,10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
+
+  setSyncStatus('loading','공휴일 저장중...');
+  try{
+    /* 각 날짜를 개별 레코드로 upsert (이미 있으면 label만 업데이트) */
+    const records = dates.map(d => ({
+      opt_type : 'holiday',
+      value    : d,
+      label    : name,
+      color_bg : '#FFF3CD',
+      color_fg : '#856404',
+      sort_order: 0
+    }));
+    await fetch(SB_URL+'/rest/v1/app_options', {
+      method:'POST',
+      headers:{ ...H, 'Prefer':'resolution=merge-duplicates,return=representation' },
+      body:JSON.stringify(records)
+    });
+    setSyncStatus('ok','연결됨');
+    toast('✅ 공휴일 '+dates.length+'일이 등록되었습니다');
+    await renderHolidayList();
+  }catch(e){
+    setSyncStatus('error','오류');
+    toast('❌ 저장 실패');
+  }
+}
+
+/* 공휴일 이름 수정 */
+async function saveHolidayName(id, name){
+  try{
+    await fetch(SB_URL+'/rest/v1/app_options?id=eq.'+id, {
+      method:'PATCH', headers:H,
+      body:JSON.stringify({ label: name||'공휴일' })
+    });
+  }catch(e){ toast('❌ 이름 저장 실패'); }
+}
+
+/* 공휴일 삭제 */
+async function deleteHoliday(id){
+  try{
+    await fetch(SB_URL+'/rest/v1/app_options?id=eq.'+id, {
+      method:'DELETE', headers:H
+    });
+    const row = document.getElementById('hrow-'+id);
+    if(row) row.remove();
+    /* 목록 비었으면 안내 메시지 */
+    const list = document.getElementById('holidayList');
+    if(list && !list.querySelector('.holiday-row')){
+      list.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px 0">등록된 공휴일이 없습니다</div>';
+    }
+  }catch(e){ toast('❌ 삭제 실패'); }
+}
+
+
    - 버킷 이름: receipts (public)
    - dept_expense.receipt_url  : 파일 공개 URL
    - dept_expense.receipt_name : 원본 파일명
@@ -3365,9 +3676,30 @@ function initColResize(){
 
 
 <!-- ============================================================
-     영수증 미리보기 모달 (이미지 전용, PDF는 새 탭)
-     배경 클릭하면 닫힘
+     공휴일 관리 팝업
+     X 버튼으로만 닫힘 (배경 클릭 닫힘 없음)
 ============================================================ -->
+<div class="holiday-overlay" id="holidayOverlay">
+  <div class="holiday-modal">
+    <div class="holiday-head">
+      <h3>📅 공휴일 관리</h3>
+      <button class="opt-x" onclick="closeHolidayModal()">✕</button>
+    </div>
+    <div class="holiday-body" id="holidayList">
+      <!-- JS로 렌더링 -->
+    </div>
+    <div class="holiday-foot">
+      <button class="holiday-add-btn" onclick="addHolidayRow()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        공휴일 추가
+      </button>
+    </div>
+  </div>
+</div>
+
+
 <div class="receipt-overlay" id="receiptOverlay" onclick="if(event.target===this)closeReceipt()">
   <div class="receipt-box">
     <img id="receiptImg" src="" alt="영수증">
