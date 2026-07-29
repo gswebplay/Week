@@ -215,14 +215,31 @@ body{
 /* ==========================================================
    ✅ 버튼 / 진행 상태
 ========================================================== */
+
+/* 버튼 두 개를 나란히 배치하는 행 */
+.btn-row{
+  display:flex;gap:10px;
+}
+
+/* ZIP 다운로드 버튼 (분홍 계열 — 기존과 동일) */
 .btn-run{
-  width:100%;padding:14px;background:linear-gradient(135deg,#FF6B9D,#FF3D78);
+  flex:1;padding:14px;background:linear-gradient(135deg,#FF6B9D,#FF3D78);
   color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
   box-shadow:0 4px 14px rgba(255,107,157,.35);transition:opacity .15s,transform .1s;
 }
 .btn-run:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
 .btn-run:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* 인쇄 버튼 (보라 계열 — 다운로드와 시각적으로 구분) */
+.btn-print{
+  flex:1;padding:14px;background:linear-gradient(135deg,#845EF7,#5C7CFA);
+  color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 14px rgba(132,94,247,.30);transition:opacity .15s,transform .1s;
+}
+.btn-print:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+.btn-print:disabled{opacity:.4;cursor:not-allowed;transform:none}
 
 .progress-wrap{display:none;margin-top:12px}
 .progress-bar-bg{height:8px;background:#FFE0EC;border-radius:4px;overflow:hidden}
@@ -236,13 +253,48 @@ body{
 .hint-msg{font-size:12px;color:#C08090;text-align:center;margin-top:8px}
 
 /* ==========================================================
+   ✅ 인쇄 전용 스타일
+   브라우저가 인쇄 다이얼로그를 열 때 이 스타일이 적용돼요.
+   인쇄 창에서는 각 이미지를 한 페이지씩 출력해요.
+========================================================== */
+@media print{
+  /* 인쇄 시 여백/배경 제거 */
+  @page{ margin:0; }
+  body{ margin:0; background:#fff !important; }
+
+  /* 인쇄 대상 이미지 컨테이너 */
+  .print-page{
+    width:100vw;
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    page-break-after:always;   /* 이미지마다 새 페이지로 넘어가요 */
+    break-after:page;          /* 최신 브라우저 호환 */
+    overflow:hidden;
+  }
+  /* 마지막 이미지는 page-break 없애기 (빈 페이지 방지) */
+  .print-page:last-child{
+    page-break-after:avoid;
+    break-after:avoid;
+  }
+  .print-page img{
+    max-width:100%;
+    max-height:100%;
+    object-fit:contain;
+    display:block;
+  }
+}
+
+/* ==========================================================
    ✅ 모바일 (480px 이하)
 ========================================================== */
 @media(max-width:480px){
   .header-title{font-size:15px}
   .header-sub{display:none}
   .card{padding:14px}
-  .btn-run{font-size:14px;padding:12px}
+  .btn-row{flex-direction:column}   /* 모바일에서는 버튼을 위아래로 배치 */
+  .btn-run,.btn-print{font-size:14px;padding:12px}
   .slider-label{width:46px;font-size:11px}
   .slider-desc{padding-left:56px}
   .opt-label{width:100%;margin-bottom:4px}
@@ -384,10 +436,15 @@ body{
     <div class="preview-info" id="previewInfo"></div>
   </div>
 
-  <!-- ===== 실행 ===== -->
-  <button class="btn-run" id="btnRun" disabled onclick="runWatermark()">
-    💾 워터마크 적용 후 ZIP 다운로드
-  </button>
+  <!-- ===== 실행: 다운로드 / 인쇄 ===== -->
+  <div class="btn-row">
+    <button class="btn-run"   id="btnRun"   disabled onclick="runWatermark()">
+      💾 ZIP 다운로드
+    </button>
+    <button class="btn-print" id="btnPrint" disabled onclick="runPrint()">
+      🖨️ 인쇄
+    </button>
+  </div>
   <div class="hint-msg" id="hintMsg">로고와 사진을 모두 등록하면 버튼이 활성화됩니다</div>
 
   <div class="progress-wrap" id="progressWrap">
@@ -723,7 +780,8 @@ function renderPhotoGrid(){
 ========================================================== */
 function checkRunnable(){
   const ready = !!logoImgObj && photos.length > 0;
-  document.getElementById('btnRun').disabled = !ready;
+  document.getElementById('btnRun').disabled   = !ready;
+  document.getElementById('btnPrint').disabled = !ready;
 
   const hint = document.getElementById('hintMsg');
   if (!logoImgObj && photos.length === 0) hint.textContent = '로고와 사진을 모두 등록하면 버튼이 활성화됩니다';
@@ -1010,6 +1068,147 @@ async function runWatermark(){
     console.error(err);
   }
 
+  setTimeout(() => {
+    wrap.style.display = 'none';
+    fill.style.width = '0%';
+    checkRunnable();
+  }, 3000);
+}
+
+
+/* ==========================================================
+   ✅ 인쇄 함수 — runPrint()
+   워터마크가 적용된 모든 사진을 숨겨진 창(iframe)에 그려서
+   브라우저 인쇄 다이얼로그를 바로 열어요.
+   각 사진은 한 페이지씩 출력됩니다.
+========================================================== */
+async function runPrint(){
+  // 버튼 둘 다 비활성화 (중복 실행 방지)
+  document.getElementById('btnRun').disabled   = true;
+  document.getElementById('btnPrint').disabled = true;
+
+  const wrap = document.getElementById('progressWrap');
+  const fill = document.getElementById('progressFill');
+  const text = document.getElementById('progressText');
+  wrap.style.display = 'block';
+  text.className = 'progress-text';
+  text.textContent = '인쇄 준비 중...';
+
+  try {
+    // 1) 모든 사진에 워터마크 적용 → DataURL 배열로 수집
+    const dataURLs = [];
+    const isJpg    = (outFormat === 'jpg');
+    const mimeType = isJpg ? 'image/jpeg' : 'image/png';
+    const quality  = isJpg ? 0.92 : undefined;
+
+    for (let i = 0; i < photos.length; i++){
+      fill.style.width = Math.round((i / photos.length) * 100) + '%';
+      text.textContent = `인쇄 준비 중... (${i+1}/${photos.length}장)`;
+
+      const canvas = composePhoto(photos[i]);
+
+      // 캔버스를 DataURL로 변환 (인쇄 창에 <img> 태그로 삽입하기 위해)
+      const dataURL = await new Promise((res, rej) => {
+        canvas.toBlob(
+          b => {
+            if (!b) { rej(new Error('이미지 변환 실패')); return; }
+            const reader = new FileReader();
+            reader.onload = e => res(e.target.result);
+            reader.readAsDataURL(b);
+          },
+          mimeType, quality
+        );
+      });
+
+      dataURLs.push(dataURL);
+      await new Promise(r => setTimeout(r, 0)); // 브라우저 멈춤 방지
+    }
+
+    fill.style.width = '100%';
+    text.textContent = '인쇄 창 열기 중...';
+
+    // 2) 새 창(팝업)을 열어서 인쇄용 HTML 작성
+    //    각 사진을 .print-page div로 감싸면 @media print CSS가 한 페이지씩 출력해요
+    const printWin = window.open('', '_blank', 'width=900,height=700');
+    if (!printWin){
+      alert('팝업이 차단됐어요!\n브라우저에서 팝업을 허용한 뒤 다시 시도해 주세요.');
+      return;
+    }
+
+    // 인쇄 창에 넣을 HTML 작성
+    const imgTags = dataURLs.map(url =>
+      `<div class="print-page"><img src="${url}" /></div>`
+    ).join('\n');
+
+    printWin.document.write(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<title>인쇄</title>
+<style>
+/* 인쇄 창 기본 스타일 */
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#fff}
+
+/* 화면에서 보여줄 때 (인쇄 전 미리보기) */
+.print-page{
+  width:100vw;height:100vh;
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;background:#fff;
+}
+.print-page img{
+  max-width:100%;max-height:100%;object-fit:contain;display:block;
+}
+
+/* 인쇄할 때: 각 이미지를 한 페이지씩 */
+@media print{
+  @page{margin:0}
+  body{margin:0;background:#fff}
+  .print-page{
+    width:100vw;height:100vh;
+    display:flex;align-items:center;justify-content:center;
+    page-break-after:always;break-after:page;overflow:hidden;
+  }
+  .print-page:last-child{page-break-after:avoid;break-after:avoid}
+  .print-page img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+}
+</style>
+</head>
+<body>
+${imgTags}
+<script>
+  // 이미지가 모두 로드된 후 인쇄 다이얼로그 자동 실행
+  var imgs = document.images;
+  var loaded = 0;
+  function onLoad(){
+    loaded++;
+    if(loaded >= imgs.length){
+      // 짧게 대기 후 인쇄 (브라우저 렌더링 완료 시간 확보)
+      setTimeout(function(){ window.print(); }, 400);
+    }
+  }
+  if(imgs.length === 0){
+    setTimeout(function(){ window.print(); }, 400);
+  } else {
+    for(var i=0;i<imgs.length;i++){
+      if(imgs[i].complete){ onLoad(); }
+      else { imgs[i].addEventListener('load', onLoad); imgs[i].addEventListener('error', onLoad); }
+    }
+  }
+<\/script>
+</body>
+</html>`);
+    printWin.document.close();
+
+    text.textContent = '✅ 인쇄 창이 열렸습니다!';
+    text.classList.add('done');
+
+  } catch(err){
+    text.textContent = '❌ 오류: ' + err.message;
+    console.error(err);
+  }
+
+  // 3초 후 진행 바 숨기고 버튼 다시 활성화
   setTimeout(() => {
     wrap.style.display = 'none';
     fill.style.width = '0%';
