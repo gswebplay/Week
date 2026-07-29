@@ -54,6 +54,11 @@
   padding:4px 9px;font-size:12px;color:#D6336C;cursor:pointer;flex-shrink:0;
 }
 .pdf-item .btn-rm-pdf:hover{background:#FFE0EC}
+/* 미리보기로 선택된 PDF 파일 강조 */
+.pdf-item-selected{
+  border-color:#FF6B9D !important;
+  background:#FFF0F5 !important;
+}
 
 /* PDF 처리 진행 상태 (페이지별 세부 표시) */
 .pdf-progress-detail{
@@ -611,6 +616,19 @@ body{
       <div class="pdf-list" id="pdfList"></div>
     </div>
 
+    <!-- PDF 미리보기 (첫 페이지 워터마크 적용 결과) -->
+    <div class="card">
+      <div class="card-title">
+        <span class="icon">👁️</span> 미리보기
+        <span style="font-size:11px;font-weight:400;color:#C08090">(첫 페이지 · PDF 목록에서 클릭해서 변경)</span>
+      </div>
+      <div class="preview-wrap" id="pdfPreviewWrap">
+        <div class="preview-empty" id="pdfPreviewEmpty">로고와 PDF를 등록하면 첫 페이지 결과가 여기에 표시됩니다</div>
+        <canvas id="pdfPreviewCanvas" style="display:none"></canvas>
+      </div>
+      <div class="preview-info" id="pdfPreviewInfo"></div>
+    </div>
+
     <!-- PDF 실행 버튼 -->
     <div class="pdf-btn-row">
       <button class="btn-pdf-save"  id="btnPdfSave"  disabled onclick="runPdfWatermark('save')">
@@ -646,9 +664,11 @@ let outFormat   = 'jpg';    // 'jpg' 또는 'png'
 let resizeBasis = 'width';  // 'width' 또는 'height'
 
 // PDF 전용 변수
-let pdfFiles    = [];       // [{id, name, arrayBuffer}] — 업로드된 PDF 파일들
-let pdfDpi      = 200;      // 렌더링 해상도 (150/200/300 dpi)
-let currentTab  = 'img';    // 현재 활성 탭 ('img' 또는 'pdf')
+let pdfFiles       = [];    // [{id, name, arrayBuffer, pageCount}]
+let pdfDpi         = 200;   // 렌더링 해상도 (150/200/300 dpi)
+let currentTab     = 'img'; // 현재 활성 탭 ('img' 또는 'pdf')
+let pdfPreviewIdx  = 0;     // PDF 미리보기에 표시할 파일 번호
+let pdfPreviewTimer = null; // 슬라이더 조작 시 PDF 미리보기 갱신 지연용
 
 /* localStorage 저장 키 */
 const LS_LOGO    = 'wm_logo_data';
@@ -829,7 +849,7 @@ function setLogo(dataURL, name, save = true){
   }
 
   const img = new Image();
-  img.onload  = () => { logoImgObj = img; checkRunnable(); updatePreview(); };
+  img.onload  = () => { logoImgObj = img; checkRunnable(); checkPdfRunnable(); updatePreview(); updatePdfPreview(); };
   img.onerror = () => alert('로고 이미지를 읽지 못했어요. 다른 파일로 시도해 주세요.');
   img.src = dataURL;
 }
@@ -1458,8 +1478,9 @@ function switchTab(tab){
   document.getElementById('tabBtnPdf').classList.toggle('active', tab === 'pdf');
   document.getElementById('panelImg').classList.toggle('active', tab === 'img');
   document.getElementById('panelPdf').classList.toggle('active', tab === 'pdf');
-  // 이미지 탭으로 돌아올 때 미리보기 즉시 갱신
+  // 탭 전환 시 각 미리보기 갱신
   if (tab === 'img') updatePreview();
+  if (tab === 'pdf') updatePdfPreview();
 }
 
 
@@ -1480,6 +1501,9 @@ function syncPdfSlider(key){
   // 이미지 미리보기 갱신
   clearTimeout(previewTimer);
   previewTimer = setTimeout(updatePreview, 200);
+  // PDF 미리보기도 갱신
+  clearTimeout(pdfPreviewTimer);
+  pdfPreviewTimer = setTimeout(updatePdfPreview, 200);
 }
 
 
@@ -1491,6 +1515,9 @@ function setPdfDpi(dpi){
   [150,200,300].forEach(v =>
     document.getElementById('dpi'+v).classList.toggle('active', v === dpi)
   );
+  // dpi 바꾸면 미리보기도 다시 렌더링
+  clearTimeout(pdfPreviewTimer);
+  pdfPreviewTimer = setTimeout(updatePdfPreview, 200);
 }
 
 
@@ -1516,7 +1543,7 @@ function addPdfFiles(files){
       } catch(_){}
 
       pdfFiles.push({ id: Date.now()+Math.random(), name: file.name, arrayBuffer: ab, pageCount });
-      if (++done === files.length) renderPdfList();
+      if (++done === files.length) { renderPdfList(); updatePdfPreview(); }
     };
     reader.readAsArrayBuffer(file);
   });
@@ -1524,7 +1551,9 @@ function addPdfFiles(files){
 
 function removePdfFile(id){
   pdfFiles = pdfFiles.filter(f => f.id !== id);
+  if (pdfPreviewIdx >= pdfFiles.length) pdfPreviewIdx = 0;
   renderPdfList();
+  updatePdfPreview();
 }
 
 function renderPdfList(){
@@ -1544,9 +1573,11 @@ function renderPdfList(){
   badge.style.display = '';
   badge.textContent   = pdfFiles.length + '개';
 
-  pdfFiles.forEach(f => {
+  pdfFiles.forEach((f, idx) => {
     const item = document.createElement('div');
-    item.className = 'pdf-item';
+    item.className = 'pdf-item' + (idx === pdfPreviewIdx ? ' pdf-item-selected' : '');
+    item.style.cursor = 'pointer';
+    item.title = '클릭하면 이 파일의 미리보기를 표시해요';
     item.innerHTML = `
       <span class="pdf-icon">📄</span>
       <div class="pdf-info">
@@ -1554,7 +1585,17 @@ function renderPdfList(){
         <div class="pdf-pages">${f.pageCount}페이지</div>
       </div>
       <button class="btn-rm-pdf">✕ 삭제</button>`;
-    item.querySelector('.btn-rm-pdf').onclick = () => removePdfFile(f.id);
+    // 클릭 시 해당 파일을 미리보기로 전환
+    item.onclick = (e) => {
+      if (e.target.classList.contains('btn-rm-pdf')) return;
+      pdfPreviewIdx = idx;
+      renderPdfList();
+      updatePdfPreview();
+    };
+    item.querySelector('.btn-rm-pdf').onclick = (e) => {
+      e.stopPropagation();
+      removePdfFile(f.id);
+    };
     list.appendChild(item);
   });
 
@@ -1578,6 +1619,97 @@ function checkPdfRunnable(){
   else if (!logoImgObj)                     hint.textContent = '⬆️ 이미지 탭에서 로고를 먼저 등록해 주세요';
   else if (pdfFiles.length === 0)           hint.textContent = '⬆️ PDF 파일을 추가해 주세요';
   else                                      hint.textContent = `${pdfFiles.length}개 PDF에 워터마크가 적용됩니다`;
+}
+
+
+/* ==========================================================
+   ✅ PDF 미리보기 갱신
+   선택된 PDF의 첫 페이지를 PDF.js로 렌더링하고
+   워터마크를 합성해서 미리보기 캔버스에 표시해요.
+   무거운 작업이라 이전 요청이 진행 중이면 건너뜁니다.
+========================================================== */
+let _pdfPreviewRendering = false; // 중복 렌더링 방지 플래그
+
+async function updatePdfPreview(){
+  const empty  = document.getElementById('pdfPreviewEmpty');
+  const canvas = document.getElementById('pdfPreviewCanvas');
+  const info   = document.getElementById('pdfPreviewInfo');
+
+  // PDF 탭이 아니거나, 로고/파일이 없으면 빈 상태
+  if (currentTab !== 'pdf' || !logoImgObj || pdfFiles.length === 0){
+    empty.style.display  = '';
+    canvas.style.display = 'none';
+    info.textContent     = '';
+    return;
+  }
+
+  // 로고 로드 완료 확인
+  const lW = logoImgObj.naturalWidth || logoImgObj.width;
+  const lH = logoImgObj.naturalHeight || logoImgObj.height;
+  if (!lW || !lH){ setTimeout(updatePdfPreview, 150); return; }
+
+  // 이미 렌더링 중이면 스킵 (슬라이더 연속 조작 시 과부하 방지)
+  if (_pdfPreviewRendering) return;
+  _pdfPreviewRendering = true;
+
+  // 로딩 중 안내
+  empty.textContent    = '⏳ 미리보기 렌더링 중...';
+  empty.style.display  = '';
+  canvas.style.display = 'none';
+  info.textContent     = '';
+
+  try {
+    const pf = pdfFiles[pdfPreviewIdx] || pdfFiles[0];
+
+    // PDF.js로 첫 페이지만 렌더링
+    // 미리보기용으로는 72dpi(배율 1x)로 빠르게 렌더링하고, 표시 크기만 제한해요
+    const previewScale = Math.min(pdfDpi, 150) / 72; // 미리보기는 최대 150dpi로 속도 최적화
+    const pdfDoc  = await pdfjsLib.getDocument({ data: pf.arrayBuffer.slice(0) }).promise;
+    const page    = await pdfDoc.getPage(1); // 첫 페이지
+    const vp      = page.getViewport({ scale: previewScale });
+
+    const rawCanvas = document.createElement('canvas');
+    rawCanvas.width  = Math.round(vp.width);
+    rawCanvas.height = Math.round(vp.height);
+    const rawCtx = rawCanvas.getContext('2d');
+    rawCtx.fillStyle = '#FFFFFF';
+    rawCtx.fillRect(0, 0, rawCanvas.width, rawCanvas.height);
+    await page.render({ canvasContext: rawCtx, viewport: vp }).promise;
+
+    // 워터마크 합성
+    rawCtx.drawImage(buildOverlay(rawCanvas.width, rawCanvas.height), 0, 0);
+
+    // 미리보기 캔버스는 가로 최대 860px로 표시
+    const MAXW  = 860;
+    const scale = Math.min(1, MAXW / rawCanvas.width);
+    const W = Math.max(1, Math.round(rawCanvas.width  * scale));
+    const H = Math.max(1, Math.round(rawCanvas.height * scale));
+
+    canvas.width  = W;
+    canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(rawCanvas, 0, 0, W, H);
+
+    empty.style.display  = 'none';
+    canvas.style.display = '';
+
+    // 정보 표시
+    const totalPx = Math.round(rawCanvas.width / previewScale * (pdfDpi/72));
+    const totalPy = Math.round(rawCanvas.height / previewScale * (pdfDpi/72));
+    info.innerHTML =
+      `<strong>${pf.name}</strong> · 1/${pf.pageCount}페이지 미리보기` +
+      ` · 실제 저장 크기 약 ${Math.round(rawCanvas.width * pdfDpi/Math.min(pdfDpi,150))} × ${Math.round(rawCanvas.height * pdfDpi/Math.min(pdfDpi,150))}px`;
+
+  } catch(e){
+    empty.textContent   = '⚠️ 미리보기를 불러오지 못했어요: ' + e.message;
+    empty.style.display = '';
+    canvas.style.display = 'none';
+    console.warn('PDF 미리보기 오류:', e);
+  } finally {
+    _pdfPreviewRendering = false;
+  }
 }
 
 
