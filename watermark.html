@@ -20,13 +20,12 @@ body{
   background:#FFF5F8;          /* 연분홍 배경 */
   color:#2D2D2D;
   min-height:100vh;
-  word-break:keep-all;         /* 모바일에서 단어 안 잘리게 */
+  word-break:keep-all;
   overflow-wrap:break-word;
 }
 
 /* ==========================================================
    ✅ 상단 헤더
-   👉 제목 크기는 .header-title의 font-size에서 조절
 ========================================================== */
 .header{
   background:linear-gradient(135deg,#FF6B9D 0%,#FF8FAB 100%);
@@ -53,7 +52,6 @@ body{
 
 /* ==========================================================
    ✅ 본문 컨테이너 / 카드
-   👉 카드 사이 간격은 .card의 margin-bottom에서 조절
 ========================================================== */
 .container{max-width:700px;margin:0 auto;padding:20px 16px 40px}
 
@@ -68,7 +66,7 @@ body{
 .card-title .icon{font-size:16px}
 
 /* ==========================================================
-   ✅ 파일 업로드 영역 (드래그앤드롭)
+   ✅ 파일 업로드 영역
 ========================================================== */
 .drop-zone{
   border:2px dashed #F3C1D3;border-radius:10px;padding:26px 20px;
@@ -78,7 +76,6 @@ body{
 .drop-zone:hover,.drop-zone.drag-over{border-color:#FF6B9D;background:#FFF0F5;color:#D6336C}
 .drop-zone .drop-icon{font-size:28px;display:block;margin-bottom:8px}
 
-/* 저장된 로고 미리보기 */
 .logo-preview-box{
   display:none;align-items:center;gap:12px;padding:10px 14px;
   background:#FFF0F5;border:1px solid #F3C1D3;border-radius:10px;
@@ -98,8 +95,7 @@ body{
 .btn-logo-remove:hover{background:#FFE0EC}
 
 /* ==========================================================
-   ✅ 슬라이더 (진하기 / 투명도)
-   👉 슬라이더 색상은 accent-color에서 조절
+   ✅ 슬라이더
 ========================================================== */
 .slider-group{display:flex;flex-direction:column;gap:12px}
 .slider-row{display:flex;align-items:center;gap:10px}
@@ -107,6 +103,50 @@ body{
 .slider-row input[type=range]{flex:1;accent-color:#FF6B9D;height:4px;cursor:pointer}
 .slider-value{font-size:12px;font-weight:700;color:#D6336C;min-width:38px;text-align:right}
 .slider-desc{font-size:11px;color:#C08090;margin-top:-6px;padding-left:62px}
+
+/* ==========================================================
+   ✅ 저장 옵션 (형식 선택 / 크기 통일)
+   👉 선택 버튼 모양은 .opt-btn에서 조절
+========================================================== */
+.opt-row{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.opt-row + .opt-row{margin-top:14px}
+
+.opt-label{font-size:12px;color:#888;width:66px;flex-shrink:0}
+
+/* 좌우로 붙은 선택 버튼 묶음 */
+.opt-group{display:flex;gap:0}
+.opt-btn{
+  padding:7px 14px;border:1px solid #F3C1D3;background:#FFF8FA;
+  color:#C08090;font-size:12px;font-weight:600;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.opt-btn:first-child{border-radius:7px 0 0 7px}
+.opt-btn:last-child{border-radius:0 7px 7px 0}
+.opt-btn:not(:first-child){border-left:none}
+.opt-btn:hover{background:#FFF0F5}
+.opt-btn.active{background:#FF6B9D;border-color:#FF6B9D;color:#fff}
+
+/* 픽셀 입력창 */
+.px-input{
+  width:88px;padding:7px 10px;border:1px solid #F3C1D3;border-radius:7px;
+  font-size:13px;font-weight:600;color:#D6336C;text-align:right;
+  font-family:inherit;background:#FFF8FA;
+}
+.px-input:focus{outline:none;border-color:#FF6B9D;background:#fff}
+.px-input:disabled{opacity:.4;cursor:not-allowed}
+.px-unit{font-size:12px;color:#C08090}
+
+.opt-desc{font-size:11px;color:#C08090;margin-top:8px;padding-left:76px;line-height:1.6}
+
+/* 크기 통일 켜기/끄기 체크박스 */
+.chk-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
+.chk-wrap input[type=checkbox]{width:16px;height:16px;accent-color:#FF6B9D;cursor:pointer}
+.chk-wrap span{font-size:12px;color:#888}
+
+/* 비활성 상태일 때 흐리게 */
+.opt-disabled{opacity:.35;pointer-events:none}
 
 /* ==========================================================
    ✅ 사진 썸네일 그리드
@@ -142,11 +182,23 @@ body{
 }
 
 /* ==========================================================
-   ✅ 미리보기 영역 — 다운로드 전에 결과를 직접 확인!
+   ✅ 미리보기
+   👉 PNG 투명 영역을 보여주기 위한 체크무늬 배경
 ========================================================== */
 .preview-wrap{
   margin-top:10px;border:1px solid #F3C1D3;border-radius:10px;
-  background:#FAFAFA;padding:10px;text-align:center;
+  padding:10px;text-align:center;
+  background-color:#FAFAFA;
+}
+.preview-wrap.transparent-bg{
+  /* 투명 영역이 보이도록 회색 체크무늬 */
+  background-image:
+    linear-gradient(45deg,#E8E8E8 25%,transparent 25%),
+    linear-gradient(-45deg,#E8E8E8 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#E8E8E8 75%),
+    linear-gradient(-45deg,transparent 75%,#E8E8E8 75%);
+  background-size:16px 16px;
+  background-position:0 0,0 8px,8px -8px,-8px 0px;
 }
 .preview-wrap canvas{
   max-width:100%;height:auto;border-radius:6px;display:block;margin:0 auto;
@@ -154,8 +206,14 @@ body{
 }
 .preview-empty{font-size:12px;color:#C08090;padding:24px 10px}
 
+/* 미리보기 하단 정보 (출력 크기/형식 표시) */
+.preview-info{
+  font-size:11px;color:#888;margin-top:8px;text-align:center;line-height:1.6;
+}
+.preview-info strong{color:#D6336C}
+
 /* ==========================================================
-   ✅ 버튼
+   ✅ 버튼 / 진행 상태
 ========================================================== */
 .btn-run{
   width:100%;padding:14px;background:linear-gradient(135deg,#FF6B9D,#FF3D78);
@@ -166,7 +224,6 @@ body{
 .btn-run:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
 .btn-run:disabled{opacity:.4;cursor:not-allowed;transform:none}
 
-/* 진행 상태 바 */
 .progress-wrap{display:none;margin-top:12px}
 .progress-bar-bg{height:8px;background:#FFE0EC;border-radius:4px;overflow:hidden}
 .progress-bar-fill{
@@ -188,6 +245,9 @@ body{
   .btn-run{font-size:14px;padding:12px}
   .slider-label{width:46px;font-size:11px}
   .slider-desc{padding-left:56px}
+  .opt-label{width:100%;margin-bottom:4px}
+  .opt-desc{padding-left:0}
+  .opt-btn{padding:7px 11px;font-size:11px}
 }
 </style>
 </head>
@@ -236,7 +296,6 @@ body{
     <div class="card-title"><span class="icon">⚙️</span> 워터마크 설정</div>
     <div class="slider-group">
 
-      <!-- 진하기: 로고 색을 얼마나 어둡게 할지 (연한 로고를 선명하게 만드는 핵심!) -->
       <div class="slider-row">
         <span class="slider-label">진하기</span>
         <input type="range" id="sliderDensity" min="10" max="100" value="50" step="5" oninput="onSettingChange()" />
@@ -244,7 +303,6 @@ body{
       </div>
       <div class="slider-desc">숫자가 작을수록 로고가 진해져요</div>
 
-      <!-- 투명도 -->
       <div class="slider-row">
         <span class="slider-label">투명도</span>
         <input type="range" id="sliderOpacity" min="10" max="100" value="85" step="5" oninput="onSettingChange()" />
@@ -255,7 +313,48 @@ body{
     </div>
   </div>
 
-  <!-- ===== 3. 사진 업로드 ===== -->
+  <!-- ===== 3. 저장 옵션 (새로 추가된 기능!) ===== -->
+  <div class="card">
+    <div class="card-title"><span class="icon">💾</span> 저장 옵션</div>
+
+    <!-- 저장 형식: JPG / PNG -->
+    <div class="opt-row">
+      <span class="opt-label">저장 형식</span>
+      <div class="opt-group">
+        <button class="opt-btn active" id="fmtJpg" onclick="setFormat('jpg')">JPG</button>
+        <button class="opt-btn"        id="fmtPng" onclick="setFormat('png')">PNG</button>
+      </div>
+    </div>
+    <div class="opt-desc" id="fmtDesc">
+      흰 배경으로 저장돼요. 용량이 작아 공유하기 좋습니다.
+    </div>
+
+    <!-- 크기 통일 -->
+    <div class="opt-row" style="margin-top:18px">
+      <span class="opt-label">크기 통일</span>
+      <label class="chk-wrap">
+        <input type="checkbox" id="resizeEnabled" onchange="onResizeToggle()" />
+        <span>사용하기</span>
+      </label>
+    </div>
+
+    <!-- 기준 선택 + 픽셀 입력 (체크했을 때만 활성화) -->
+    <div class="opt-row opt-disabled" id="resizeOptions" style="margin-top:12px">
+      <span class="opt-label"></span>
+      <div class="opt-group">
+        <button class="opt-btn active" id="basisW" onclick="setBasis('width')">가로</button>
+        <button class="opt-btn"        id="basisH" onclick="setBasis('height')">세로</button>
+      </div>
+      <input type="number" class="px-input" id="targetPx" value="3000" min="100" max="12000" step="100"
+             oninput="onSettingChange()" />
+      <span class="px-unit">px</span>
+    </div>
+    <div class="opt-desc" id="resizeDesc">
+      끄면 원본 크기 그대로 저장됩니다.
+    </div>
+  </div>
+
+  <!-- ===== 4. 사진 업로드 ===== -->
   <div class="card">
     <div class="card-title">
       <span class="icon">📸</span> 사진 첨부
@@ -272,7 +371,7 @@ body{
     <div class="photo-grid" id="photoGrid"></div>
   </div>
 
-  <!-- ===== 4. 미리보기 ===== -->
+  <!-- ===== 5. 미리보기 ===== -->
   <div class="card">
     <div class="card-title">
       <span class="icon">👁️</span> 미리보기
@@ -282,6 +381,7 @@ body{
       <div class="preview-empty" id="previewEmpty">로고와 사진을 등록하면 결과가 여기에 표시됩니다</div>
       <canvas id="previewCanvas" style="display:none"></canvas>
     </div>
+    <div class="preview-info" id="previewInfo"></div>
   </div>
 
   <!-- ===== 실행 ===== -->
@@ -302,33 +402,51 @@ body{
    ✅ 전역 변수
 ========================================================== */
 let logoDataURL = null;   // 로고 이미지 (base64)
-let logoImgObj  = null;   // 로드가 끝난 로고 Image 객체
+let logoImgObj  = null;   // 로드 완료된 로고 Image 객체
 let photos      = [];     // [{id, name, dataURL, imgObj}]
-let previewIdx  = 0;      // 미리보기로 보여줄 사진 번호
-let previewTimer = null;  // 슬라이더 조작 시 미리보기 갱신 지연용
+let previewIdx  = 0;      // 미리보기에 표시할 사진 번호
+let previewTimer = null;  // 슬라이더 조작 시 갱신 지연용
 
-/* localStorage 저장 키 이름 */
+let outFormat = 'jpg';    // 'jpg' 또는 'png'
+let resizeBasis = 'width';// 'width'(가로 기준) 또는 'height'(세로 기준)
+
+/* localStorage 저장 키 */
 const LS_LOGO    = 'wm_logo_data';
 const LS_LOGO_NM = 'wm_logo_name';
 const LS_DENSITY = 'wm_density';
 const LS_OPACITY = 'wm_opacity';
+const LS_FORMAT  = 'wm_format';
+const LS_RESIZE  = 'wm_resize_on';
+const LS_BASIS   = 'wm_resize_basis';
+const LS_TARGET  = 'wm_resize_target';
 
 
 /* ==========================================================
-   ✅ 페이지 최초 로드
+   ✅ 페이지 최초 로드 — 저장된 설정 복원
 ========================================================== */
 window.addEventListener('load', () => {
-  // 저장된 로고 자동 불러오기
   const savedLogo = localStorage.getItem(LS_LOGO);
-  if (savedLogo) {
-    setLogo(savedLogo, localStorage.getItem(LS_LOGO_NM) || 'logo.png', false);
-  }
+  if (savedLogo) setLogo(savedLogo, localStorage.getItem(LS_LOGO_NM) || 'logo.png', false);
 
-  // 저장된 슬라이더 값 복원
   restoreSlider('sliderDensity', 'valDensity', LS_DENSITY, '%');
   restoreSlider('sliderOpacity', 'valOpacity', LS_OPACITY, '%');
 
-  // 드래그앤드롭 연결
+  // 저장 형식 복원
+  const savedFmt = localStorage.getItem(LS_FORMAT);
+  if (savedFmt) setFormat(savedFmt, false);
+
+  // 크기 통일 설정 복원
+  const savedResize = localStorage.getItem(LS_RESIZE);
+  if (savedResize === '1') document.getElementById('resizeEnabled').checked = true;
+
+  const savedBasis = localStorage.getItem(LS_BASIS);
+  if (savedBasis) setBasis(savedBasis, false);
+
+  const savedTarget = localStorage.getItem(LS_TARGET);
+  if (savedTarget) document.getElementById('targetPx').value = savedTarget;
+
+  onResizeToggle(false);  // 체크 상태에 맞춰 화면 활성/비활성 처리
+
   setupDropZone(document.getElementById('logoDrop'),  handleLogoDrop);
   setupDropZone(document.getElementById('photoDrop'), handlePhotoDrop);
 });
@@ -342,7 +460,66 @@ function restoreSlider(sliderId, valId, lsKey, unit){
 
 
 /* ==========================================================
-   ✅ 슬라이더 변경 시 — 화면 갱신 + 저장 + 미리보기
+   ✅ 저장 형식 선택 (JPG / PNG)
+========================================================== */
+function setFormat(fmt, save = true){
+  outFormat = fmt;
+
+  // 버튼 활성 표시 바꾸기
+  document.getElementById('fmtJpg').classList.toggle('active', fmt === 'jpg');
+  document.getElementById('fmtPng').classList.toggle('active', fmt === 'png');
+
+  // 설명문 바꾸기
+  const desc = document.getElementById('fmtDesc');
+  if (fmt === 'jpg'){
+    desc.innerHTML = '흰 배경으로 저장돼요. 용량이 작아 공유하기 좋습니다.';
+  } else {
+    desc.innerHTML = '원본의 투명한 부분을 그대로 유지해요. 화질 손실이 없지만 <strong>용량이 커집니다</strong>.';
+  }
+
+  // 미리보기 배경도 형식에 맞춰 변경 (PNG면 체크무늬)
+  document.getElementById('previewWrap').classList.toggle('transparent-bg', fmt === 'png');
+
+  if (save) localStorage.setItem(LS_FORMAT, fmt);
+  updatePreview();
+}
+
+
+/* ==========================================================
+   ✅ 크기 통일 기준 선택 (가로 / 세로)
+========================================================== */
+function setBasis(basis, save = true){
+  resizeBasis = basis;
+  document.getElementById('basisW').classList.toggle('active', basis === 'width');
+  document.getElementById('basisH').classList.toggle('active', basis === 'height');
+  if (save) localStorage.setItem(LS_BASIS, basis);
+  onSettingChange();
+}
+
+
+/* ==========================================================
+   ✅ 크기 통일 켜기/끄기
+========================================================== */
+function onResizeToggle(save = true){
+  const on = document.getElementById('resizeEnabled').checked;
+
+  // 켜져 있을 때만 기준/픽셀 입력을 쓸 수 있게
+  document.getElementById('resizeOptions').classList.toggle('opt-disabled', !on);
+
+  const desc = document.getElementById('resizeDesc');
+  if (on){
+    desc.innerHTML = '큰 사진은 줄이고 작은 사진은 늘려서 <strong>모두 같은 크기</strong>로 맞춰요. (비율은 그대로 유지)';
+  } else {
+    desc.innerHTML = '끄면 원본 크기 그대로 저장됩니다.';
+  }
+
+  if (save) localStorage.setItem(LS_RESIZE, on ? '1' : '0');
+  onSettingChange();
+}
+
+
+/* ==========================================================
+   ✅ 설정 변경 시 — 값 저장 + 미리보기 갱신
 ========================================================== */
 function onSettingChange(){
   const d = document.getElementById('sliderDensity').value;
@@ -353,8 +530,9 @@ function onSettingChange(){
 
   localStorage.setItem(LS_DENSITY, d);
   localStorage.setItem(LS_OPACITY, o);
+  localStorage.setItem(LS_TARGET, document.getElementById('targetPx').value);
 
-  // 슬라이더를 빠르게 움직여도 버벅이지 않도록 0.2초 후에 한 번만 갱신
+  // 빠르게 조작해도 버벅이지 않도록 0.2초 후 한 번만 갱신
   clearTimeout(previewTimer);
   previewTimer = setTimeout(updatePreview, 200);
 }
@@ -375,19 +553,18 @@ function setLogo(dataURL, name, save = true){
   badge.textContent = '✅ 로고 저장됨';
   badge.classList.add('saved');
 
-  if (save) {
+  if (save){
     try {
       localStorage.setItem(LS_LOGO, dataURL);
       localStorage.setItem(LS_LOGO_NM, name);
-    } catch(e) {
+    } catch(e){
       alert('⚠️ 로고 용량이 너무 커서 저장하지 못했어요.\n조금 더 작은 이미지를 사용해 주세요.\n(이번 세션에서는 그대로 사용 가능합니다)');
     }
   }
 
-  // 로고 Image 객체로 미리 로드해 둬요
   const img = new Image();
-  img.onload = () => { logoImgObj = img; checkRunnable(); updatePreview(); };
-  img.onerror = () => { alert('로고 이미지를 읽지 못했어요. 다른 파일로 시도해 주세요.'); };
+  img.onload  = () => { logoImgObj = img; checkRunnable(); updatePreview(); };
+  img.onerror = () => alert('로고 이미지를 읽지 못했어요. 다른 파일로 시도해 주세요.');
   img.src = dataURL;
 }
 
@@ -418,7 +595,7 @@ function onBadgeClick(){
 
 
 /* ==========================================================
-   ✅ 파일 선택 이벤트
+   ✅ 파일 선택 / 드래그앤드롭
 ========================================================== */
 document.getElementById('logoFileInput').addEventListener('change', function(e){
   const f = e.target.files[0];
@@ -431,10 +608,6 @@ document.getElementById('photoFileInput').addEventListener('change', function(e)
   this.value = '';
 });
 
-
-/* ==========================================================
-   ✅ 드래그앤드롭
-========================================================== */
 function setupDropZone(zone, handler){
   if (!zone) return;
   zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
@@ -451,9 +624,7 @@ function handleLogoDrop(files){
   if (f) readFileAsDataURL(f, d => setLogo(d, f.name, true));
 }
 
-function handlePhotoDrop(files){
-  addPhotos(Array.from(files));
-}
+function handlePhotoDrop(files){ addPhotos(Array.from(files)); }
 
 function readFileAsDataURL(file, cb){
   const r = new FileReader();
@@ -463,28 +634,30 @@ function readFileAsDataURL(file, cb){
 
 
 /* ==========================================================
-   ✅ 사진 추가 / 삭제 / 목록 그리기
+   ✅ 사진 추가 / 삭제 / 목록
 ========================================================== */
 function addPhotos(files){
   const imgs = files.filter(f => f.type.startsWith('image/'));
   if (imgs.length === 0) return;
 
   let done = 0;
+  const finish = () => { if (++done === imgs.length){ renderPhotoGrid(); updatePreview(); } };
+
   imgs.forEach(file => {
     readFileAsDataURL(file, dataURL => {
       const img = new Image();
       img.onload = () => {
         photos.push({ id: Date.now()+Math.random(), name: file.name, dataURL, imgObj: img });
-        if (++done === imgs.length) { renderPhotoGrid(); updatePreview(); }
+        finish();
       };
-      img.onerror = () => { if (++done === imgs.length) { renderPhotoGrid(); updatePreview(); } };
+      img.onerror = finish;
       img.src = dataURL;
     });
   });
 }
 
 function removePhoto(id, ev){
-  ev.stopPropagation();  // 썸네일 클릭(미리보기 변경)과 겹치지 않게
+  ev.stopPropagation();
   photos = photos.filter(p => p.id !== id);
   if (previewIdx >= photos.length) previewIdx = 0;
   renderPhotoGrid();
@@ -528,7 +701,7 @@ function renderPhotoGrid(){
     const rm = document.createElement('button');
     rm.className = 'btn-remove-photo';
     rm.textContent = '✕';
-    rm.onclick = (ev) => removePhoto(p.id, ev);
+    rm.onclick = ev => removePhoto(p.id, ev);
 
     th.appendChild(im);
     th.appendChild(rm);
@@ -553,17 +726,83 @@ function checkRunnable(){
   document.getElementById('btnRun').disabled = !ready;
 
   const hint = document.getElementById('hintMsg');
-  if (!logoImgObj && photos.length === 0)      hint.textContent = '로고와 사진을 모두 등록하면 버튼이 활성화됩니다';
-  else if (!logoImgObj)                        hint.textContent = '⬆️ 로고를 먼저 등록해 주세요';
-  else if (photos.length === 0)                hint.textContent = '⬆️ 사진을 추가해 주세요';
-  else                                         hint.textContent = photos.length + '장의 사진에 워터마크가 적용됩니다';
+  if (!logoImgObj && photos.length === 0) hint.textContent = '로고와 사진을 모두 등록하면 버튼이 활성화됩니다';
+  else if (!logoImgObj)                   hint.textContent = '⬆️ 로고를 먼저 등록해 주세요';
+  else if (photos.length === 0)           hint.textContent = '⬆️ 사진을 추가해 주세요';
+  else                                    hint.textContent = photos.length + '장의 사진에 워터마크가 적용됩니다';
 }
 
 
 /* ==========================================================
-   ✅ ★핵심★ 워터마크 오버레이 만들기
-   사진의 가로세로 비율에 맞춰 로고를 확대/축소하고
-   넘치는 부분은 중앙 기준으로 잘라내요 (cover 방식)
+   ✅ ★신규★ 출력 크기 계산
+   크기 통일이 켜져 있으면 기준 변을 목표 픽셀에 맞추고
+   나머지 한 변은 비율에 맞춰 자동 계산해요
+========================================================== */
+function calcOutputSize(origW, origH){
+  const on = document.getElementById('resizeEnabled').checked;
+  if (!on) return { w: origW, h: origH };   // 끄면 원본 그대로
+
+  let target = parseInt(document.getElementById('targetPx').value);
+  // 잘못된 값이 들어오면 안전하게 보정
+  if (!target || target < 100)   target = 100;
+  if (target > 12000)            target = 12000;
+
+  if (resizeBasis === 'width'){
+    // 가로를 목표값으로 → 세로는 비율대로
+    return { w: target, h: Math.max(1, Math.round(origH * (target / origW))) };
+  } else {
+    // 세로를 목표값으로 → 가로는 비율대로
+    return { w: Math.max(1, Math.round(origW * (target / origH))), h: target };
+  }
+}
+
+
+/* ==========================================================
+   ✅ ★신규★ 고품질 축소 그리기
+   한 번에 확 줄이면 계단 현상이 생겨서,
+   절반씩 여러 번 나눠 줄이면 훨씬 부드러워요
+========================================================== */
+function drawHighQuality(ctx, img, destW, destH){
+  const srcW = img.naturalWidth  || img.width;
+  const srcH = img.naturalHeight || img.height;
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  // 절반 이상 줄이는 경우에만 단계적 축소 사용
+  if (destW < srcW / 2){
+    let curW = srcW, curH = srcH;
+    let tmp = document.createElement('canvas');
+    tmp.width = curW; tmp.height = curH;
+    let tctx = tmp.getContext('2d');
+    tctx.drawImage(img, 0, 0, curW, curH);
+
+    // 목표 크기의 2배보다 커질 때까지 절반씩 줄이기
+    while (curW / 2 > destW){
+      const nW = Math.max(destW, Math.round(curW / 2));
+      const nH = Math.max(destH, Math.round(curH / 2));
+
+      const next = document.createElement('canvas');
+      next.width = nW; next.height = nH;
+      const nctx = next.getContext('2d');
+      nctx.imageSmoothingEnabled = true;
+      nctx.imageSmoothingQuality = 'high';
+      nctx.drawImage(tmp, 0, 0, nW, nH);
+
+      tmp = next; tctx = nctx;
+      curW = nW; curH = nH;
+    }
+    ctx.drawImage(tmp, 0, 0, destW, destH);
+  } else {
+    // 확대하거나 조금만 줄일 때는 한 번에 그려도 충분
+    ctx.drawImage(img, 0, 0, destW, destH);
+  }
+}
+
+
+/* ==========================================================
+   ✅ 워터마크 오버레이 만들기 (cover 방식)
+   사진 비율에 맞춰 로고를 확대/축소하고 넘치는 부분은 중앙 기준 크롭
 ========================================================== */
 function buildOverlay(targetW, targetH){
   const density = parseInt(document.getElementById('sliderDensity').value) / 100;
@@ -572,50 +811,45 @@ function buildOverlay(targetW, targetH){
   const LW = logoImgObj.naturalWidth  || logoImgObj.width;
   const LH = logoImgObj.naturalHeight || logoImgObj.height;
 
-  /* --- 1) cover 계산: 사진을 꽉 채우는 최소 크기 구하기 --- */
-  const targetRatio = targetW / targetH;   // 사진 비율
-  const logoRatio   = LW / LH;             // 로고 비율
+  // --- cover 계산 ---
+  const targetRatio = targetW / targetH;
+  const logoRatio   = LW / LH;
 
   let drawW, drawH;
   if (logoRatio > targetRatio){
-    // 로고가 더 가로로 김 → 높이를 맞추고 좌우를 잘라냄
-    drawH = targetH;
+    drawH = targetH;                              // 높이 맞추고 좌우 자름
     drawW = Math.round(LW * (targetH / LH));
   } else {
-    // 로고가 더 세로로 김 → 너비를 맞추고 위아래를 잘라냄
-    drawW = targetW;
+    drawW = targetW;                              // 너비 맞추고 위아래 자름
     drawH = Math.round(LH * (targetW / LW));
   }
 
-  // 중앙 정렬을 위한 시작 좌표 (음수 = 잘려나가는 부분)
   const offsetX = Math.round((targetW - drawW) / 2);
   const offsetY = Math.round((targetH - drawH) / 2);
 
-  /* --- 2) 오버레이 캔버스에 로고를 cover로 그리기 --- */
   const ov  = document.createElement('canvas');
   ov.width  = targetW;
   ov.height = targetH;
   const ovx = ov.getContext('2d');
+  ovx.imageSmoothingEnabled = true;
+  ovx.imageSmoothingQuality = 'high';
   ovx.drawImage(logoImgObj, offsetX, offsetY, drawW, drawH);
 
-  /* --- 3) 픽셀 보정: 진하기 + 투명도 적용 --- */
+  // --- 픽셀 보정: 진하기 + 투명도 ---
   try {
     const dat = ovx.getImageData(0, 0, targetW, targetH);
     const d   = dat.data;
 
-    // 로고에서 가장 진한 부분 찾기 (연한 로고 자동 보정용)
     let maxA = 0;
     for (let i = 3; i < d.length; i += 4) if (d[i] > maxA) maxA = d[i];
-
-    // 최대 불투명도가 90% 미만이면 끌어올려요
     const boost = (maxA > 0 && maxA < 230) ? (230 / maxA) : 1;
 
     for (let i = 0; i < d.length; i += 4){
-      if (d[i+3] === 0) continue;              // 완전 투명 픽셀은 건너뛰기 (속도↑)
-      d[i]   = Math.round(d[i]   * density);   // R 어둡게
-      d[i+1] = Math.round(d[i+1] * density);   // G 어둡게
-      d[i+2] = Math.round(d[i+2] * density);   // B 어둡게
-      d[i+3] = Math.min(255, Math.round(d[i+3] * boost * opacity)); // 최종 불투명도
+      if (d[i+3] === 0) continue;
+      d[i]   = Math.round(d[i]   * density);
+      d[i+1] = Math.round(d[i+1] * density);
+      d[i+2] = Math.round(d[i+2] * density);
+      d[i+3] = Math.min(255, Math.round(d[i+3] * boost * opacity));
     }
     ovx.putImageData(dat, 0, 0);
   } catch(e){
@@ -627,19 +861,32 @@ function buildOverlay(targetW, targetH){
 
 
 /* ==========================================================
-   ✅ 사진 1장에 워터마크 합성해서 캔버스로 돌려주기
+   ✅ 사진 1장 합성 → 캔버스 반환
+   크기 통일 + 형식(JPG 흰배경 / PNG 투명유지) 반영
 ========================================================== */
 function composePhoto(photo){
-  const W = photo.imgObj.naturalWidth  || photo.imgObj.width;
-  const H = photo.imgObj.naturalHeight || photo.imgObj.height;
+  const oW = photo.imgObj.naturalWidth  || photo.imgObj.width;
+  const oH = photo.imgObj.naturalHeight || photo.imgObj.height;
+
+  const size = calcOutputSize(oW, oH);   // ← 크기 통일 적용
 
   const canvas = document.createElement('canvas');
-  canvas.width  = W;
-  canvas.height = H;
+  canvas.width  = size.w;
+  canvas.height = size.h;
   const ctx = canvas.getContext('2d');
 
-  ctx.drawImage(photo.imgObj, 0, 0, W, H);       // ① 원본 사진
-  ctx.drawImage(buildOverlay(W, H), 0, 0);        // ② 워터마크 덮기
+  // ① JPG로 저장할 땐 투명 부분이 검게 나오지 않도록 흰 배경을 먼저 칠해요
+  if (outFormat === 'jpg'){
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, size.w, size.h);
+  }
+  // PNG는 배경을 칠하지 않아 원본의 투명함이 그대로 유지돼요
+
+  // ② 사진 그리기 (고품질 축소/확대)
+  drawHighQuality(ctx, photo.imgObj, size.w, size.h);
+
+  // ③ 워터마크 덮기
+  ctx.drawImage(buildOverlay(size.w, size.h), 0, 0);
 
   return canvas;
 }
@@ -647,16 +894,17 @@ function composePhoto(photo){
 
 /* ==========================================================
    ✅ 미리보기 갱신
-   화면에 표시할 땐 가로 900px로 줄여서 빠르게 처리해요
+   화면 표시는 가로 900px로 줄여서 빠르게 처리
 ========================================================== */
 function updatePreview(){
-  const wrap   = document.getElementById('previewWrap');
   const empty  = document.getElementById('previewEmpty');
   const canvas = document.getElementById('previewCanvas');
+  const info   = document.getElementById('previewInfo');
 
   if (!logoImgObj || photos.length === 0){
     empty.style.display  = '';
     canvas.style.display = 'none';
+    info.textContent = '';
     return;
   }
 
@@ -664,26 +912,43 @@ function updatePreview(){
   const oW = photo.imgObj.naturalWidth  || photo.imgObj.width;
   const oH = photo.imgObj.naturalHeight || photo.imgObj.height;
 
-  // 미리보기는 가로 900px 기준으로 축소 (원본이 더 작으면 그대로)
-  const MAXW = 900;
-  const scale = Math.min(1, MAXW / oW);
-  const W = Math.round(oW * scale);
-  const H = Math.round(oH * scale);
+  // 실제 저장될 크기
+  const outSize = calcOutputSize(oW, oH);
+
+  // 미리보기용 축소 (가로 900px 기준)
+  const MAXW  = 900;
+  const scale = Math.min(1, MAXW / outSize.w);
+  const W = Math.max(1, Math.round(outSize.w * scale));
+  const H = Math.max(1, Math.round(outSize.h * scale));
 
   canvas.width  = W;
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  ctx.drawImage(photo.imgObj, 0, 0, W, H);
+  // 미리보기에도 형식에 맞는 배경 처리 적용
+  ctx.clearRect(0, 0, W, H);
+  if (outFormat === 'jpg'){
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, W, H);
+  }
+
+  drawHighQuality(ctx, photo.imgObj, W, H);
   ctx.drawImage(buildOverlay(W, H), 0, 0);
 
   empty.style.display  = 'none';
   canvas.style.display = '';
+
+  // 하단 정보 표시: 원본 → 저장 크기
+  const changed = (outSize.w !== oW || outSize.h !== oH);
+  info.innerHTML =
+    `원본 ${oW} × ${oH}` +
+    (changed ? ` → 저장 <strong>${outSize.w} × ${outSize.h}</strong>` : ' (원본 크기 유지)') +
+    ` · 형식 <strong>${outFormat.toUpperCase()}</strong>`;
 }
 
 
 /* ==========================================================
-   ✅ 전체 사진 처리 + ZIP 다운로드
+   ✅ 전체 처리 + ZIP 다운로드
 ========================================================== */
 async function runWatermark(){
   document.getElementById('btnRun').disabled = true;
@@ -694,6 +959,12 @@ async function runWatermark(){
   wrap.style.display = 'block';
   text.className = 'progress-text';
 
+  // 형식에 따라 확장자와 MIME 타입 결정
+  const isJpg    = (outFormat === 'jpg');
+  const mimeType = isJpg ? 'image/jpeg' : 'image/png';
+  const ext      = isJpg ? '.jpg' : '.png';
+  const quality  = isJpg ? 0.92 : undefined;   // PNG는 품질 옵션이 없어요
+
   const zip = new JSZip();
 
   try {
@@ -703,13 +974,16 @@ async function runWatermark(){
 
       const canvas = composePhoto(photos[i]);
 
-      // 캔버스 → JPEG Blob 변환
       const blob = await new Promise((res, rej) => {
-        canvas.toBlob(b => b ? res(b) : rej(new Error('이미지 변환 실패')), 'image/jpeg', 0.92);
+        canvas.toBlob(
+          b => b ? res(b) : rej(new Error('이미지 변환 실패')),
+          mimeType,
+          quality
+        );
       });
 
       const baseName = photos[i].name.replace(/\.[^.]+$/, '');
-      zip.file('wm_' + baseName + '.jpg', blob);
+      zip.file('wm_' + baseName + ext, blob);
 
       // 브라우저가 멈추지 않도록 잠깐 양보
       await new Promise(r => setTimeout(r, 0));
@@ -722,7 +996,7 @@ async function runWatermark(){
     const url = URL.createObjectURL(zipBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'watermarked_photos.zip';
+    a.download = 'watermarked_' + outFormat + '.zip';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
