@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>워터마크 자동 적용기</title>
+
+<!-- ✅ JSZip: 여러 장을 ZIP으로 묶어 다운로드하기 위한 라이브러리 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<style>
+/* ==========================================================
+   ✅ 기본 설정 — 폰트/배경/여백 기준
+   👉 배경색 바꾸려면 body의 background 값을 수정하세요
+========================================================== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  background:#FFF5F8;          /* 연분홍 배경 */
+  color:#2D2D2D;
+  min-height:100vh;
+  word-break:keep-all;         /* 모바일에서 단어 안 잘리게 */
+  overflow-wrap:break-word;
+}
+
+/* ==========================================================
+   ✅ 상단 헤더
+   👉 제목 크기는 .header-title의 font-size에서 조절
+========================================================== */
+.header{
+  background:linear-gradient(135deg,#FF6B9D 0%,#FF8FAB 100%);
+  color:#fff;padding:16px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:0 2px 8px rgba(255,107,157,.25);
+  position:sticky;top:0;z-index:100;
+}
+.header-left{display:flex;align-items:center;gap:10px}
+.header-icon{
+  width:32px;height:32px;background:rgba(255,255,255,.25);
+  border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;
+}
+.header-title{font-size:17px;font-weight:700;white-space:nowrap}
+.header-sub{font-size:11px;opacity:.85;margin-top:2px;white-space:nowrap}
+
+.logo-status-badge{
+  background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.4);
+  border-radius:20px;padding:4px 12px;font-size:12px;font-weight:600;
+  white-space:nowrap;cursor:pointer;transition:background .15s;
+}
+.logo-status-badge:hover{background:rgba(255,255,255,.35)}
+.logo-status-badge.saved{background:rgba(52,211,153,.25);border-color:rgba(52,211,153,.5)}
+
+/* ==========================================================
+   ✅ 본문 컨테이너 / 카드
+   👉 카드 사이 간격은 .card의 margin-bottom에서 조절
+========================================================== */
+.container{max-width:700px;margin:0 auto;padding:20px 16px 40px}
+
+.card{
+  background:#fff;border:1px solid #F3C1D3;border-radius:14px;
+  padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(255,107,157,.06);
+}
+.card-title{
+  font-size:13px;font-weight:700;color:#D6336C;margin-bottom:12px;
+  display:flex;align-items:center;gap:6px;
+}
+.card-title .icon{font-size:16px}
+
+/* ==========================================================
+   ✅ 파일 업로드 영역 (드래그앤드롭)
+========================================================== */
+.drop-zone{
+  border:2px dashed #F3C1D3;border-radius:10px;padding:26px 20px;
+  text-align:center;cursor:pointer;transition:all .2s;
+  color:#C08090;font-size:13px;line-height:1.7;background:#FFF8FA;
+}
+.drop-zone:hover,.drop-zone.drag-over{border-color:#FF6B9D;background:#FFF0F5;color:#D6336C}
+.drop-zone .drop-icon{font-size:28px;display:block;margin-bottom:8px}
+
+/* 저장된 로고 미리보기 */
+.logo-preview-box{
+  display:none;align-items:center;gap:12px;padding:10px 14px;
+  background:#FFF0F5;border:1px solid #F3C1D3;border-radius:10px;
+}
+.logo-preview-box img{
+  height:44px;max-width:100px;object-fit:contain;background:#fff;
+  border-radius:6px;border:1px solid #F3C1D3;padding:3px;
+}
+.logo-preview-info{flex:1}
+.logo-preview-info .logo-name{font-size:13px;font-weight:600}
+.logo-preview-info .logo-hint{font-size:11px;color:#C08090;margin-top:2px}
+
+.btn-logo-remove{
+  background:none;border:1px solid #F3C1D3;border-radius:6px;padding:4px 10px;
+  font-size:12px;color:#D6336C;cursor:pointer;white-space:nowrap;transition:background .15s;
+}
+.btn-logo-remove:hover{background:#FFE0EC}
+
+/* ==========================================================
+   ✅ 슬라이더 (진하기 / 투명도)
+   👉 슬라이더 색상은 accent-color에서 조절
+========================================================== */
+.slider-group{display:flex;flex-direction:column;gap:12px}
+.slider-row{display:flex;align-items:center;gap:10px}
+.slider-label{font-size:12px;color:#888;width:52px;flex-shrink:0}
+.slider-row input[type=range]{flex:1;accent-color:#FF6B9D;height:4px;cursor:pointer}
+.slider-value{font-size:12px;font-weight:700;color:#D6336C;min-width:38px;text-align:right}
+.slider-desc{font-size:11px;color:#C08090;margin-top:-6px;padding-left:62px}
+
+/* ==========================================================
+   ✅ 사진 썸네일 그리드
+========================================================== */
+.photo-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));
+  gap:8px;margin-top:10px;
+}
+.photo-thumb{
+  position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;
+  border:1px solid #F3C1D3;background:#FFF0F5;cursor:pointer;
+}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-thumb.selected{border:2px solid #FF3D78}
+.photo-thumb .btn-remove-photo{
+  position:absolute;top:3px;right:3px;width:20px;height:20px;
+  background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;
+  font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
+}
+.photo-thumb .btn-remove-photo:hover{background:rgba(214,51,108,.85)}
+
+.btn-add-photo{
+  aspect-ratio:1/1;border:2px dashed #F3C1D3;border-radius:8px;background:#FFF8FA;
+  color:#C08090;font-size:20px;cursor:pointer;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:3px;transition:all .15s;
+}
+.btn-add-photo .add-label{font-size:10px;font-weight:600}
+.btn-add-photo:hover{border-color:#FF6B9D;background:#FFF0F5;color:#D6336C}
+
+.count-badge{
+  display:inline-flex;align-items:center;background:#FFE0EC;color:#D6336C;
+  font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px;
+}
+
+/* ==========================================================
+   ✅ 미리보기 영역 — 다운로드 전에 결과를 직접 확인!
+========================================================== */
+.preview-wrap{
+  margin-top:10px;border:1px solid #F3C1D3;border-radius:10px;
+  background:#FAFAFA;padding:10px;text-align:center;
+}
+.preview-wrap canvas{
+  max-width:100%;height:auto;border-radius:6px;display:block;margin:0 auto;
+  box-shadow:0 1px 4px rgba(0,0,0,.08);
+}
+.preview-empty{font-size:12px;color:#C08090;padding:24px 10px}
+
+/* ==========================================================
+   ✅ 버튼
+========================================================== */
+.btn-run{
+  width:100%;padding:14px;background:linear-gradient(135deg,#FF6B9D,#FF3D78);
+  color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 4px 14px rgba(255,107,157,.35);transition:opacity .15s,transform .1s;
+}
+.btn-run:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+.btn-run:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* 진행 상태 바 */
+.progress-wrap{display:none;margin-top:12px}
+.progress-bar-bg{height:8px;background:#FFE0EC;border-radius:4px;overflow:hidden}
+.progress-bar-fill{
+  height:100%;background:linear-gradient(90deg,#FF6B9D,#FF3D78);
+  border-radius:4px;width:0%;transition:width .25s ease;
+}
+.progress-text{font-size:12px;color:#C08090;text-align:center;margin-top:7px}
+.progress-text.done{color:#28A745;font-weight:700}
+
+.hint-msg{font-size:12px;color:#C08090;text-align:center;margin-top:8px}
+
+/* ==========================================================
+   ✅ 모바일 (480px 이하)
+========================================================== */
+@media(max-width:480px){
+  .header-title{font-size:15px}
+  .header-sub{display:none}
+  .card{padding:14px}
+  .btn-run{font-size:14px;padding:12px}
+  .slider-label{width:46px;font-size:11px}
+  .slider-desc{padding-left:56px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 헤더 ===== -->
+<div class="header">
+  <div class="header-left">
+    <div class="header-icon">💧</div>
+    <div>
+      <div class="header-title">워터마크 자동 적용기</div>
+      <div class="header-sub">로고를 한 번 등록하면 자동으로 기억해요</div>
+    </div>
+  </div>
+  <div class="logo-status-badge" id="logoStatusBadge" onclick="onBadgeClick()">로고 미등록</div>
+</div>
+
+<div class="container">
+
+  <!-- ===== 1. 로고 등록 ===== -->
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">🖼️</span> 로고 등록
+      <span style="font-size:11px;font-weight:400;color:#C08090">(최초 1회 · 자동 저장)</span>
+    </div>
+
+    <div class="logo-preview-box" id="logoPreviewBox">
+      <img id="logoPreviewImg" src="" alt="저장된 로고" />
+      <div class="logo-preview-info">
+        <div class="logo-name" id="logoPreviewName">logo.png</div>
+        <div class="logo-hint">✅ 브라우저에 저장됨</div>
+      </div>
+      <button class="btn-logo-remove" onclick="removeSavedLogo()">🗑 삭제</button>
+    </div>
+
+    <div class="drop-zone" id="logoDrop" onclick="document.getElementById('logoFileInput').click()">
+      <span class="drop-icon">📁</span>
+      로고 이미지를 드래그하거나 <strong>클릭</strong>해서 업로드<br/>
+      <span style="font-size:11px">PNG 권장 (투명 배경)</span>
+    </div>
+    <input type="file" id="logoFileInput" accept="image/*" style="display:none" />
+  </div>
+
+  <!-- ===== 2. 워터마크 설정 ===== -->
+  <div class="card">
+    <div class="card-title"><span class="icon">⚙️</span> 워터마크 설정</div>
+    <div class="slider-group">
+
+      <!-- 진하기: 로고 색을 얼마나 어둡게 할지 (연한 로고를 선명하게 만드는 핵심!) -->
+      <div class="slider-row">
+        <span class="slider-label">진하기</span>
+        <input type="range" id="sliderDensity" min="10" max="100" value="50" step="5" oninput="onSettingChange()" />
+        <span class="slider-value" id="valDensity">50%</span>
+      </div>
+      <div class="slider-desc">숫자가 작을수록 로고가 진해져요</div>
+
+      <!-- 투명도 -->
+      <div class="slider-row">
+        <span class="slider-label">투명도</span>
+        <input type="range" id="sliderOpacity" min="10" max="100" value="85" step="5" oninput="onSettingChange()" />
+        <span class="slider-value" id="valOpacity">85%</span>
+      </div>
+      <div class="slider-desc">전체적으로 얼마나 뚜렷하게 보일지</div>
+
+    </div>
+  </div>
+
+  <!-- ===== 3. 사진 업로드 ===== -->
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">📸</span> 사진 첨부
+      <span class="count-badge" id="photoCountBadge" style="display:none">0장</span>
+    </div>
+
+    <div class="drop-zone" id="photoDrop" onclick="document.getElementById('photoFileInput').click()">
+      <span class="drop-icon">🖼️</span>
+      사진을 드래그하거나 <strong>클릭</strong>해서 업로드<br/>
+      <span style="font-size:11px">여러 장 동시 선택 가능</span>
+    </div>
+    <input type="file" id="photoFileInput" accept="image/*" multiple style="display:none" />
+
+    <div class="photo-grid" id="photoGrid"></div>
+  </div>
+
+  <!-- ===== 4. 미리보기 ===== -->
+  <div class="card">
+    <div class="card-title">
+      <span class="icon">👁️</span> 미리보기
+      <span style="font-size:11px;font-weight:400;color:#C08090">(썸네일을 눌러 사진 변경)</span>
+    </div>
+    <div class="preview-wrap" id="previewWrap">
+      <div class="preview-empty" id="previewEmpty">로고와 사진을 등록하면 결과가 여기에 표시됩니다</div>
+      <canvas id="previewCanvas" style="display:none"></canvas>
+    </div>
+  </div>
+
+  <!-- ===== 실행 ===== -->
+  <button class="btn-run" id="btnRun" disabled onclick="runWatermark()">
+    💾 워터마크 적용 후 ZIP 다운로드
+  </button>
+  <div class="hint-msg" id="hintMsg">로고와 사진을 모두 등록하면 버튼이 활성화됩니다</div>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    <div class="progress-text" id="progressText">처리 중...</div>
+  </div>
+
+</div>
+
+<script>
+/* ==========================================================
+   ✅ 전역 변수
+========================================================== */
+let logoDataURL = null;   // 로고 이미지 (base64)
+let logoImgObj  = null;   // 로드가 끝난 로고 Image 객체
+let photos      = [];     // [{id, name, dataURL, imgObj}]
+let previewIdx  = 0;      // 미리보기로 보여줄 사진 번호
+let previewTimer = null;  // 슬라이더 조작 시 미리보기 갱신 지연용
+
+/* localStorage 저장 키 이름 */
+const LS_LOGO    = 'wm_logo_data';
+const LS_LOGO_NM = 'wm_logo_name';
+const LS_DENSITY = 'wm_density';
+const LS_OPACITY = 'wm_opacity';
+
+
+/* ==========================================================
+   ✅ 페이지 최초 로드
+========================================================== */
+window.addEventListener('load', () => {
+  // 저장된 로고 자동 불러오기
+  const savedLogo = localStorage.getItem(LS_LOGO);
+  if (savedLogo) {
+    setLogo(savedLogo, localStorage.getItem(LS_LOGO_NM) || 'logo.png', false);
+  }
+
+  // 저장된 슬라이더 값 복원
+  restoreSlider('sliderDensity', 'valDensity', LS_DENSITY, '%');
+  restoreSlider('sliderOpacity', 'valOpacity', LS_OPACITY, '%');
+
+  // 드래그앤드롭 연결
+  setupDropZone(document.getElementById('logoDrop'),  handleLogoDrop);
+  setupDropZone(document.getElementById('photoDrop'), handlePhotoDrop);
+});
+
+function restoreSlider(sliderId, valId, lsKey, unit){
+  const saved = localStorage.getItem(lsKey);
+  if (saved === null) return;
+  document.getElementById(sliderId).value = saved;
+  document.getElementById(valId).textContent = saved + unit;
+}
+
+
+/* ==========================================================
+   ✅ 슬라이더 변경 시 — 화면 갱신 + 저장 + 미리보기
+========================================================== */
+function onSettingChange(){
+  const d = document.getElementById('sliderDensity').value;
+  const o = document.getElementById('sliderOpacity').value;
+
+  document.getElementById('valDensity').textContent = d + '%';
+  document.getElementById('valOpacity').textContent = o + '%';
+
+  localStorage.setItem(LS_DENSITY, d);
+  localStorage.setItem(LS_OPACITY, o);
+
+  // 슬라이더를 빠르게 움직여도 버벅이지 않도록 0.2초 후에 한 번만 갱신
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(updatePreview, 200);
+}
+
+
+/* ==========================================================
+   ✅ 로고 등록 / 삭제
+========================================================== */
+function setLogo(dataURL, name, save = true){
+  logoDataURL = dataURL;
+
+  document.getElementById('logoPreviewImg').src = dataURL;
+  document.getElementById('logoPreviewName').textContent = name;
+  document.getElementById('logoPreviewBox').style.display = 'flex';
+  document.getElementById('logoDrop').style.display = 'none';
+
+  const badge = document.getElementById('logoStatusBadge');
+  badge.textContent = '✅ 로고 저장됨';
+  badge.classList.add('saved');
+
+  if (save) {
+    try {
+      localStorage.setItem(LS_LOGO, dataURL);
+      localStorage.setItem(LS_LOGO_NM, name);
+    } catch(e) {
+      alert('⚠️ 로고 용량이 너무 커서 저장하지 못했어요.\n조금 더 작은 이미지를 사용해 주세요.\n(이번 세션에서는 그대로 사용 가능합니다)');
+    }
+  }
+
+  // 로고 Image 객체로 미리 로드해 둬요
+  const img = new Image();
+  img.onload = () => { logoImgObj = img; checkRunnable(); updatePreview(); };
+  img.onerror = () => { alert('로고 이미지를 읽지 못했어요. 다른 파일로 시도해 주세요.'); };
+  img.src = dataURL;
+}
+
+function removeSavedLogo(){
+  if (!confirm('저장된 로고를 삭제할까요?')) return;
+
+  logoDataURL = null;
+  logoImgObj  = null;
+  localStorage.removeItem(LS_LOGO);
+  localStorage.removeItem(LS_LOGO_NM);
+
+  document.getElementById('logoPreviewBox').style.display = 'none';
+  document.getElementById('logoDrop').style.display = '';
+
+  const badge = document.getElementById('logoStatusBadge');
+  badge.textContent = '로고 미등록';
+  badge.classList.remove('saved');
+
+  checkRunnable();
+  updatePreview();
+}
+
+function onBadgeClick(){
+  if (logoDataURL && confirm('로고를 교체할까요?')) {
+    document.getElementById('logoFileInput').click();
+  }
+}
+
+
+/* ==========================================================
+   ✅ 파일 선택 이벤트
+========================================================== */
+document.getElementById('logoFileInput').addEventListener('change', function(e){
+  const f = e.target.files[0];
+  if (f) readFileAsDataURL(f, d => setLogo(d, f.name, true));
+  this.value = '';
+});
+
+document.getElementById('photoFileInput').addEventListener('change', function(e){
+  addPhotos(Array.from(e.target.files));
+  this.value = '';
+});
+
+
+/* ==========================================================
+   ✅ 드래그앤드롭
+========================================================== */
+function setupDropZone(zone, handler){
+  if (!zone) return;
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    handler(e.dataTransfer.files);
+  });
+}
+
+function handleLogoDrop(files){
+  const f = Array.from(files).find(x => x.type.startsWith('image/'));
+  if (f) readFileAsDataURL(f, d => setLogo(d, f.name, true));
+}
+
+function handlePhotoDrop(files){
+  addPhotos(Array.from(files));
+}
+
+function readFileAsDataURL(file, cb){
+  const r = new FileReader();
+  r.onload = e => cb(e.target.result);
+  r.readAsDataURL(file);
+}
+
+
+/* ==========================================================
+   ✅ 사진 추가 / 삭제 / 목록 그리기
+========================================================== */
+function addPhotos(files){
+  const imgs = files.filter(f => f.type.startsWith('image/'));
+  if (imgs.length === 0) return;
+
+  let done = 0;
+  imgs.forEach(file => {
+    readFileAsDataURL(file, dataURL => {
+      const img = new Image();
+      img.onload = () => {
+        photos.push({ id: Date.now()+Math.random(), name: file.name, dataURL, imgObj: img });
+        if (++done === imgs.length) { renderPhotoGrid(); updatePreview(); }
+      };
+      img.onerror = () => { if (++done === imgs.length) { renderPhotoGrid(); updatePreview(); } };
+      img.src = dataURL;
+    });
+  });
+}
+
+function removePhoto(id, ev){
+  ev.stopPropagation();  // 썸네일 클릭(미리보기 변경)과 겹치지 않게
+  photos = photos.filter(p => p.id !== id);
+  if (previewIdx >= photos.length) previewIdx = 0;
+  renderPhotoGrid();
+  updatePreview();
+}
+
+function selectPreview(idx){
+  previewIdx = idx;
+  renderPhotoGrid();
+  updatePreview();
+}
+
+function renderPhotoGrid(){
+  const grid  = document.getElementById('photoGrid');
+  const badge = document.getElementById('photoCountBadge');
+  const drop  = document.getElementById('photoDrop');
+
+  grid.innerHTML = '';
+
+  if (photos.length === 0){
+    drop.style.display = '';
+    badge.style.display = 'none';
+    checkRunnable();
+    return;
+  }
+
+  drop.style.display = 'none';
+  badge.style.display = '';
+  badge.textContent = photos.length + '장';
+
+  photos.forEach((p, idx) => {
+    const th = document.createElement('div');
+    th.className = 'photo-thumb' + (idx === previewIdx ? ' selected' : '');
+    th.title = '클릭하면 미리보기에 표시돼요';
+    th.onclick = () => selectPreview(idx);
+
+    const im = document.createElement('img');
+    im.src = p.dataURL;
+    im.alt = p.name;
+
+    const rm = document.createElement('button');
+    rm.className = 'btn-remove-photo';
+    rm.textContent = '✕';
+    rm.onclick = (ev) => removePhoto(p.id, ev);
+
+    th.appendChild(im);
+    th.appendChild(rm);
+    grid.appendChild(th);
+  });
+
+  const add = document.createElement('button');
+  add.className = 'btn-add-photo';
+  add.innerHTML = '<span>＋</span><span class="add-label">추가</span>';
+  add.onclick = () => document.getElementById('photoFileInput').click();
+  grid.appendChild(add);
+
+  checkRunnable();
+}
+
+
+/* ==========================================================
+   ✅ 실행 가능 여부 판정
+========================================================== */
+function checkRunnable(){
+  const ready = !!logoImgObj && photos.length > 0;
+  document.getElementById('btnRun').disabled = !ready;
+
+  const hint = document.getElementById('hintMsg');
+  if (!logoImgObj && photos.length === 0)      hint.textContent = '로고와 사진을 모두 등록하면 버튼이 활성화됩니다';
+  else if (!logoImgObj)                        hint.textContent = '⬆️ 로고를 먼저 등록해 주세요';
+  else if (photos.length === 0)                hint.textContent = '⬆️ 사진을 추가해 주세요';
+  else                                         hint.textContent = photos.length + '장의 사진에 워터마크가 적용됩니다';
+}
+
+
+/* ==========================================================
+   ✅ ★핵심★ 워터마크 오버레이 만들기
+   사진의 가로세로 비율에 맞춰 로고를 확대/축소하고
+   넘치는 부분은 중앙 기준으로 잘라내요 (cover 방식)
+========================================================== */
+function buildOverlay(targetW, targetH){
+  const density = parseInt(document.getElementById('sliderDensity').value) / 100;
+  const opacity = parseInt(document.getElementById('sliderOpacity').value) / 100;
+
+  const LW = logoImgObj.naturalWidth  || logoImgObj.width;
+  const LH = logoImgObj.naturalHeight || logoImgObj.height;
+
+  /* --- 1) cover 계산: 사진을 꽉 채우는 최소 크기 구하기 --- */
+  const targetRatio = targetW / targetH;   // 사진 비율
+  const logoRatio   = LW / LH;             // 로고 비율
+
+  let drawW, drawH;
+  if (logoRatio > targetRatio){
+    // 로고가 더 가로로 김 → 높이를 맞추고 좌우를 잘라냄
+    drawH = targetH;
+    drawW = Math.round(LW * (targetH / LH));
+  } else {
+    // 로고가 더 세로로 김 → 너비를 맞추고 위아래를 잘라냄
+    drawW = targetW;
+    drawH = Math.round(LH * (targetW / LW));
+  }
+
+  // 중앙 정렬을 위한 시작 좌표 (음수 = 잘려나가는 부분)
+  const offsetX = Math.round((targetW - drawW) / 2);
+  const offsetY = Math.round((targetH - drawH) / 2);
+
+  /* --- 2) 오버레이 캔버스에 로고를 cover로 그리기 --- */
+  const ov  = document.createElement('canvas');
+  ov.width  = targetW;
+  ov.height = targetH;
+  const ovx = ov.getContext('2d');
+  ovx.drawImage(logoImgObj, offsetX, offsetY, drawW, drawH);
+
+  /* --- 3) 픽셀 보정: 진하기 + 투명도 적용 --- */
+  try {
+    const dat = ovx.getImageData(0, 0, targetW, targetH);
+    const d   = dat.data;
+
+    // 로고에서 가장 진한 부분 찾기 (연한 로고 자동 보정용)
+    let maxA = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > maxA) maxA = d[i];
+
+    // 최대 불투명도가 90% 미만이면 끌어올려요
+    const boost = (maxA > 0 && maxA < 230) ? (230 / maxA) : 1;
+
+    for (let i = 0; i < d.length; i += 4){
+      if (d[i+3] === 0) continue;              // 완전 투명 픽셀은 건너뛰기 (속도↑)
+      d[i]   = Math.round(d[i]   * density);   // R 어둡게
+      d[i+1] = Math.round(d[i+1] * density);   // G 어둡게
+      d[i+2] = Math.round(d[i+2] * density);   // B 어둡게
+      d[i+3] = Math.min(255, Math.round(d[i+3] * boost * opacity)); // 최종 불투명도
+    }
+    ovx.putImageData(dat, 0, 0);
+  } catch(e){
+    console.warn('오버레이 보정 실패(원본 사용):', e);
+  }
+
+  return ov;
+}
+
+
+/* ==========================================================
+   ✅ 사진 1장에 워터마크 합성해서 캔버스로 돌려주기
+========================================================== */
+function composePhoto(photo){
+  const W = photo.imgObj.naturalWidth  || photo.imgObj.width;
+  const H = photo.imgObj.naturalHeight || photo.imgObj.height;
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.drawImage(photo.imgObj, 0, 0, W, H);       // ① 원본 사진
+  ctx.drawImage(buildOverlay(W, H), 0, 0);        // ② 워터마크 덮기
+
+  return canvas;
+}
+
+
+/* ==========================================================
+   ✅ 미리보기 갱신
+   화면에 표시할 땐 가로 900px로 줄여서 빠르게 처리해요
+========================================================== */
+function updatePreview(){
+  const wrap   = document.getElementById('previewWrap');
+  const empty  = document.getElementById('previewEmpty');
+  const canvas = document.getElementById('previewCanvas');
+
+  if (!logoImgObj || photos.length === 0){
+    empty.style.display  = '';
+    canvas.style.display = 'none';
+    return;
+  }
+
+  const photo = photos[previewIdx] || photos[0];
+  const oW = photo.imgObj.naturalWidth  || photo.imgObj.width;
+  const oH = photo.imgObj.naturalHeight || photo.imgObj.height;
+
+  // 미리보기는 가로 900px 기준으로 축소 (원본이 더 작으면 그대로)
+  const MAXW = 900;
+  const scale = Math.min(1, MAXW / oW);
+  const W = Math.round(oW * scale);
+  const H = Math.round(oH * scale);
+
+  canvas.width  = W;
+  canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.drawImage(photo.imgObj, 0, 0, W, H);
+  ctx.drawImage(buildOverlay(W, H), 0, 0);
+
+  empty.style.display  = 'none';
+  canvas.style.display = '';
+}
+
+
+/* ==========================================================
+   ✅ 전체 사진 처리 + ZIP 다운로드
+========================================================== */
+async function runWatermark(){
+  document.getElementById('btnRun').disabled = true;
+
+  const wrap = document.getElementById('progressWrap');
+  const fill = document.getElementById('progressFill');
+  const text = document.getElementById('progressText');
+  wrap.style.display = 'block';
+  text.className = 'progress-text';
+
+  const zip = new JSZip();
+
+  try {
+    for (let i = 0; i < photos.length; i++){
+      fill.style.width = Math.round((i / photos.length) * 100) + '%';
+      text.textContent = `처리 중... (${i+1}/${photos.length}장)`;
+
+      const canvas = composePhoto(photos[i]);
+
+      // 캔버스 → JPEG Blob 변환
+      const blob = await new Promise((res, rej) => {
+        canvas.toBlob(b => b ? res(b) : rej(new Error('이미지 변환 실패')), 'image/jpeg', 0.92);
+      });
+
+      const baseName = photos[i].name.replace(/\.[^.]+$/, '');
+      zip.file('wm_' + baseName + '.jpg', blob);
+
+      // 브라우저가 멈추지 않도록 잠깐 양보
+      await new Promise(r => setTimeout(r, 0));
+    }
+
+    fill.style.width = '100%';
+    text.textContent = 'ZIP 파일 만드는 중...';
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'watermarked_photos.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    text.textContent = '✅ 완료! ZIP 파일이 다운로드되었습니다.';
+    text.classList.add('done');
+
+  } catch(err){
+    text.textContent = '❌ 오류: ' + err.message;
+    console.error(err);
+  }
+
+  setTimeout(() => {
+    wrap.style.display = 'none';
+    fill.style.width = '0%';
+    checkRunnable();
+  }, 3000);
+}
+</script>
+</body>
+</html>
