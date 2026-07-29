@@ -7,8 +7,78 @@
 
 <!-- ✅ JSZip: 여러 장을 ZIP으로 묶어 다운로드하기 위한 라이브러리 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<!-- ✅ PDF.js: PDF 각 페이지를 캔버스로 렌더링하기 위한 라이브러리 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- ✅ pdf-lib: 워터마크 합성된 이미지들을 다시 PDF로 묶기 위한 라이브러리 -->
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 
 <style>
+/* ==========================================================
+   ✅ 탭 (이미지 / PDF)
+========================================================== */
+.tab-bar{
+  display:flex;gap:0;margin-bottom:14px;
+  border:1px solid #F3C1D3;border-radius:10px;overflow:hidden;
+  background:#FFF8FA;
+}
+.tab-btn{
+  flex:1;padding:11px;border:none;background:none;
+  font-size:13px;font-weight:700;color:#C08090;cursor:pointer;
+  transition:all .15s;white-space:nowrap;
+}
+.tab-btn.active{background:#FF6B9D;color:#fff;}
+.tab-btn:not(.active):hover{background:#FFE0EC;color:#D6336C}
+
+/* 탭 패널 */
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* ==========================================================
+   ✅ PDF 전용 UI
+========================================================== */
+/* PDF 파일 목록 */
+.pdf-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.pdf-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:#FFF8FA;border:1px solid #F3C1D3;border-radius:8px;
+}
+.pdf-item .pdf-icon{font-size:22px;flex-shrink:0}
+.pdf-item .pdf-info{flex:1;min-width:0}
+.pdf-item .pdf-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdf-item .pdf-pages{font-size:11px;color:#C08090;margin-top:2px}
+.pdf-item .btn-rm-pdf{
+  background:none;border:1px solid #F3C1D3;border-radius:6px;
+  padding:4px 9px;font-size:12px;color:#D6336C;cursor:pointer;flex-shrink:0;
+}
+.pdf-item .btn-rm-pdf:hover{background:#FFE0EC}
+
+/* PDF 처리 진행 상태 (페이지별 세부 표시) */
+.pdf-progress-detail{
+  font-size:11px;color:#C08090;text-align:center;margin-top:4px;min-height:16px;
+}
+
+/* PDF 버튼 행 */
+.pdf-btn-row{display:flex;gap:10px;margin-top:4px}
+.btn-pdf-save{
+  flex:1;padding:13px;background:linear-gradient(135deg,#FF6B9D,#FF3D78);
+  color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;
+  box-shadow:0 4px 14px rgba(255,107,157,.3);transition:opacity .15s,transform .1s;
+}
+.btn-pdf-save:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+.btn-pdf-save:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.btn-pdf-print{
+  flex:1;padding:13px;background:linear-gradient(135deg,#845EF7,#5C7CFA);
+  color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;
+  box-shadow:0 4px 14px rgba(132,94,247,.25);transition:opacity .15s,transform .1s;
+}
+.btn-pdf-print:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
+.btn-pdf-print:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* PDF 진행 바 */
+.pdf-progress-wrap{display:none;margin-top:12px}
+
 /* ==========================================================
    ✅ 기본 설정 — 폰트/배경/여백 기준
    👉 배경색 바꾸려면 body의 background 값을 수정하세요
@@ -293,8 +363,8 @@ body{
   .header-title{font-size:15px}
   .header-sub{display:none}
   .card{padding:14px}
-  .btn-row{flex-direction:column}   /* 모바일에서는 버튼을 위아래로 배치 */
-  .btn-run,.btn-print{font-size:14px;padding:12px}
+  .btn-row,.pdf-btn-row{flex-direction:column}
+  .btn-run,.btn-print,.btn-pdf-save,.btn-pdf-print{font-size:13px;padding:11px}
   .slider-label{width:46px;font-size:11px}
   .slider-desc{padding-left:56px}
   .opt-label{width:100%;margin-bottom:4px}
@@ -318,6 +388,17 @@ body{
 </div>
 
 <div class="container">
+
+  <!-- ===== 탭 전환 바 ===== -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tabBtnImg" onclick="switchTab('img')">🖼️ 이미지</button>
+    <button class="tab-btn"        id="tabBtnPdf" onclick="switchTab('pdf')">📄 PDF</button>
+  </div>
+
+  <!-- ================================================
+       이미지 탭 패널
+  ================================================ -->
+  <div class="tab-panel active" id="panelImg">
 
   <!-- ===== 1. 로고 등록 ===== -->
   <div class="card">
@@ -452,6 +533,100 @@ body{
     <div class="progress-text" id="progressText">처리 중...</div>
   </div>
 
+  </div><!-- /panelImg -->
+
+  <!-- ================================================
+       PDF 탭 패널
+  ================================================ -->
+  <div class="tab-panel" id="panelPdf">
+
+    <!-- PDF용 로고 등록 (이미지 탭과 공유) -->
+    <div class="card">
+      <div class="card-title">
+        <span class="icon">🖼️</span> 로고 등록
+        <span style="font-size:11px;font-weight:400;color:#C08090">(이미지 탭과 공유)</span>
+      </div>
+      <div class="logo-preview-box" id="pdfLogoPreviewBox" style="display:none">
+        <img id="pdfLogoPreviewImg" src="" alt="저장된 로고" />
+        <div class="logo-preview-info">
+          <div class="logo-name" id="pdfLogoPreviewName">logo.png</div>
+          <div class="logo-hint">✅ 브라우저에 저장됨</div>
+        </div>
+      </div>
+      <div class="drop-zone" id="pdfLogoDrop" style="display:none;cursor:default;opacity:.5">
+        <span class="drop-icon">📁</span>
+        이미지 탭에서 로고를 먼저 등록해 주세요
+      </div>
+    </div>
+
+    <!-- PDF 워터마크 설정 (슬라이더 — 이미지 탭과 공유) -->
+    <div class="card">
+      <div class="card-title"><span class="icon">⚙️</span> 워터마크 설정 <span style="font-size:11px;font-weight:400;color:#C08090">(이미지 탭과 공유)</span></div>
+      <div class="slider-group">
+        <div class="slider-row">
+          <span class="slider-label">진하기</span>
+          <!-- 이미지 탭의 슬라이더 값을 그대로 읽어서 사용하므로 표시만 함 -->
+          <input type="range" id="pdfSliderDensity" min="10" max="100" value="50" step="5" oninput="syncPdfSlider('density')"/>
+          <span class="slider-value" id="pdfValDensity">50%</span>
+        </div>
+        <div class="slider-desc">숫자가 작을수록 로고가 진해져요</div>
+        <div class="slider-row">
+          <span class="slider-label">투명도</span>
+          <input type="range" id="pdfSliderOpacity" min="10" max="100" value="85" step="5" oninput="syncPdfSlider('opacity')"/>
+          <span class="slider-value" id="pdfValOpacity">85%</span>
+        </div>
+        <div class="slider-desc">전체적으로 얼마나 뚜렷하게 보일지</div>
+      </div>
+    </div>
+
+    <!-- PDF 렌더링 해상도 설정 -->
+    <div class="card">
+      <div class="card-title"><span class="icon">🔍</span> PDF 렌더링 품질</div>
+      <div class="opt-row">
+        <span class="opt-label">해상도</span>
+        <div class="opt-group">
+          <button class="opt-btn"        id="dpi150" onclick="setPdfDpi(150)">보통<br><span style="font-size:10px">150dpi</span></button>
+          <button class="opt-btn active" id="dpi200" onclick="setPdfDpi(200)">높음<br><span style="font-size:10px">200dpi</span></button>
+          <button class="opt-btn"        id="dpi300" onclick="setPdfDpi(300)">최고<br><span style="font-size:10px">300dpi</span></button>
+        </div>
+      </div>
+      <div class="opt-desc">높을수록 선명하지만 처리 시간이 길어지고 파일이 커져요.</div>
+    </div>
+
+    <!-- PDF 파일 업로드 -->
+    <div class="card">
+      <div class="card-title">
+        <span class="icon">📄</span> PDF 파일 첨부
+        <span class="count-badge" id="pdfCountBadge" style="display:none">0개</span>
+      </div>
+      <div class="drop-zone" id="pdfDrop" onclick="document.getElementById('pdfFileInput').click()">
+        <span class="drop-icon">📂</span>
+        PDF 파일을 드래그하거나 <strong>클릭</strong>해서 업로드<br/>
+        <span style="font-size:11px">여러 파일 동시 선택 가능</span>
+      </div>
+      <input type="file" id="pdfFileInput" accept="application/pdf" multiple style="display:none"/>
+      <div class="pdf-list" id="pdfList"></div>
+    </div>
+
+    <!-- PDF 실행 버튼 -->
+    <div class="pdf-btn-row">
+      <button class="btn-pdf-save"  id="btnPdfSave"  disabled onclick="runPdfWatermark('save')">
+        💾 PDF 저장
+      </button>
+      <button class="btn-pdf-print" id="btnPdfPrint" disabled onclick="runPdfWatermark('print')">
+        🖨️ 인쇄
+      </button>
+    </div>
+    <div class="hint-msg" id="pdfHintMsg">로고와 PDF를 모두 등록하면 버튼이 활성화됩니다</div>
+
+    <div class="pdf-progress-wrap" id="pdfProgressWrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="pdfProgressFill"></div></div>
+      <div class="progress-text" id="pdfProgressText">처리 중...</div>
+      <div class="pdf-progress-detail" id="pdfProgressDetail"></div>
+    </div>
+
+  </div><!-- /panelPdf -->
+
 </div>
 
 <script>
@@ -464,8 +639,13 @@ let photos      = [];     // [{id, name, dataURL, imgObj}]
 let previewIdx  = 0;      // 미리보기에 표시할 사진 번호
 let previewTimer = null;  // 슬라이더 조작 시 갱신 지연용
 
-let outFormat = 'jpg';    // 'jpg' 또는 'png'
-let resizeBasis = 'width';// 'width'(가로 기준) 또는 'height'(세로 기준)
+let outFormat   = 'jpg';    // 'jpg' 또는 'png'
+let resizeBasis = 'width';  // 'width' 또는 'height'
+
+// PDF 전용 변수
+let pdfFiles    = [];       // [{id, name, arrayBuffer}] — 업로드된 PDF 파일들
+let pdfDpi      = 200;      // 렌더링 해상도 (150/200/300 dpi)
+let currentTab  = 'img';    // 현재 활성 탭 ('img' 또는 'pdf')
 
 /* localStorage 저장 키 */
 const LS_LOGO    = 'wm_logo_data';
@@ -482,11 +662,25 @@ const LS_TARGET  = 'wm_resize_target';
    ✅ 페이지 최초 로드 — 저장된 설정 복원
 ========================================================== */
 window.addEventListener('load', () => {
+  // ✅ PDF.js workerSrc 설정 (CDN Worker 파일 경로)
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
   const savedLogo = localStorage.getItem(LS_LOGO);
   if (savedLogo) setLogo(savedLogo, localStorage.getItem(LS_LOGO_NM) || 'logo.png', false);
 
   restoreSlider('sliderDensity', 'valDensity', LS_DENSITY, '%');
   restoreSlider('sliderOpacity', 'valOpacity', LS_OPACITY, '%');
+
+  // PDF 탭 슬라이더도 같은 값으로 초기 동기화
+  const d = document.getElementById('sliderDensity').value;
+  const o = document.getElementById('sliderOpacity').value;
+  document.getElementById('pdfSliderDensity').value     = d;
+  document.getElementById('pdfValDensity').textContent  = d + '%';
+  document.getElementById('pdfSliderOpacity').value     = o;
+  document.getElementById('pdfValOpacity').textContent  = o + '%';
 
   // 저장 형식 복원
   const savedFmt = localStorage.getItem(LS_FORMAT);
@@ -506,6 +700,12 @@ window.addEventListener('load', () => {
 
   setupDropZone(document.getElementById('logoDrop'),  handleLogoDrop);
   setupDropZone(document.getElementById('photoDrop'), handlePhotoDrop);
+  setupDropZone(document.getElementById('pdfDrop'),   handlePdfDrop);
+
+  document.getElementById('pdfFileInput').addEventListener('change', function(e){
+    addPdfFiles(Array.from(e.target.files));
+    this.value = '';
+  });
 });
 
 function restoreSlider(sliderId, valId, lsKey, unit){
@@ -610,6 +810,12 @@ function setLogo(dataURL, name, save = true){
   badge.textContent = '✅ 로고 저장됨';
   badge.classList.add('saved');
 
+  // ✅ PDF 탭 로고 미리보기도 함께 업데이트
+  document.getElementById('pdfLogoPreviewImg').src          = dataURL;
+  document.getElementById('pdfLogoPreviewName').textContent = name;
+  document.getElementById('pdfLogoPreviewBox').style.display = 'flex';
+  document.getElementById('pdfLogoDrop').style.display       = 'none';
+
   if (save){
     try {
       localStorage.setItem(LS_LOGO, dataURL);
@@ -635,6 +841,8 @@ function removeSavedLogo(){
 
   document.getElementById('logoPreviewBox').style.display = 'none';
   document.getElementById('logoDrop').style.display = '';
+  document.getElementById('pdfLogoPreviewBox').style.display = 'none';
+  document.getElementById('pdfLogoDrop').style.display       = '';
 
   const badge = document.getElementById('logoStatusBadge');
   badge.textContent = '로고 미등록';
@@ -959,6 +1167,12 @@ function updatePreview(){
   const canvas = document.getElementById('previewCanvas');
   const info   = document.getElementById('previewInfo');
 
+  // ✅ 이미지 탭이 아니면 미리보기 갱신 불필요
+  if (currentTab !== 'img'){
+    return;
+  }
+
+  // ✅ 로고 또는 사진이 없으면 빈 상태 표시
   if (!logoImgObj || photos.length === 0){
     empty.style.display  = '';
     canvas.style.display = 'none';
@@ -966,9 +1180,21 @@ function updatePreview(){
     return;
   }
 
+  // ✅ logoImgObj가 완전히 로드됐는지 확인 (width가 0이면 아직 로드 중)
+  const lW = logoImgObj.naturalWidth || logoImgObj.width;
+  const lH = logoImgObj.naturalHeight || logoImgObj.height;
+  if (!lW || !lH){
+    // 아직 로드 중 — 짧게 대기 후 재시도
+    setTimeout(updatePreview, 100);
+    return;
+  }
+
   const photo = photos[previewIdx] || photos[0];
+  if (!photo || !photo.imgObj) return;
+
   const oW = photo.imgObj.naturalWidth  || photo.imgObj.width;
   const oH = photo.imgObj.naturalHeight || photo.imgObj.height;
+  if (!oW || !oH) return;
 
   // 실제 저장될 크기
   const outSize = calcOutputSize(oW, oH);
@@ -983,20 +1209,23 @@ function updatePreview(){
   canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // 미리보기에도 형식에 맞는 배경 처리 적용
   ctx.clearRect(0, 0, W, H);
   if (outFormat === 'jpg'){
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, W, H);
   }
 
-  drawHighQuality(ctx, photo.imgObj, W, H);
-  ctx.drawImage(buildOverlay(W, H), 0, 0);
+  try {
+    drawHighQuality(ctx, photo.imgObj, W, H);
+    ctx.drawImage(buildOverlay(W, H), 0, 0);
+  } catch(e){
+    console.warn('미리보기 렌더링 오류:', e);
+    return;
+  }
 
   empty.style.display  = 'none';
   canvas.style.display = '';
 
-  // 하단 정보 표시: 원본 → 저장 크기
   const changed = (outSize.w !== oW || outSize.h !== oH);
   info.innerHTML =
     `원본 ${oW} × ${oH}` +
@@ -1214,6 +1443,351 @@ ${imgTags}
     fill.style.width = '0%';
     checkRunnable();
   }, 3000);
+}
+
+
+/* ==========================================================
+   ✅ 탭 전환
+========================================================== */
+function switchTab(tab){
+  currentTab = tab;
+  document.getElementById('tabBtnImg').classList.toggle('active', tab === 'img');
+  document.getElementById('tabBtnPdf').classList.toggle('active', tab === 'pdf');
+  document.getElementById('panelImg').classList.toggle('active', tab === 'img');
+  document.getElementById('panelPdf').classList.toggle('active', tab === 'pdf');
+  // 이미지 탭으로 돌아올 때 미리보기 즉시 갱신
+  if (tab === 'img') updatePreview();
+}
+
+
+/* ==========================================================
+   ✅ PDF 탭 슬라이더 ↔ 이미지 탭 슬라이더 양방향 동기화
+   어느 탭에서 바꿔도 서로 같은 값을 유지해요
+========================================================== */
+function syncPdfSlider(key){
+  const capKey = key.charAt(0).toUpperCase() + key.slice(1);
+  const pdfVal = document.getElementById('pdfSlider' + capKey).value;
+  // PDF 슬라이더 표시 갱신
+  document.getElementById('pdfVal' + capKey).textContent = pdfVal + '%';
+  // 이미지 탭 슬라이더도 같은 값으로 맞추기
+  document.getElementById('slider' + capKey).value = pdfVal;
+  document.getElementById('val'    + capKey).textContent = pdfVal + '%';
+  // localStorage 저장
+  localStorage.setItem('wm_' + key, pdfVal);
+  // 이미지 미리보기 갱신
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(updatePreview, 200);
+}
+
+
+/* ==========================================================
+   ✅ PDF 렌더링 DPI 설정
+========================================================== */
+function setPdfDpi(dpi){
+  pdfDpi = dpi;
+  [150,200,300].forEach(v =>
+    document.getElementById('dpi'+v).classList.toggle('active', v === dpi)
+  );
+}
+
+
+/* ==========================================================
+   ✅ PDF 파일 추가 (드롭 or 파일 선택)
+========================================================== */
+function handlePdfDrop(files){
+  addPdfFiles(Array.from(files).filter(f => f.type === 'application/pdf'));
+}
+
+function addPdfFiles(files){
+  if (!files.length) return;
+  let done = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = async e => {
+      const ab = e.target.result;
+      // PDF 페이지 수 미리 파악 (PDF.js로 로드)
+      let pageCount = '?';
+      try {
+        const pdf = await pdfjsLib.getDocument({ data: ab.slice(0) }).promise;
+        pageCount = pdf.numPages;
+      } catch(_){}
+
+      pdfFiles.push({ id: Date.now()+Math.random(), name: file.name, arrayBuffer: ab, pageCount });
+      if (++done === files.length) renderPdfList();
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function removePdfFile(id){
+  pdfFiles = pdfFiles.filter(f => f.id !== id);
+  renderPdfList();
+}
+
+function renderPdfList(){
+  const list  = document.getElementById('pdfList');
+  const badge = document.getElementById('pdfCountBadge');
+  const drop  = document.getElementById('pdfDrop');
+  list.innerHTML = '';
+
+  if (pdfFiles.length === 0){
+    drop.style.display = '';
+    badge.style.display = 'none';
+    checkPdfRunnable();
+    return;
+  }
+
+  drop.style.display  = 'none';
+  badge.style.display = '';
+  badge.textContent   = pdfFiles.length + '개';
+
+  pdfFiles.forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'pdf-item';
+    item.innerHTML = `
+      <span class="pdf-icon">📄</span>
+      <div class="pdf-info">
+        <div class="pdf-name">${f.name}</div>
+        <div class="pdf-pages">${f.pageCount}페이지</div>
+      </div>
+      <button class="btn-rm-pdf">✕ 삭제</button>`;
+    item.querySelector('.btn-rm-pdf').onclick = () => removePdfFile(f.id);
+    list.appendChild(item);
+  });
+
+  // 파일이 있으면 드롭존 대신 목록 아래 작은 추가 버튼 유지
+  const addMore = document.createElement('div');
+  addMore.style.cssText = 'text-align:center;margin-top:6px';
+  addMore.innerHTML = `<button onclick="document.getElementById('pdfFileInput').click()"
+    style="background:none;border:1px solid #F3C1D3;border-radius:7px;padding:5px 14px;
+           font-size:12px;color:#D6336C;cursor:pointer">＋ PDF 추가</button>`;
+  list.appendChild(addMore);
+
+  checkPdfRunnable();
+}
+
+function checkPdfRunnable(){
+  const ready = !!logoImgObj && pdfFiles.length > 0;
+  document.getElementById('btnPdfSave').disabled  = !ready;
+  document.getElementById('btnPdfPrint').disabled = !ready;
+  const hint = document.getElementById('pdfHintMsg');
+  if (!logoImgObj && pdfFiles.length === 0) hint.textContent = '로고와 PDF를 모두 등록하면 버튼이 활성화됩니다';
+  else if (!logoImgObj)                     hint.textContent = '⬆️ 이미지 탭에서 로고를 먼저 등록해 주세요';
+  else if (pdfFiles.length === 0)           hint.textContent = '⬆️ PDF 파일을 추가해 주세요';
+  else                                      hint.textContent = `${pdfFiles.length}개 PDF에 워터마크가 적용됩니다`;
+}
+
+
+/* ==========================================================
+   ✅ PDF 1개 처리 핵심 함수
+   PDF.js로 각 페이지를 캔버스에 렌더링하고
+   기존 buildOverlay + composePhoto 로직으로 워터마크를 합성한 뒤
+   pdf-lib으로 다시 PDF 하나로 묶어서 반환해요
+========================================================== */
+async function processPdf(pdfFile, onPageProgress){
+  const scale = pdfDpi / 72; // PDF 기본 단위가 72dpi이므로 배율로 변환
+
+  // 1) PDF.js로 PDF 로드
+  const pdfDoc = await pdfjsLib.getDocument({ data: pdfFile.arrayBuffer.slice(0) }).promise;
+  const totalPages = pdfDoc.numPages;
+
+  // 2) pdf-lib으로 새 PDF 생성 (워터마크 합성된 이미지를 페이지로 추가)
+  const { PDFDocument } = PDFLib;
+  const outPdf = await PDFDocument.create();
+
+  for (let pageNum = 1; pageNum <= totalPages; pageNum++){
+    if (onPageProgress) onPageProgress(pageNum, totalPages);
+
+    // PDF 페이지 → 캔버스 렌더링
+    const page    = await pdfDoc.getPage(pageNum);
+    const viewport = page.getViewport({ scale });
+    const canvas  = document.createElement('canvas');
+    canvas.width  = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    const ctx = canvas.getContext('2d');
+
+    // ✅ JPG 저장이라도 PDF는 흰 배경을 먼저 칠해야 투명 요소가 검게 나오지 않아요
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    // 워터마크 합성 (기존 buildOverlay 함수 그대로 사용)
+    ctx.drawImage(buildOverlay(canvas.width, canvas.height), 0, 0);
+
+    // 캔버스 → JPEG DataURL → pdf-lib에 삽입
+    const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+    const jpegBytes   = await fetch(jpegDataUrl).then(r => r.arrayBuffer());
+    const jpegImage   = await outPdf.embedJpg(jpegBytes);
+
+    // 원본 페이지와 동일한 크기로 페이지 추가
+    const pdfPage = outPdf.addPage([canvas.width / scale * (pdfDpi/72), canvas.height / scale * (pdfDpi/72)]);
+    // 실제로는 픽셀 크기를 pt 단위로 사용 (72pt = 1인치)
+    pdfPage.setSize(canvas.width, canvas.height);
+    pdfPage.drawImage(jpegImage, { x:0, y:0, width:canvas.width, height:canvas.height });
+
+    // 브라우저 멈춤 방지
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  // 3) PDF 바이트 배열 반환
+  return await outPdf.save();
+}
+
+
+/* ==========================================================
+   ✅ PDF 워터마크 실행 (저장 or 인쇄)
+========================================================== */
+async function runPdfWatermark(mode){
+  document.getElementById('btnPdfSave').disabled  = true;
+  document.getElementById('btnPdfPrint').disabled = true;
+
+  const wrap   = document.getElementById('pdfProgressWrap');
+  const fill   = document.getElementById('pdfProgressFill');
+  const text   = document.getElementById('pdfProgressText');
+  const detail = document.getElementById('pdfProgressDetail');
+  wrap.style.display  = 'block';
+  text.className      = 'progress-text';
+  detail.textContent  = '';
+
+  try {
+    if (mode === 'save'){
+      // ── 저장 모드 ─────────────────────────────────────────
+      for (let fi = 0; fi < pdfFiles.length; fi++){
+        const pf = pdfFiles[fi];
+        text.textContent = `처리 중... PDF ${fi+1}/${pdfFiles.length} — ${pf.name}`;
+
+        const pdfBytes = await processPdf(pf, (pg, total) => {
+          fill.style.width   = Math.round(((fi + pg/total) / pdfFiles.length) * 100) + '%';
+          detail.textContent = `페이지 ${pg} / ${total}`;
+        });
+
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'wm_' + pf.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+
+      fill.style.width = '100%';
+      text.textContent = `✅ 완료! ${pdfFiles.length}개 PDF가 다운로드되었습니다.`;
+
+    } else {
+      // ── 인쇄 모드 ─────────────────────────────────────────
+      text.textContent = '인쇄 창 준비 중...';
+
+      /* ✅ 핵심 수정: iframe+PDF DataURL 방식은 부모 창만 인쇄되는 브라우저 버그가 있음
+         → PDF를 다시 페이지별로 이미지로 변환해서 <img> 태그로 나열한 뒤 인쇄
+         이렇게 하면 모든 페이지가 한 번에 정확하게 출력됩니다 */
+
+      // 각 PDF를 페이지 이미지 배열로 변환
+      const allPageImgs = []; // [{dataURL, pdfName, pageNum}]
+
+      for (let fi = 0; fi < pdfFiles.length; fi++){
+        const pf = pdfFiles[fi];
+        text.textContent = `인쇄 이미지 렌더링 중... PDF ${fi+1}/${pdfFiles.length}`;
+
+        const scale = pdfDpi / 72;
+        const pdfDoc = await pdfjsLib.getDocument({ data: pf.arrayBuffer.slice(0) }).promise;
+        const totalPages = pdfDoc.numPages;
+
+        for (let pageNum = 1; pageNum <= totalPages; pageNum++){
+          detail.textContent = `${pf.name} — 페이지 ${pageNum}/${totalPages}`;
+
+          const page     = await pdfDoc.getPage(pageNum);
+          const viewport = page.getViewport({ scale });
+          const canvas   = document.createElement('canvas');
+          canvas.width   = Math.round(viewport.width);
+          canvas.height  = Math.round(viewport.height);
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          ctx.drawImage(buildOverlay(canvas.width, canvas.height), 0, 0);
+
+          // 캔버스를 DataURL로 변환
+          const dataURL = canvas.toDataURL('image/jpeg', 0.92);
+          allPageImgs.push({ dataURL, pdfName: pf.name, pageNum, totalPages });
+
+          await new Promise(r => setTimeout(r, 0));
+        }
+      }
+
+      // 새 창에 모든 페이지를 <img>로 나열
+      const printWin = window.open('', '_blank', 'width=960,height=760');
+      if (!printWin){
+        alert('팝업이 차단됐어요!\n브라우저에서 팝업을 허용한 뒤 다시 시도해 주세요.');
+        return;
+      }
+
+      const imgTags = allPageImgs.map(p =>
+        `<div class="ppage"><img src="${p.dataURL}" /></div>`
+      ).join('\n');
+
+      printWin.document.write(`<!DOCTYPE html>
+<html><head><meta charset="UTF-8"><title>PDF 인쇄</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f0f0f0}
+/* 화면 미리보기 */
+.ppage{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;min-height:100vh;padding:20px;background:#f0f0f0;
+}
+.ppage img{max-width:100%;height:auto;display:block;box-shadow:0 2px 12px rgba(0,0,0,.2)}
+/* 인쇄 시: 각 페이지를 정확히 한 장씩 */
+@media print{
+  @page{margin:0;size:auto}
+  body{background:#fff}
+  .ppage{
+    width:100vw;height:100vh;padding:0;background:#fff;
+    display:flex;align-items:center;justify-content:center;
+    page-break-after:always;break-after:page;
+    overflow:hidden;
+  }
+  .ppage:last-child{page-break-after:avoid;break-after:avoid}
+  .ppage img{max-width:100vw;max-height:100vh;width:auto;height:auto;object-fit:contain}
+}
+</style></head>
+<body>
+${imgTags}
+<script>
+var imgs = document.querySelectorAll('img');
+var loaded = 0;
+function tryPrint(){
+  loaded++;
+  if(loaded >= imgs.length) setTimeout(function(){ window.print(); }, 500);
+}
+if(imgs.length === 0){ setTimeout(function(){ window.print(); }, 500); }
+else { imgs.forEach(function(img){
+  if(img.complete) tryPrint();
+  else { img.addEventListener('load', tryPrint); img.addEventListener('error', tryPrint); }
+}); }
+<\/script>
+</body></html>`);
+      printWin.document.close();
+
+      text.textContent = `✅ 인쇄 창이 열렸습니다! (총 ${allPageImgs.length}페이지)`;
+    }
+
+    text.classList.add('done');
+    detail.textContent = '';
+
+  } catch(err){
+    text.textContent   = '❌ 오류: ' + err.message;
+    detail.textContent = '자세한 내용은 브라우저 콘솔(F12)을 확인해 주세요';
+    console.error(err);
+  }
+
+  setTimeout(() => {
+    wrap.style.display = 'none';
+    fill.style.width   = '0%';
+    checkPdfRunnable();
+  }, 3500);
 }
 </script>
 </body>
