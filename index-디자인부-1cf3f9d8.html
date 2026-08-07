@@ -1953,10 +1953,17 @@ function renderTitleAutocomplete(idx, query){
      "지난번에 몇 %까지 했는지 기억이 안 나는" 문제를 해결하기 위해 씀.
    - 검색 범위는 loadMonthData()가 불러와둔 전체 범위(loadedHistoryStart ~ 이번 달 끝)이고,
      그 안에서 날짜 순서대로 훑어서 "가장 최근에 입력된 값"을 찾음(더 최근 날짜가 있으면 그걸로 덮어씀).
+   ★ [버그수정] 예전엔 검색 범위가 "이번 달 끝"까지라서, 지금 편집 중인 날짜보다 나중 날짜에
+     같은 프로젝트·단계로 다른 %가 입력돼 있으면(예: 다음주에 미리 적어둔 계획) 그 미래 값이
+     "더 최근"이라고 잘못 판단되어 가져와지는 문제가 있었습니다.
+     (예: 오늘 90%인데 단계를 껐다 켜면 다음주에 미리 적어둔 100%로 바뀌어버림)
+     그래서 검색 상한을 "이번 달 끝"이 아니라 "지금 편집 중인 날짜(uptoDateStr)까지"로 제한합니다.
    ============================================================ */
-function findLastKnownStageProgress(empId, project, stageName){
+function findLastKnownStageProgress(empId, project, stageName, uptoDateStr){
   if(!project || !stageName || !loadedHistoryStart) return null;
-  const rangeEnd = weekEnd(startOfWeek(monthLastDate(currentYear, currentMonth)));
+  const rangeEndFull = weekEnd(startOfWeek(monthLastDate(currentYear, currentMonth)));
+  // uptoDateStr(편집 중인 날짜)이 있으면 그 날짜를 넘지 않도록 상한을 잡음
+  const rangeEnd = uptoDateStr ? new Date(uptoDateStr + 'T00:00:00') : rangeEndFull;
   const totalDays = Math.round((rangeEnd - loadedHistoryStart) / 86400000) + 1;
   let found = null;
   for(let i=0; i<totalDays; i++){
@@ -2115,12 +2122,27 @@ function openDayModal(emp, date){
   function renderStagePicker(idx){
     const wrap = document.getElementById(`stagePicker-${idx}`);
     if(!wrap) return;
-    const selected = items[idx].stages || [];
     const project = (items[idx].title || '').trim();
     // 프로젝트가 있으면 그 프로젝트의 "진행 구성"에 등록된 단계만, 없으면(자유 메모) 부서 전체 목록을 보여줌
     const availableStages = project
       ? ((projectOptions.projectStages && projectOptions.projectStages[project]) || [])
       : projectOptions.stages;
+
+    // ★ [버그수정] "진행 구성"에서 나중에 제외된 단계가, 예전에 저장된 DB 행에는 여전히 남아있어서
+    // 이 항목을 다시 열 때마다 "유령 단계"로 계속 딸려 나오는 문제가 있었습니다(버튼도 안 보이는데
+    // 진행률 입력칸만 남아서 지울 방법도 없었음). 여기서 화면을 그릴 때마다 "지금 프로젝트에
+    // 실제로 등록된 단계"만 남기고, 등록에서 빠진 유령 단계는 stages/stageProgress에서 자동으로 정리합니다.
+    if(items[idx].stages && items[idx].stages.length > 0){
+      const ghostStages = items[idx].stages.filter(s => !availableStages.includes(s));
+      if(ghostStages.length > 0){
+        items[idx].stages = items[idx].stages.filter(s => availableStages.includes(s));
+        ghostStages.forEach(s => {
+          delete items[idx].stageProgress[s];
+          delete items[idx]._autoFilledStages[s];
+        });
+      }
+    }
+    const selected = items[idx].stages || [];
 
     if(availableStages.length === 0){
       wrap.innerHTML = project
@@ -2152,7 +2174,7 @@ function openDayModal(emp, date){
           const cur2 = items[idx].stageProgress[name];
           if(cur2 === null || cur2 === undefined || cur2 === '' || items[idx]._autoFilledStages[name]){
             const project = (items[idx].title || '').trim();
-            const lastKnown = findLastKnownStageProgress(emp.id, project, name);
+            const lastKnown = findLastKnownStageProgress(emp.id, project, name, dateStr);
             if(lastKnown !== null){
               items[idx].stageProgress[name] = lastKnown;
               items[idx]._autoFilledStages[name] = true;
@@ -2178,14 +2200,30 @@ function openDayModal(emp, date){
     if(!wrap) return;
     const stages = items[idx].stages || [];
     const stageProgress = items[idx].stageProgress || {};
+    const project = (items[idx].title || '').trim();
+    // 이 프로젝트에 등록된 단계가 있는지 확인 (있으면 반드시 단계 체크 후에만 진행률 입력 가능하게 함)
+    const availableStages = project
+      ? ((projectOptions.projectStages && projectOptions.projectStages[project]) || [])
+      : [];
 
     if(stages.length === 0){
-      wrap.innerHTML = `
-        <div class="field" style="max-width:160px;margin-bottom:0;">
-          <label>진행률 (%) <span style="font-weight:400;color:var(--muted);">(선택)</span></label>
-          <input type="number" min="0" max="100" data-field="progress" data-idx="${idx}"
-                 value="${items[idx].progress ?? ''}" placeholder="선택입력" />
-        </div>`;
+      if(availableStages.length > 0){
+        // ★ [추가됨] 이 프로젝트에 단계가 등록돼 있는데 오늘 하나도 안 골랐으면,
+        // 자유 진행률 입력칸을 아예 안 보여주고 안내 문구만 표시함
+        // (단계별 진행률 관리를 쓰는 프로젝트는 반드시 "위에서 작업단계를 먼저 선택"해야
+        //  그 단계 이름이 붙은 진행률 칸이 생기도록 강제 - 단계 없이 숫자만 적는 걸 막기 위함)
+        // 입력칸이 안 보이는 동안 예전에 남아있던 값이 몰래 저장되지 않도록 함께 비움
+        items[idx].progress = null;
+        wrap.innerHTML = `<span class="hint-text">위 "프로젝트 진행 단계"에서 오늘 작업한 단계를 먼저 선택하면, 그 단계의 진행률 입력칸이 여기 생깁니다.</span>`;
+      } else {
+        // 프로젝트가 없거나(자유 메모), 등록된 단계 자체가 없는 프로젝트는 예전처럼 자유 진행률 칸 허용
+        wrap.innerHTML = `
+          <div class="field" style="max-width:160px;margin-bottom:0;">
+            <label>진행률 (%) <span style="font-weight:400;color:var(--muted);">(선택)</span></label>
+            <input type="number" min="0" max="100" data-field="progress" data-idx="${idx}"
+                   value="${items[idx].progress ?? ''}" placeholder="선택입력" />
+          </div>`;
+      }
     } else {
       wrap.innerHTML = stages.map(s => {
         const v = (stageProgress[s] !== null && stageProgress[s] !== undefined) ? stageProgress[s] : '';
