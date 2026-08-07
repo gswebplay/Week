@@ -721,6 +721,37 @@
   }
   .toast.show{ opacity:1; } /* JS가 이 클래스를 붙였다 뗐다 하면서 알림을 보였다/숨겼다 함 */
 
+  /* ==============================================================
+     저장 전 검증 팝업 - 화면 정중앙에 뜨는 확인 알림
+     (alert()는 브라우저 기본창이라 위치를 못 바꿔서, 이 앱 디자인에 맞는
+     커스텀 팝업으로 대체함. 기존 모달과는 별개의 독립 오버레이라
+     "하루 업무 상세" 팝업이 이미 열려있어도 그 위에 겹쳐서 뜨고, 확인을 누르면
+     이것만 닫히고 원래 팝업은 그대로 남아있음)
+  ============================================================== */
+  .validate-alert-overlay{
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.45); z-index:3000;
+    align-items:center; justify-content:center;
+  }
+  .validate-alert-overlay.open{ display:flex; }
+  .validate-alert-box{
+    background:#fff; border-radius:12px; padding:24px 26px;
+    max-width:360px; width:90%;
+    box-shadow:0 12px 40px rgba(0,0,0,.25);
+    text-align:center;
+  }
+  .validate-alert-box .icon{ font-size:28px; margin-bottom:10px; }
+  .validate-alert-box .msg{
+    font-size:14px; color:var(--ink); line-height:1.5; margin-bottom:18px;
+    white-space:pre-wrap;
+  }
+  .validate-alert-box button{
+    padding:9px 28px; border-radius:8px; border:none;
+    background:var(--blueprint); color:#fff; font-size:13px; font-weight:600;
+    cursor:pointer; font-family:var(--sans);
+  }
+  .validate-alert-box button:hover{ background:var(--blueprint-strong); }
+
   /* 화면 폭이 640px 이하(휴대폰처럼 좁은 화면)일 때만 적용되는 스타일 - 좁은 화면에 맞게 살짝 축소 */
   @media (max-width:640px){
     .header-row{ align-items:flex-start; }
@@ -863,6 +894,15 @@
 
 <!-- 팝업창(모달)이 뜰 때 내용이 채워지는 빈 그릇 -->
 <div id="modalRoot"></div>
+
+<!-- 저장 전 검증 팝업 - 화면 정중앙 -->
+<div class="validate-alert-overlay" id="validateAlertOverlay">
+  <div class="validate-alert-box">
+    <div class="icon">⚠️</div>
+    <div class="msg" id="validateAlertMsg"></div>
+    <button type="button" id="validateAlertOkBtn">확인</button>
+  </div>
+</div>
 <!-- 하단에 잠깐 뜨는 알림 메시지가 표시되는 자리 -->
 <div class="toast" id="toast"></div>
 
@@ -1014,6 +1054,23 @@ function itemDisplayLabel(it){
 // [수정됨] "연차/휴가" 같은 키워드를 검사할 때, 프로젝트/단계/내용 전부에서 찾도록 합쳐주는 함수
 function itemSearchText(it){
   return `${it.title || ''} ${it.stage || ''} ${it.content || ''}`;
+}
+
+// ★ [추가됨] alert() 대신 쓰는, 화면 정중앙에 뜨는 검증용 팝업.
+// "확인"을 누르거나 배경을 클릭하면 닫히고, 이미 열려있던 "하루 업무 상세" 팝업은
+// 그대로 유지됨(이 팝업은 그 위에 겹쳐서 뜨는 완전히 별도의 오버레이라서).
+function showValidateAlert(msg){
+  const overlay = document.getElementById('validateAlertOverlay');
+  document.getElementById('validateAlertMsg').textContent = msg;
+  overlay.classList.add('open');
+
+  const okBtn = document.getElementById('validateAlertOkBtn');
+  const close = () => overlay.classList.remove('open');
+  // 이전에 붙었던 이벤트가 중복으로 쌓이지 않도록, 버튼을 복제해서 이벤트를 초기화한 뒤 새로 붙임
+  const newOkBtn = okBtn.cloneNode(true);
+  okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+  newOkBtn.addEventListener('click', close);
+  overlay.onclick = (e) => { if(e.target === overlay) close(); };
 }
 
 // 화면 하단에 잠깐 뜨는 알림 메시지(토스트)를 보여주는 함수
@@ -2106,11 +2163,56 @@ function openDayModal(emp, date){
       });
       document.getElementById('cancelDayBtn').addEventListener('click', close);
       document.getElementById('saveDayBtn').addEventListener('click', async () => {
+        // ★ [추가됨] 저장하기 전에 "단계를 등록해놓고 오늘 하나도 안 고른 경우"와
+        // "단계는 골랐는데 그 단계의 진행률을 안 적은 경우"를 검사해서, 문제가 있으면
+        // 저장을 막고 어떤 항목이 문제인지 알려줌.
+        const missing = findMissingStageOrProgress();
+        if(missing){
+          if(missing.type === 'stage'){
+            showValidateAlert(`"${missing.title}" 항목\n진행단계를 선택해주세요.`);
+          } else {
+            showValidateAlert(`"${missing.title}" 항목\n"${missing.stage}" 진행률을 입력해주세요.`);
+          }
+          return; // 저장하지 않고 팝업을 계속 열어둠
+        }
         await persistDay();
         close();
       });
     }
   });
+
+  // ★ [추가됨] 저장 전 검사 함수.
+  // - 프로젝트에 등록된 진행 단계가 있는데(availableStages.length > 0) 오늘 하나도 선택 안 했으면
+  //   { type:'stage', title } 반환
+  // - 선택한 단계 중 진행률을 안 적은 게 있으면 { type:'progress', title, stage } 반환
+  // - 문제 없으면 null 반환
+  // 완전히 빈 항목(제목/내용/단계/진행률 전부 없음)은 어차피 저장 대상이 아니므로 검사하지 않음
+  function findMissingStageOrProgress(){
+    for(const it of items){
+      const title = (it.title || '').trim();
+      const content = (it.content || '').trim();
+      const isNonEmpty = title !== '' || content !== ''
+        || (it.stages && it.stages.length > 0)
+        || (it.progress !== null && it.progress !== undefined);
+      if(!isNonEmpty) continue; // 완전히 빈 항목(입력 안 한 여분 카드)은 검사 제외
+
+      if(title){
+        const availableStages = (projectOptions.projectStages && projectOptions.projectStages[title]) || [];
+        if(availableStages.length > 0 && (!it.stages || it.stages.length === 0)){
+          return { type: 'stage', title };
+        }
+      }
+      if(it.stages && it.stages.length > 0){
+        for(const s of it.stages){
+          const v = it.stageProgress ? it.stageProgress[s] : undefined;
+          if(v === null || v === undefined || v === ''){
+            return { type: 'progress', title: title || '(제목 없음)', stage: s };
+          }
+        }
+      }
+    }
+    return null;
+  }
 
   // 작업단계 "선택됨 / 선택 가능" 두 구역을 다시 그려주는 함수.
   // - 선택됨 구역: 파란 단추. 누르면 선택 해제됨 (선택 가능 쪽으로 돌아감)
