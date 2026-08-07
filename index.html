@@ -4230,7 +4230,7 @@ function buildProgressSummaryLines(dayItemsList, currentPeriodItems){
     let sum = 0;
     denomStages.forEach(stageName => { sum += stageMap.has(stageName) ? stageMap.get(stageName) : 0; }); // 등록됐지만 미입력이면 0으로 계산
     const rollup = Math.round(sum / denomStages.length);
-    lines.push(`${project} (${rollup}%)`);
+    lines.push(`· ${project} (${rollup}%)`);
 
     // 단계별 진행률을 "단계명 (진행률%)" 형태로 나열하고, 앞에 살짝 들여쓰기(2칸)를 줘서
     // 위 프로젝트 롤업 줄의 "하위 항목"처럼 보이게 함
