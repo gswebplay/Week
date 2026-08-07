@@ -1447,7 +1447,7 @@ function renderBody(){
    - 프로젝트(타이틀)만 있고 단계가 없는 예전 방식 항목, 또는 내용만 있는 메모는
      예전처럼 "그 라벨의 가장 최근 입력값"만 한 줄로 보여줌.
    ============================================================ */
-function buildProgressSummaryLines(dayItemsList){
+function buildProgressSummaryLines(dayItemsList, currentPeriodItems){
   const projectStageProgress = new Map(); // 프로젝트명 -> Map(단계명 -> 최근 진행률)
   const projectFirstSeen = [];             // 프로젝트가 처음 등장한 순서를 기억(출력 순서용)
   const simpleProgress = new Map();        // 단계 없는 항목: 라벨 -> 최근 진행률
@@ -1481,6 +1481,29 @@ function buildProgressSummaryLines(dayItemsList){
 
   if(totalCount === 0) return { totalCount, lines: [] };
 
+  // ★ [추가됨] "이번 주(달)에 실제로 손댄" 프로젝트명/라벨만 따로 모음.
+  // 진행률(%) 값 자체는 위에서 이미 "전체 이력"으로 정확히 계산해뒀고,
+  // 여기서는 그중 어떤 프로젝트/항목의 "줄"을 화면에 보여줄지만 걸러냅니다.
+  // 이렇게 하면 지난주에 끝난 프로젝트가 이번주 요약에도 계속 반복 출력되는 문제가 없어지고,
+  // 동시에 %는 지난 이력을 그대로 이어받아 정확하게 유지됩니다.
+  const touchedProjects = new Set();
+  const touchedLabels = new Set();
+  (currentPeriodItems || []).forEach(it => {
+    if(it.progress === null || it.progress === undefined) return;
+    const title = (it.title || '').trim();
+    const stage = (it.stage || '').trim();
+    const content = (it.content || '').trim();
+    const stageNames = stage ? stage.split(STAGE_SEP).map(s => s.trim()).filter(Boolean) : [];
+    if(title && stageNames.length > 0){
+      touchedProjects.add(title);
+    } else {
+      const label = title || content;
+      if(label) touchedLabels.add(label);
+    }
+  });
+  // currentPeriodItems가 안 넘어온 경우(예전 호출부 호환)는 필터링 없이 전부 표시
+  const filterActive = !!currentPeriodItems;
+
   const lines = [];
 
   // 프로젝트별 롤업 계산 (등장한 순서대로)
@@ -1500,6 +1523,7 @@ function buildProgressSummaryLines(dayItemsList){
   // (예: "· 주 26036 NZ_242402 ... - 매뉴얼 및 체크리스트 100%") 이러면 일 칸과 주간정리를
   // 나란히 봤을 때 같은 프로젝트가 똑같은 모양으로 보여서 알아보기 쉽습니다.
   projectFirstSeen.forEach(project => {
+    if(filterActive && !touchedProjects.has(project)) return; // ★ 이번 기간에 활동 없으면 줄 자체를 안 만듦
     const stageMap = projectStageProgress.get(project);
     const registered = (projectOptions.projectStages && projectOptions.projectStages[project]) || null;
     const denomStages = (registered && registered.length > 0) ? registered : Array.from(stageMap.keys());
@@ -1527,7 +1551,10 @@ function buildProgressSummaryLines(dayItemsList){
   });
 
   // 단계 없는 단순 항목들 (예전 방식 호환)
-  simpleProgress.forEach((pct, label) => { lines.push(`${label} ${pct}%`); });
+  simpleProgress.forEach((pct, label) => {
+    if(filterActive && !touchedLabels.has(label)) return; // ★ 이번 기간에 활동 없으면 건너뜀
+    lines.push(`${label} ${pct}%`);
+  });
 
   return { totalCount, lines };
 }
@@ -1536,17 +1563,24 @@ function buildProgressSummaryLines(dayItemsList){
 // [수정됨] 예전엔 "이번 주 7일치"만 보고 프로젝트 진행률을 계산해서, 지난주에 입력해둔
 // 단계(예: 모델링 40%)가 이번 주 계산에는 반영이 안 되고, 이번 주에 입력 안 한 단계는
 // 무조건 0%로 쳐서 평균이 내려가버리는 문제가 있었습니다(= "리셋되는 것처럼" 보였던 원인).
-// 그래서 이제는 "불러와져 있는 가장 이전 달(loadedHistoryStart)부터 이번 주 끝까지" 전체를 다 보고
-// 계산해서, 프로젝트의 단계별 진행률이 예전 달/예전 주에 입력한 값이라도 계속 이어지도록 함.
+// 그래서 %(진행률) 계산은 "불러와져 있는 가장 이전 달(loadedHistoryStart)부터 이번 주 끝까지"
+// 전체를 다 보고 계산해서, 프로젝트의 단계별 진행률이 예전 달/예전 주에 입력한 값이라도 계속 이어지도록 함.
+// ★ [추가됨] 다만 "어떤 프로젝트의 줄을 화면에 보여줄지"는 이번 주에 실제로 손댄 것만으로 제한함
+// (안 그러면 지난주에 끝난 프로젝트가 이번주/다음주 요약에도 계속 반복 출력되는 문제가 있었음)
 function computeAutoSummary(empId, weekStartDate){
   const wEnd = weekEnd(weekStartDate); // 이번 주의 일요일
 
   // (1) "이번 주에 실제로 입력한 게 있는지"는 예전처럼 딱 이번 주 7일만 보고 판단함
   //     (이게 없으면 애초에 "이번 주 입력된 항목이 없습니다"라고 보여줘야 하므로)
+  //     ★ 이때 모아둔 항목들(weekOwnItems)을 아래 buildProgressSummaryLines에도 넘겨서
+  //        "이번 주에 실제로 손댄 프로젝트"만 줄로 표시하는 데 사용함
   let weekOwnCount = 0;
+  const weekOwnItems = [];
   for(let i=0;i<7;i++){
     const dateStr = toDateStr(addDays(weekStartDate, i));
-    weekOwnCount += (logsByEmpDate[`${empId}_${dateStr}`] || []).length;
+    const items = logsByEmpDate[`${empId}_${dateStr}`] || [];
+    weekOwnCount += items.length;
+    weekOwnItems.push(...items);
   }
   if(weekOwnCount === 0) return '이번 주 입력된 항목이 없습니다.';
 
@@ -1559,7 +1593,7 @@ function computeAutoSummary(empId, weekStartDate){
     const dateStr = toDateStr(addDays(histStart, i));
     dayItemsList.push(logsByEmpDate[`${empId}_${dateStr}`] || []);
   }
-  const { lines } = buildProgressSummaryLines(dayItemsList);
+  const { lines } = buildProgressSummaryLines(dayItemsList, weekOwnItems);
   if(lines.length === 0) return '진행률이 입력된 항목이 없습니다.';
   // 한 줄씩 줄바꿈으로 이어붙임 (CSS의 .summary-text가 white-space:pre-wrap 이라서 줄바꿈이 그대로 화면에 표시됨)
   return lines.join('\n');
@@ -1781,12 +1815,17 @@ function computeMonthlySummary(empId){
   const rangeEnd = weekEnd(startOfWeek(last));    // 말일이 속한 주의 일요일 (이번 달 계산 범위의 끝)
 
   // (1) "이번 달에 실제로 입력한 게 있는지"는 예전처럼 이번 달(+월 경계 걸친 주) 범위만 보고 판단함
+  //     ★ 이때 모아둔 항목들(monthOwnItems)을 아래 buildProgressSummaryLines에도 넘겨서
+  //        "이번 달에 실제로 손댄 프로젝트"만 줄로 표시하는 데 사용함 (지난달 항목 반복 출력 방지)
   const ownRangeStart = startOfWeek(first); // 1일이 속한 주의 월요일 (예: 6월 29일)
   const ownRangeDays = Math.round((rangeEnd - ownRangeStart) / 86400000) + 1;
   let totalCount = 0;
+  const monthOwnItems = [];
   for(let i=0; i<ownRangeDays; i++){
     const dateStr = toDateStr(addDays(ownRangeStart, i));
-    totalCount += (logsByEmpDate[`${empId}_${dateStr}`] || []).length;
+    const items = logsByEmpDate[`${empId}_${dateStr}`] || [];
+    totalCount += items.length;
+    monthOwnItems.push(...items);
   }
   if(totalCount === 0) return '이번 달 입력된 업무가 없습니다.';
 
@@ -1798,7 +1837,7 @@ function computeMonthlySummary(empId){
     const dateStr = toDateStr(addDays(histStart, i));
     dayItemsList.push(logsByEmpDate[`${empId}_${dateStr}`] || []);
   }
-  const { lines } = buildProgressSummaryLines(dayItemsList);
+  const { lines } = buildProgressSummaryLines(dayItemsList, monthOwnItems);
 
   if(lines.length === 0) return `이번 달 총 ${totalCount}건의 업무를 입력했습니다. (진행률 입력 없음)`;
 
