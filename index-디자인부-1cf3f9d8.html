@@ -293,6 +293,9 @@
   .monthly-card-head .name{ font-weight:700; font-size:15px; color:var(--ink); } /* 인원 이름 */
   .monthly-card-head .pos{ font-size:12px; color:var(--muted); font-weight:500; } /* 인원 직급 */
   .monthly-card .summary-para{ font-size:13.5px; line-height:1.7; color:var(--ink); white-space:pre-wrap; } /* 자동요약 글자 - white-space:pre-wrap 덕분에 줄바꿈이 그대로 표시됨 */
+  /* ★ [추가됨] 월간정리도 주간정리와 같은 이유로 메인타이틀/하위내용 줄을 구분해서 보여줌 */
+  .monthly-card .summary-para .summary-line-title{ font-weight:700; font-size:14.5px; }
+  .monthly-card .summary-para .summary-line-detail{ font-weight:400; }
 
   /* ========================================================================
      ▣ 표(달력) 영역 - 날짜, 인원 이름, 업무 내용이 표시되는 큰 표
@@ -472,6 +475,13 @@
   }
   .summary-text{ color:var(--ink); white-space:pre-wrap; } /* 주간정리 내용 글자. white-space:pre-wrap 덕분에 줄바꿈이 그대로 반영됨 */
   .summary-text.auto{ color:var(--muted); }                  /* 자동으로 계산된 요약글은 (사람이 직접 안 쓴 글은) 흐린 회색으로 표시 */
+  /* ★ [추가됨] 주간정리/월간정리 안에서 "· 프로젝트명 (%)" 같은 메인타이틀 줄과,
+     그 아래 "  단계1(%), 단계2(%)" 같은 하위(세부내역) 줄을 눈에 띄게 구분하기 위한 스타일.
+     - 메인타이틀: 글자 두껍게(font-weight 700) + 원래보다 1px 크게
+     - 하위내용: 얇게(font-weight 400), 크기는 그대로
+     이 두 class는 아래 renderSummaryLinesHtml() 함수가 줄 단위로 텍스트를 나눠서 자동으로 붙여줍니다. */
+  .summary-line-title{ font-weight:700; font-size:13.5px; }
+  .summary-line-detail{ font-weight:400; }
   .summary-edit-btn{
     font-size:11px; color:var(--blueprint); background:none; border:none;
     cursor:pointer; padding:0; margin-top:4px; font-weight:600;
@@ -990,7 +1000,7 @@ let summariesByEmp = {};     // key: "인원ID_주시작일" -> 그 주의 주�
 let loadedHistoryStart = null;
 
 // 이 단어들이 업무 내용에 포함되어 있으면, 그 날짜 칸을 자동으로 "휴가 색"으로 표시함
-const LEAVE_KEYWORDS = ['연차', '휴가', '반차', '연 차', '휴 가', '반 차', '연휴', '연 휴', '공휴일'];
+const LEAVE_KEYWORDS = ['연차', '휴가', '반차', '연 차', '휴 가', '반 차', '연휴', '연 휴', '휴무', '휴 무', '공휴일', '휴일'];
 // 요일 이름표. 배열의 0번째가 "월"이므로, 날짜의 요일 번호를 월요일=0 기준으로 바꿔서 이 배열에 대입해 사용함
 const DOW_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -1481,14 +1491,29 @@ function renderBody(){
     }
   }
 
-  // 앱을 맨 처음 열었을 때 딱 한 번만, "오늘" 날짜 줄이 화면 가운데 오도록 자동 스크롤
+  // 앱을 맨 처음 열었을 때 딱 한 번만, "오늘" 날짜 줄이 표 가운데 오도록 자동 스크롤
+  // 최초 로딩 시 오늘 날짜 행으로 자동 스크롤
   if(!didInitialScroll){
     didInitialScroll = true;
-    setTimeout(() => {
-      const todayStr = toDateStr(TODAY);
-      const row = body.querySelector(`tr[data-date="${todayStr}"]`);
-      if(row) row.scrollIntoView({ block:'center', behavior:'auto' });
-    }, 30);
+    setTimeout(scrollToToday, 30);
+  }
+}
+
+/* ============================================================
+   오늘 날짜 행을 표(grid-wrap) 가운데로 스크롤하는 함수
+   - 최초 로딩 시 자동 실행
+   - "오늘" 버튼 클릭 시 실행
+   ★ scrollIntoView 대신 grid-wrap.scrollTop 직접 계산
+     (scrollIntoView는 문서 전체를 스크롤해서 탭바가 숨는 버그 있음)
+============================================================ */
+function scrollToToday(){
+  const todayStr = toDateStr(TODAY);
+  const body = document.getElementById('gridBody');
+  const row = body ? body.querySelector(`tr[data-date="${todayStr}"]`) : null;
+  const wrap = document.querySelector('.grid-wrap');
+  if(row && wrap){
+    const target = row.offsetTop - (wrap.clientHeight / 2) + (row.offsetHeight / 2);
+    wrap.scrollTop = Math.max(0, target);
   }
 }
 
@@ -1669,7 +1694,7 @@ function renderSummaryCell(td, emp, weekStartStr){
   // class="summary-text" 부분이 실제 글자 스타일(위쪽 CSS의 .summary-text 규칙)을 담당함.
   // 자동 요약이면 추가로 "auto" class가 붙어서 글자색이 더 흐리게 표시됨 (.summary-text.auto)
   td.innerHTML = `
-    <div class="summary-text ${isManual ? '' : 'auto'}">${escapeHtml(text)}</div>
+    <div class="summary-text ${isManual ? '' : 'auto'}">${renderSummaryLinesHtml(text)}</div>
     <button class="summary-edit-btn" data-emp="${emp.id}">${isManual ? '수정' : '직접 작성'}</button>
     ${isManual ? `<button class="summary-edit-btn" data-emp="${emp.id}" data-reset="1" style="margin-left:8px;">자동요약으로 되돌리기</button>` : ''}
   `;
@@ -1921,12 +1946,25 @@ function renderMonthlyTab(){
           <span class="name">${escapeHtml(emp.name)}</span>
           ${emp.position ? `<span class="pos">${escapeHtml(emp.position)}</span>` : ''}
         </div>
-        <div class="summary-para">${escapeHtml(summary)}</div>
+        <div class="summary-para">${renderSummaryLinesHtml(summary)}</div>
       </div>`;
   }).join('');
 }
 
 // 사람이 입력한 글자 중에 <, >, &, " 같은 특수문자가 있어도 화면이 깨지지 않도록 안전하게 바꿔주는 함수
+// ★ [추가됨] 주간정리/월간정리 텍스트를 줄 단위로 나눠서, "· 프로젝트명 (%)" 같은 메인타이틀 줄은
+// class="summary-line-title"로, "  단계1(%), 단계2(%)" 처럼 2칸 들여쓰기로 시작하는 하위(세부내역)
+// 줄은 class="summary-line-detail"로 감싸주는 함수. (위쪽 CSS의 .summary-line-title/.summary-line-detail 참고)
+// - 각 줄은 escapeHtml()로 개별 이스케이프한 뒤 span으로 감싸고, 줄 사이의 줄바꿈(\n)은 그대로 남겨둠
+//   (부모에 white-space:pre-wrap이 걸려있어서 줄바꿈이 그대로 화면에 반영됨)
+function renderSummaryLinesHtml(text){
+  if(!text) return '';
+  return text.split('\n').map(line => {
+    const cls = line.startsWith('  ') ? 'summary-line-detail' : 'summary-line-title';
+    return `<span class="${cls}">${escapeHtml(line)}</span>`;
+  }).join('\n');
+}
+
 function escapeHtml(str){
   if(str === null || str === undefined) return '';
   return String(str)
@@ -2664,11 +2702,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if(currentMonth > 12) { currentMonth = 1; currentYear++; }
     refreshAll();
   });
-  // "오늘" 버튼 - 오늘이 속한 연/월로 즉시 이동
+  // "오늘" 버튼 - 오늘이 속한 연/월로 즉시 이동한 뒤, 표 안에서도 오늘 날짜 행으로 스크롤
   document.getElementById('todayBtn').addEventListener('click', () => {
     currentYear = TODAY.getFullYear();
     currentMonth = TODAY.getMonth() + 1;
-    refreshAll();
+    refreshAll().then(() => setTimeout(scrollToToday, 50));
   });
 
   // "↻ 새로고침" 버튼 - 지금 보고 있는 연/월은 그대로 두고, 서버에서 데이터만 다시 불러옴
