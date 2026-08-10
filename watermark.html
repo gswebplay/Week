@@ -253,23 +253,22 @@ body{
   background:rgba(0,0,0,.6);color:#fff;
   border-radius:9px;font-size:10px;font-weight:700;
   display:flex;align-items:center;justify-content:center;
-  pointer-events:none; /* 클릭이 썸네일로 통과되게 */
+  pointer-events:none; /* 클릭/드래그가 썸네일로 통과되게 */
 }
 
-/* ✅ 드래그 핸들 — 여기를 잡고 끌면 순서를 바꿀 수 있어요 */
-.photo-thumb .drag-handle{
-  position:absolute;top:3px;left:3px;
-  width:20px;height:20px;
-  background:rgba(0,0,0,.5);color:#fff;
-  border-radius:5px;font-size:12px;
-  display:flex;align-items:center;justify-content:center;
-  cursor:grab;
-}
-.photo-thumb .drag-handle:active{cursor:grabbing}
+/* ✅ 썸네일 전체를 잡고 바로 끌 수 있어요 (별도 핸들 없음) */
+.photo-thumb{ cursor:grab; touch-action:none; user-select:none; }
+.photo-thumb:active{ cursor:grabbing; }
 
-/* 드래그 중인 썸네일: 반투명 처리 */
-.photo-thumb.dragging{opacity:.4}
-/* 드롭될 위치 강조: 테두리 전체를 강조 (선이 아니라 아웃라인) */
+/* 드래그 중인 썸네일: 살짝 커지고 반투명 + 그림자로 "들려있는" 느낌 */
+.photo-thumb.dragging{
+  opacity:.55;
+  transform:scale(1.06);
+  box-shadow:0 6px 16px rgba(0,0,0,.25);
+  z-index:5;
+  transition:none; /* 드래그 중엔 애니메이션 지연 없이 즉각 반응 */
+}
+/* 놓을 위치로 예상되는 썸네일 강조 (정확히 안 맞춰도 가장 가까운 곳이 잡혀요) */
 .photo-thumb.drag-over-target{
   outline:3px solid #3D6E62;outline-offset:-3px;
   border-radius:8px;
@@ -546,7 +545,7 @@ body{
     <input type="file" id="photoFileInput" accept="image/*" multiple style="display:none" />
 
     <div class="photo-order-hint" id="photoOrderHint" style="display:none">
-      ⠿ 핸들을 드래그하면 순서를 바꿀 수 있어요 · PDF 저장 시 이 순서대로 페이지가 만들어져요
+      📌 사진을 잡고 끌면 순서를 바꿀 수 있어요 · PDF 저장 시 이 순서대로 페이지가 만들어져요
     </div>
     <div class="photo-grid" id="photoGrid"></div>
   </div>
@@ -1025,11 +1024,13 @@ function selectPreview(idx){
 }
 
 /* ==========================================================
-   ✅ 사진 순서 변경 (드래그앤드롭)
-   드래그 시작한 사진의 인덱스를 기억해뒀다가
-   드롭된 위치로 배열 순서를 옮겨요 (splice 사용)
+   ✅ 사진 순서 변경 (포인터 기반 커스텀 드래그)
+   브라우저 기본 HTML5 드래그 API 대신 pointerdown/move/up으로
+   직접 구현해서 반응 속도를 빠르게 하고, 정확히 위에 올리지
+   않아도 "놓은 위치와 가장 가까운 자리"로 알아서 들어가게 해요.
 ========================================================== */
-let dragFromIdx = null; // 드래그를 시작한 사진의 인덱스
+let dragState = null; // {fromIdx, moved, startX, startY, targetIdx}
+const DRAG_THRESHOLD = 5; // 이 픽셀 이상 움직여야 "드래그"로 인식 (클릭과 구분용)
 
 function renderPhotoGrid(){
   const grid  = document.getElementById('photoGrid');
@@ -1057,19 +1058,17 @@ function renderPhotoGrid(){
   photos.forEach((p, idx) => {
     const th = document.createElement('div');
     th.className = 'photo-thumb' + (idx === previewIdx ? ' selected' : '');
-    th.title = '클릭하면 미리보기에 표시돼요';
-    th.draggable = true; // ✅ 드래그 가능하게
-
-    th.onclick = () => selectPreview(idx);
+    th.title = '탭하면 미리보기 · 눌러서 끌면 순서 변경';
+    th.dataset.idx = idx; // 현재 인덱스를 DOM에 기록 (드래그 중 최신 위치 찾기용)
 
     const im = document.createElement('img');
     im.src = p.dataURL;
     im.alt = p.name;
+    im.draggable = false; // 이미지 자체의 기본 드래그(파일 저장 등) 막기
 
     const rm = document.createElement('button');
     rm.className = 'btn-remove-photo';
     rm.textContent = '✕';
-    rm.draggable = false; // 삭제 버튼 자체는 드래그 대상이 아니도록
     rm.onclick = ev => removePhoto(p.id, ev);
 
     // 순서 번호 배지 (1부터 시작 — PDF 페이지 번호와 동일)
@@ -1077,56 +1076,12 @@ function renderPhotoGrid(){
     order.className = 'order-badge';
     order.textContent = (idx + 1);
 
-    // 드래그 핸들 (⠿)
-    const handle = document.createElement('div');
-    handle.className = 'drag-handle';
-    handle.textContent = '⠿';
-    handle.title = '드래그해서 순서 변경';
-
     th.appendChild(im);
     th.appendChild(rm);
     th.appendChild(order);
-    th.appendChild(handle);
 
-    /* ── 드래그앤드롭 이벤트 ───────────────────────────── */
-    th.addEventListener('dragstart', (e) => {
-      dragFromIdx = idx;
-      th.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-
-    th.addEventListener('dragend', () => {
-      th.classList.remove('dragging');
-      // 혹시 남아있는 강조 표시 전부 제거
-      grid.querySelectorAll('.drag-over-target').forEach(el => el.classList.remove('drag-over-target'));
-    });
-
-    th.addEventListener('dragover', (e) => {
-      e.preventDefault(); // 드롭을 허용하기 위해 필수
-      if (idx !== dragFromIdx) th.classList.add('drag-over-target');
-    });
-
-    th.addEventListener('dragleave', () => {
-      th.classList.remove('drag-over-target');
-    });
-
-    th.addEventListener('drop', (e) => {
-      e.preventDefault();
-      th.classList.remove('drag-over-target');
-      if (dragFromIdx === null || dragFromIdx === idx) return;
-
-      // 배열에서 순서 이동: 꺼내서(splice 제거) 새 위치에 삽입(splice 삽입)
-      const moved = photos.splice(dragFromIdx, 1)[0];
-      photos.splice(idx, 0, moved);
-
-      // 미리보기 인덱스도 이동된 사진을 계속 따라가도록 보정
-      if (previewIdx === dragFromIdx) previewIdx = idx;
-
-      dragFromIdx = null;
-      renderPhotoGrid();
-      updatePreview();
-    });
-    /* ─────────────────────────────────────────────────── */
+    // 썸네일 전체에 포인터 다운 이벤트 연결 (마우스+터치 통합)
+    th.addEventListener('pointerdown', (e) => onThumbPointerDown(e, idx));
 
     grid.appendChild(th);
   });
@@ -1138,6 +1093,103 @@ function renderPhotoGrid(){
   grid.appendChild(add);
 
   checkRunnable();
+}
+
+
+/* 드래그 시작 지점 기록 */
+function onThumbPointerDown(e, idx){
+  // 삭제(✕) 버튼을 눌렀으면 드래그 시작하지 않고 버튼 클릭만 동작하게 둠
+  if (e.target.closest('.btn-remove-photo')) return;
+  // 왼쪽 버튼(또는 터치)만 반응
+  if (e.pointerType === 'mouse' && e.button !== 0) return;
+
+  dragState = {
+    fromIdx: idx,
+    moved: false,
+    startX: e.clientX,
+    startY: e.clientY,
+    targetIdx: idx,
+  };
+
+  document.addEventListener('pointermove', onDragPointerMove);
+  document.addEventListener('pointerup', onDragPointerUp, { once: true });
+}
+
+/* 드래그 중 — 이동 거리가 임계값을 넘으면 실제 드래그로 전환하고
+   현재 포인터 위치와 가장 가까운 썸네일을 실시간으로 찾아 강조 표시 */
+function onDragPointerMove(e){
+  if (!dragState) return;
+
+  const dx = e.clientX - dragState.startX;
+  const dy = e.clientY - dragState.startY;
+
+  if (!dragState.moved){
+    if (Math.hypot(dx, dy) < DRAG_THRESHOLD) return; // 아직 클릭인지 드래그인지 애매한 범위
+    dragState.moved = true;
+    const fromEl = document.querySelector(`#photoGrid .photo-thumb[data-idx="${dragState.fromIdx}"]`);
+    if (fromEl) fromEl.classList.add('dragging');
+  }
+
+  e.preventDefault(); // 모바일에서 화면 스크롤 방지
+
+  // ✅ 핵심: 정확히 어떤 썸네일 위에 있는지가 아니라,
+  //    모든 썸네일 중 포인터와 "중심 거리가 가장 가까운" 것을 찾아요.
+  //    → 살짝 벗어나게 놓아도 (대충 슥 던져도) 가장 가까운 자리로 알아서 들어감
+  const thumbs = [...document.querySelectorAll('#photoGrid .photo-thumb')];
+  let closestIdx = dragState.targetIdx;
+  let closestDist = Infinity;
+
+  thumbs.forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+    if (dist < closestDist){
+      closestDist = dist;
+      closestIdx = idx;
+    }
+  });
+
+  dragState.targetIdx = closestIdx;
+
+  // 강조 표시 갱신
+  thumbs.forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    el.classList.toggle('drag-over-target', idx === closestIdx && idx !== dragState.fromIdx);
+  });
+}
+
+/* 드래그 종료 — 이동했으면 순서 변경, 아니었으면 클릭(미리보기 선택)으로 처리 */
+function onDragPointerUp(e){
+  document.removeEventListener('pointermove', onDragPointerMove);
+
+  if (!dragState) return;
+
+  // 정리: 시각 효과 제거
+  document.querySelectorAll('#photoGrid .photo-thumb').forEach(el => {
+    el.classList.remove('dragging', 'drag-over-target');
+  });
+
+  if (dragState.moved){
+    // 실제로 움직였으면 → 순서 변경
+    const { fromIdx, targetIdx } = dragState;
+    if (fromIdx !== targetIdx){
+      const moved = photos.splice(fromIdx, 1)[0];
+      photos.splice(targetIdx, 0, moved);
+
+      // 미리보기 인덱스도 이동된 사진을 계속 따라가도록 보정
+      if (previewIdx === fromIdx) previewIdx = targetIdx;
+
+      renderPhotoGrid();
+      updatePreview();
+    }
+  } else {
+    // 움직이지 않았으면 → 탭/클릭으로 간주해서 미리보기 전환
+    selectPreview(dragState.fromIdx);
+  }
+
+  dragState = null;
 }
 
 
