@@ -21,16 +21,16 @@
 ========================================================== */
 .tab-bar{
   display:flex;gap:0;margin-bottom:14px;
-  border:1px solid #F3C1D3;border-radius:10px;overflow:hidden;
-  background:#FFF8FA;
+  border:1px solid #C3DED6;border-radius:10px;overflow:hidden;
+  background:#F6FAF8;
 }
 .tab-btn{
   flex:1;padding:11px;border:none;background:none;
-  font-size:13px;font-weight:700;color:#C08090;cursor:pointer;
+  font-size:13px;font-weight:700;color:#71918C;cursor:pointer;
   transition:all .15s;white-space:nowrap;
 }
-.tab-btn.active{background:#FF6B9D;color:#fff;}
-.tab-btn:not(.active):hover{background:#FFE0EC;color:#D6336C}
+.tab-btn.active{background:#4C8C7D;color:#fff;}
+.tab-btn:not(.active):hover{background:#C3DED6;color:#2E4B45}
 
 /* 탭 패널 */
 .tab-panel{display:none}
@@ -43,43 +43,43 @@
 .pdf-list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .pdf-item{
   display:flex;align-items:center;gap:10px;padding:10px 12px;
-  background:#FFF8FA;border:1px solid #F3C1D3;border-radius:8px;
+  background:#F6FAF8;border:1px solid #C3DED6;border-radius:8px;
 }
 .pdf-item .pdf-icon{font-size:22px;flex-shrink:0}
 .pdf-item .pdf-info{flex:1;min-width:0}
 .pdf-item .pdf-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pdf-item .pdf-pages{font-size:11px;color:#C08090;margin-top:2px}
+.pdf-item .pdf-pages{font-size:11px;color:#71918C;margin-top:2px}
 .pdf-item .btn-rm-pdf{
-  background:none;border:1px solid #F3C1D3;border-radius:6px;
-  padding:4px 9px;font-size:12px;color:#D6336C;cursor:pointer;flex-shrink:0;
+  background:none;border:1px solid #C3DED6;border-radius:6px;
+  padding:4px 9px;font-size:12px;color:#2E4B45;cursor:pointer;flex-shrink:0;
 }
-.pdf-item .btn-rm-pdf:hover{background:#FFE0EC}
+.pdf-item .btn-rm-pdf:hover{background:#C3DED6}
 /* 미리보기로 선택된 PDF 파일 강조 */
 .pdf-item-selected{
-  border-color:#FF6B9D !important;
-  background:#FFF0F5 !important;
+  border-color:#4C8C7D !important;
+  background:#E4F0EC !important;
 }
 
 /* PDF 처리 진행 상태 (페이지별 세부 표시) */
 .pdf-progress-detail{
-  font-size:11px;color:#C08090;text-align:center;margin-top:4px;min-height:16px;
+  font-size:11px;color:#71918C;text-align:center;margin-top:4px;min-height:16px;
 }
 
 /* PDF 버튼 행 */
 .pdf-btn-row{display:flex;gap:10px;margin-top:4px}
 .btn-pdf-save{
-  flex:1;padding:13px;background:linear-gradient(135deg,#FF6B9D,#FF3D78);
+  flex:1;padding:13px;background:linear-gradient(135deg,#4C8C7D,#3D6E62);
   color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;
-  box-shadow:0 4px 14px rgba(255,107,157,.3);transition:opacity .15s,transform .1s;
+  box-shadow:0 4px 14px rgba(76,140,125,.3);transition:opacity .15s,transform .1s;
 }
 .btn-pdf-save:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
 .btn-pdf-save:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .btn-pdf-print{
-  flex:1;padding:13px;background:linear-gradient(135deg,#845EF7,#5C7CFA);
+  flex:1;padding:13px;background:linear-gradient(135deg,#6E71B0,#4E4B92);
   color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;
-  box-shadow:0 4px 14px rgba(132,94,247,.25);transition:opacity .15s,transform .1s;
+  box-shadow:0 4px 14px rgba(110,113,176,.25);transition:opacity .15s,transform .1s;
 }
 .btn-pdf-print:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
 .btn-pdf-print:disabled{opacity:.4;cursor:not-allowed;transform:none}
@@ -95,8 +95,8 @@
 
 body{
   font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;
-  background:#FFF5F8;          /* 연분홍 배경 */
-  color:#2D2D2D;
+  background:#F6FAF8;          /* 연분홍 배경 */
+  color:#1E293B;
   min-height:100vh;
   word-break:keep-all;
   overflow-wrap:break-word;
@@ -106,10 +106,10 @@ body{
    ✅ 상단 헤더
 ========================================================== */
 .header{
-  background:linear-gradient(135deg,#FF6B9D 0%,#FF8FAB 100%);
+  background:linear-gradient(135deg,#4C8C7D 0%,#6FAA9B 100%);
   color:#fff;padding:16px 20px;
   display:flex;align-items:center;justify-content:space-between;
-  box-shadow:0 2px 8px rgba(255,107,157,.25);
+  box-shadow:0 2px 8px rgba(76,140,125,.25);
   position:sticky;top:0;z-index:100;
 }
 .header-left{display:flex;align-items:center;gap:10px}
@@ -134,11 +134,11 @@ body{
 .container{max-width:700px;margin:0 auto;padding:20px 16px 40px}
 
 .card{
-  background:#fff;border:1px solid #F3C1D3;border-radius:14px;
-  padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(255,107,157,.06);
+  background:#fff;border:1px solid #C3DED6;border-radius:14px;
+  padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(76,140,125,.06);
 }
 .card-title{
-  font-size:13px;font-weight:700;color:#D6336C;margin-bottom:12px;
+  font-size:13px;font-weight:700;color:#2E4B45;margin-bottom:12px;
   display:flex;align-items:center;gap:6px;
 }
 .card-title .icon{font-size:16px}
@@ -147,30 +147,30 @@ body{
    ✅ 파일 업로드 영역
 ========================================================== */
 .drop-zone{
-  border:2px dashed #F3C1D3;border-radius:10px;padding:26px 20px;
+  border:2px dashed #C3DED6;border-radius:10px;padding:26px 20px;
   text-align:center;cursor:pointer;transition:all .2s;
-  color:#C08090;font-size:13px;line-height:1.7;background:#FFF8FA;
+  color:#71918C;font-size:13px;line-height:1.7;background:#F6FAF8;
 }
-.drop-zone:hover,.drop-zone.drag-over{border-color:#FF6B9D;background:#FFF0F5;color:#D6336C}
+.drop-zone:hover,.drop-zone.drag-over{border-color:#4C8C7D;background:#E4F0EC;color:#2E4B45}
 .drop-zone .drop-icon{font-size:28px;display:block;margin-bottom:8px}
 
 .logo-preview-box{
   display:none;align-items:center;gap:12px;padding:10px 14px;
-  background:#FFF0F5;border:1px solid #F3C1D3;border-radius:10px;
+  background:#E4F0EC;border:1px solid #C3DED6;border-radius:10px;
 }
 .logo-preview-box img{
   height:44px;max-width:100px;object-fit:contain;background:#fff;
-  border-radius:6px;border:1px solid #F3C1D3;padding:3px;
+  border-radius:6px;border:1px solid #C3DED6;padding:3px;
 }
 .logo-preview-info{flex:1}
 .logo-preview-info .logo-name{font-size:13px;font-weight:600}
-.logo-preview-info .logo-hint{font-size:11px;color:#C08090;margin-top:2px}
+.logo-preview-info .logo-hint{font-size:11px;color:#71918C;margin-top:2px}
 
 .btn-logo-remove{
-  background:none;border:1px solid #F3C1D3;border-radius:6px;padding:4px 10px;
-  font-size:12px;color:#D6336C;cursor:pointer;white-space:nowrap;transition:background .15s;
+  background:none;border:1px solid #C3DED6;border-radius:6px;padding:4px 10px;
+  font-size:12px;color:#2E4B45;cursor:pointer;white-space:nowrap;transition:background .15s;
 }
-.btn-logo-remove:hover{background:#FFE0EC}
+.btn-logo-remove:hover{background:#C3DED6}
 
 /* ==========================================================
    ✅ 슬라이더
@@ -178,9 +178,9 @@ body{
 .slider-group{display:flex;flex-direction:column;gap:12px}
 .slider-row{display:flex;align-items:center;gap:10px}
 .slider-label{font-size:12px;color:#888;width:52px;flex-shrink:0}
-.slider-row input[type=range]{flex:1;accent-color:#FF6B9D;height:4px;cursor:pointer}
-.slider-value{font-size:12px;font-weight:700;color:#D6336C;min-width:38px;text-align:right}
-.slider-desc{font-size:11px;color:#C08090;margin-top:-6px;padding-left:62px}
+.slider-row input[type=range]{flex:1;accent-color:#4C8C7D;height:4px;cursor:pointer}
+.slider-value{font-size:12px;font-weight:700;color:#2E4B45;min-width:38px;text-align:right}
+.slider-desc{font-size:11px;color:#71918C;margin-top:-6px;padding-left:62px}
 
 /* ==========================================================
    ✅ 저장 옵션 (형식 선택 / 크기 통일)
@@ -196,31 +196,31 @@ body{
 /* 좌우로 붙은 선택 버튼 묶음 */
 .opt-group{display:flex;gap:0}
 .opt-btn{
-  padding:7px 14px;border:1px solid #F3C1D3;background:#FFF8FA;
-  color:#C08090;font-size:12px;font-weight:600;cursor:pointer;
+  padding:7px 14px;border:1px solid #C3DED6;background:#F6FAF8;
+  color:#71918C;font-size:12px;font-weight:600;cursor:pointer;
   transition:all .15s;white-space:nowrap;
 }
 .opt-btn:first-child{border-radius:7px 0 0 7px}
 .opt-btn:last-child{border-radius:0 7px 7px 0}
 .opt-btn:not(:first-child){border-left:none}
-.opt-btn:hover{background:#FFF0F5}
-.opt-btn.active{background:#FF6B9D;border-color:#FF6B9D;color:#fff}
+.opt-btn:hover{background:#E4F0EC}
+.opt-btn.active{background:#4C8C7D;border-color:#4C8C7D;color:#fff}
 
 /* 픽셀 입력창 */
 .px-input{
-  width:88px;padding:7px 10px;border:1px solid #F3C1D3;border-radius:7px;
-  font-size:13px;font-weight:600;color:#D6336C;text-align:right;
-  font-family:inherit;background:#FFF8FA;
+  width:88px;padding:7px 10px;border:1px solid #C3DED6;border-radius:7px;
+  font-size:13px;font-weight:600;color:#2E4B45;text-align:right;
+  font-family:inherit;background:#F6FAF8;
 }
-.px-input:focus{outline:none;border-color:#FF6B9D;background:#fff}
+.px-input:focus{outline:none;border-color:#4C8C7D;background:#fff}
 .px-input:disabled{opacity:.4;cursor:not-allowed}
-.px-unit{font-size:12px;color:#C08090}
+.px-unit{font-size:12px;color:#71918C}
 
-.opt-desc{font-size:11px;color:#C08090;margin-top:8px;padding-left:76px;line-height:1.6}
+.opt-desc{font-size:11px;color:#71918C;margin-top:8px;padding-left:76px;line-height:1.6}
 
 /* 크기 통일 켜기/끄기 체크박스 */
 .chk-wrap{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none}
-.chk-wrap input[type=checkbox]{width:16px;height:16px;accent-color:#FF6B9D;cursor:pointer}
+.chk-wrap input[type=checkbox]{width:16px;height:16px;accent-color:#4C8C7D;cursor:pointer}
 .chk-wrap span{font-size:12px;color:#888}
 
 /* 비활성 상태일 때 흐리게 */
@@ -235,27 +235,27 @@ body{
 }
 .photo-thumb{
   position:relative;aspect-ratio:1/1;border-radius:8px;overflow:hidden;
-  border:1px solid #F3C1D3;background:#FFF0F5;cursor:pointer;
+  border:1px solid #C3DED6;background:#E4F0EC;cursor:pointer;
 }
 .photo-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-.photo-thumb.selected{border:2px solid #FF3D78}
+.photo-thumb.selected{border:2px solid #3D6E62}
 .photo-thumb .btn-remove-photo{
   position:absolute;top:3px;right:3px;width:20px;height:20px;
   background:rgba(0,0,0,.55);color:#fff;border:none;border-radius:50%;
   font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;
 }
-.photo-thumb .btn-remove-photo:hover{background:rgba(214,51,108,.85)}
+.photo-thumb .btn-remove-photo:hover{background:rgba(46,75,69,.85)}
 
 .btn-add-photo{
-  aspect-ratio:1/1;border:2px dashed #F3C1D3;border-radius:8px;background:#FFF8FA;
-  color:#C08090;font-size:20px;cursor:pointer;display:flex;flex-direction:column;
+  aspect-ratio:1/1;border:2px dashed #C3DED6;border-radius:8px;background:#F6FAF8;
+  color:#71918C;font-size:20px;cursor:pointer;display:flex;flex-direction:column;
   align-items:center;justify-content:center;gap:3px;transition:all .15s;
 }
 .btn-add-photo .add-label{font-size:10px;font-weight:600}
-.btn-add-photo:hover{border-color:#FF6B9D;background:#FFF0F5;color:#D6336C}
+.btn-add-photo:hover{border-color:#4C8C7D;background:#E4F0EC;color:#2E4B45}
 
 .count-badge{
-  display:inline-flex;align-items:center;background:#FFE0EC;color:#D6336C;
+  display:inline-flex;align-items:center;background:#C3DED6;color:#2E4B45;
   font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px;
 }
 
@@ -264,9 +264,9 @@ body{
    👉 PNG 투명 영역을 보여주기 위한 체크무늬 배경
 ========================================================== */
 .preview-wrap{
-  margin-top:10px;border:1px solid #F3C1D3;border-radius:10px;
+  margin-top:10px;border:1px solid #C3DED6;border-radius:10px;
   padding:10px;text-align:center;
-  background-color:#FAFAFA;
+  background-color:#F8FAFC;
 }
 .preview-wrap.transparent-bg{
   /* 투명 영역이 보이도록 회색 체크무늬 */
@@ -282,13 +282,13 @@ body{
   max-width:100%;height:auto;border-radius:6px;display:block;margin:0 auto;
   box-shadow:0 1px 4px rgba(0,0,0,.08);
 }
-.preview-empty{font-size:12px;color:#C08090;padding:24px 10px}
+.preview-empty{font-size:12px;color:#71918C;padding:24px 10px}
 
 /* 미리보기 하단 정보 (출력 크기/형식 표시) */
 .preview-info{
   font-size:11px;color:#888;margin-top:8px;text-align:center;line-height:1.6;
 }
-.preview-info strong{color:#D6336C}
+.preview-info strong{color:#2E4B45}
 
 /* ==========================================================
    ✅ 버튼 / 진행 상태
@@ -301,34 +301,34 @@ body{
 
 /* ZIP 다운로드 버튼 (분홍 계열 — 기존과 동일) */
 .btn-run{
-  flex:1;padding:14px;background:linear-gradient(135deg,#FF6B9D,#FF3D78);
+  flex:1;padding:14px;background:linear-gradient(135deg,#4C8C7D,#3D6E62);
   color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  box-shadow:0 4px 14px rgba(255,107,157,.35);transition:opacity .15s,transform .1s;
+  box-shadow:0 4px 14px rgba(76,140,125,.35);transition:opacity .15s,transform .1s;
 }
 .btn-run:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
 .btn-run:disabled{opacity:.4;cursor:not-allowed;transform:none}
 
 /* 인쇄 버튼 (보라 계열 — 다운로드와 시각적으로 구분) */
 .btn-print{
-  flex:1;padding:14px;background:linear-gradient(135deg,#845EF7,#5C7CFA);
+  flex:1;padding:14px;background:linear-gradient(135deg,#6E71B0,#4E4B92);
   color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;
   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
-  box-shadow:0 4px 14px rgba(132,94,247,.30);transition:opacity .15s,transform .1s;
+  box-shadow:0 4px 14px rgba(110,113,176,.30);transition:opacity .15s,transform .1s;
 }
 .btn-print:hover:not(:disabled){opacity:.9;transform:translateY(-1px)}
 .btn-print:disabled{opacity:.4;cursor:not-allowed;transform:none}
 
 .progress-wrap{display:none;margin-top:12px}
-.progress-bar-bg{height:8px;background:#FFE0EC;border-radius:4px;overflow:hidden}
+.progress-bar-bg{height:8px;background:#C3DED6;border-radius:4px;overflow:hidden}
 .progress-bar-fill{
-  height:100%;background:linear-gradient(90deg,#FF6B9D,#FF3D78);
+  height:100%;background:linear-gradient(90deg,#4C8C7D,#3D6E62);
   border-radius:4px;width:0%;transition:width .25s ease;
 }
-.progress-text{font-size:12px;color:#C08090;text-align:center;margin-top:7px}
+.progress-text{font-size:12px;color:#71918C;text-align:center;margin-top:7px}
 .progress-text.done{color:#28A745;font-weight:700}
 
-.hint-msg{font-size:12px;color:#C08090;text-align:center;margin-top:8px}
+.hint-msg{font-size:12px;color:#71918C;text-align:center;margin-top:8px}
 
 /* ==========================================================
    ✅ 인쇄 전용 스타일
@@ -412,7 +412,7 @@ body{
   <div class="card">
     <div class="card-title">
       <span class="icon">🖼️</span> 로고 등록
-      <span style="font-size:11px;font-weight:400;color:#C08090">(최초 1회 · 자동 저장)</span>
+      <span style="font-size:11px;font-weight:400;color:#71918C">(최초 1회 · 자동 저장)</span>
     </div>
 
     <div class="logo-preview-box" id="logoPreviewBox">
@@ -517,7 +517,7 @@ body{
   <div class="card">
     <div class="card-title">
       <span class="icon">👁️</span> 미리보기
-      <span style="font-size:11px;font-weight:400;color:#C08090">(썸네일을 눌러 사진 변경)</span>
+      <span style="font-size:11px;font-weight:400;color:#71918C">(썸네일을 눌러 사진 변경)</span>
     </div>
     <div class="preview-wrap" id="previewWrap">
       <div class="preview-empty" id="previewEmpty">로고와 사진을 등록하면 결과가 여기에 표시됩니다</div>
@@ -553,7 +553,7 @@ body{
     <div class="card">
       <div class="card-title">
         <span class="icon">🖼️</span> 로고 등록
-        <span style="font-size:11px;font-weight:400;color:#C08090">(이미지 탭과 공유)</span>
+        <span style="font-size:11px;font-weight:400;color:#71918C">(이미지 탭과 공유)</span>
       </div>
       <div class="logo-preview-box" id="pdfLogoPreviewBox" style="display:none">
         <img id="pdfLogoPreviewImg" src="" alt="저장된 로고" />
@@ -570,7 +570,7 @@ body{
 
     <!-- PDF 워터마크 설정 (슬라이더 — 이미지 탭과 공유) -->
     <div class="card">
-      <div class="card-title"><span class="icon">⚙️</span> 워터마크 설정 <span style="font-size:11px;font-weight:400;color:#C08090">(이미지 탭과 공유)</span></div>
+      <div class="card-title"><span class="icon">⚙️</span> 워터마크 설정 <span style="font-size:11px;font-weight:400;color:#71918C">(이미지 탭과 공유)</span></div>
       <div class="slider-group">
         <div class="slider-row">
           <span class="slider-label">진하기</span>
@@ -621,7 +621,7 @@ body{
     <div class="card">
       <div class="card-title">
         <span class="icon">👁️</span> 미리보기
-        <span style="font-size:11px;font-weight:400;color:#C08090">(첫 페이지 · PDF 목록에서 클릭해서 변경)</span>
+        <span style="font-size:11px;font-weight:400;color:#71918C">(첫 페이지 · PDF 목록에서 클릭해서 변경)</span>
       </div>
       <div class="preview-wrap" id="pdfPreviewWrap">
         <div class="preview-empty" id="pdfPreviewEmpty">로고와 PDF를 등록하면 첫 페이지 결과가 여기에 표시됩니다</div>
@@ -1663,8 +1663,8 @@ function renderPdfList(){
   const addMore = document.createElement('div');
   addMore.style.cssText = 'text-align:center;margin-top:6px';
   addMore.innerHTML = `<button onclick="document.getElementById('pdfFileInput').click()"
-    style="background:none;border:1px solid #F3C1D3;border-radius:7px;padding:5px 14px;
-           font-size:12px;color:#D6336C;cursor:pointer">＋ PDF 추가</button>`;
+    style="background:none;border:1px solid #C3DED6;border-radius:7px;padding:5px 14px;
+           font-size:12px;color:#2E4B45;cursor:pointer">＋ PDF 추가</button>`;
   list.appendChild(addMore);
 
   checkPdfRunnable();
