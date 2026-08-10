@@ -464,6 +464,7 @@ body{
       <div class="opt-group">
         <button class="opt-btn active" id="fmtJpg" onclick="setFormat('jpg')">JPG</button>
         <button class="opt-btn"        id="fmtPng" onclick="setFormat('png')">PNG</button>
+        <button class="opt-btn"        id="fmtPdf" onclick="setFormat('pdf')">PDF</button>
       </div>
     </div>
     <div class="opt-desc" id="fmtDesc">
@@ -757,17 +758,24 @@ function setFormat(fmt, save = true){
   // 버튼 활성 표시 바꾸기
   document.getElementById('fmtJpg').classList.toggle('active', fmt === 'jpg');
   document.getElementById('fmtPng').classList.toggle('active', fmt === 'png');
+  document.getElementById('fmtPdf').classList.toggle('active', fmt === 'pdf');
 
   // 설명문 바꾸기
   const desc = document.getElementById('fmtDesc');
   if (fmt === 'jpg'){
     desc.innerHTML = '흰 배경으로 저장돼요. 용량이 작아 공유하기 좋습니다.';
-  } else {
+  } else if (fmt === 'png'){
     desc.innerHTML = '원본의 투명한 부분을 그대로 유지해요. 화질 손실이 없지만 <strong>용량이 커집니다</strong>.';
+  } else {
+    desc.innerHTML = '사진 여러 장을 <strong>PDF 한 파일</strong>로 합쳐서 저장해요. 한 장당 한 페이지로 들어갑니다.';
   }
 
-  // 미리보기 배경도 형식에 맞춰 변경 (PNG면 체크무늬)
+  // 미리보기 배경: PNG면 체크무늬, JPG/PDF는 흰 배경
   document.getElementById('previewWrap').classList.toggle('transparent-bg', fmt === 'png');
+
+  // 다운로드 버튼 라벨도 형식에 맞춰 바꾸기
+  const btnRun = document.getElementById('btnRun');
+  btnRun.innerHTML = (fmt === 'pdf') ? '💾 PDF로 저장' : '💾 ZIP 다운로드';
 
   if (save) localStorage.setItem(LS_FORMAT, fmt);
   updatePreview();
@@ -1173,12 +1181,13 @@ function composePhoto(photo){
   canvas.height = size.h;
   const ctx = canvas.getContext('2d');
 
-  // ① JPG로 저장할 땐 투명 부분이 검게 나오지 않도록 흰 배경을 먼저 칠해요
-  if (outFormat === 'jpg'){
+  // ① JPG나 PDF로 저장할 땐 투명 부분이 검게 나오지 않도록 흰 배경을 먼저 칠해요
+  //    (PDF는 이미지를 JPEG로 임베드하므로 JPG와 동일하게 처리)
+  if (outFormat === 'jpg' || outFormat === 'pdf'){
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, size.w, size.h);
   }
-  // PNG는 배경을 칠하지 않아 원본의 투명함이 그대로 유지돼요
+  // PNG만 배경을 칠하지 않아 원본의 투명함이 그대로 유지돼요
 
   // ② 사진 그리기 (고품질 축소/확대)
   drawHighQuality(ctx, photo.imgObj, size.w, size.h);
@@ -1242,7 +1251,7 @@ function updatePreview(){
   const ctx = canvas.getContext('2d');
 
   ctx.clearRect(0, 0, W, H);
-  if (outFormat === 'jpg'){
+  if (outFormat === 'jpg' || outFormat === 'pdf'){
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, W, H);
   }
@@ -1267,7 +1276,7 @@ function updatePreview(){
 
 
 /* ==========================================================
-   ✅ 전체 처리 + ZIP 다운로드
+   ✅ 전체 처리 + 다운로드 (JPG/PNG는 ZIP, PDF는 단일 파일)
 ========================================================== */
 async function runWatermark(){
   document.getElementById('btnRun').disabled = true;
@@ -1278,51 +1287,92 @@ async function runWatermark(){
   wrap.style.display = 'block';
   text.className = 'progress-text';
 
-  // 형식에 따라 확장자와 MIME 타입 결정
-  const isJpg    = (outFormat === 'jpg');
-  const mimeType = isJpg ? 'image/jpeg' : 'image/png';
-  const ext      = isJpg ? '.jpg' : '.png';
-  const quality  = isJpg ? 0.92 : undefined;   // PNG는 품질 옵션이 없어요
-
-  const zip = new JSZip();
-
   try {
-    for (let i = 0; i < photos.length; i++){
-      fill.style.width = Math.round((i / photos.length) * 100) + '%';
-      text.textContent = `처리 중... (${i+1}/${photos.length}장)`;
+    if (outFormat === 'pdf'){
+      // ── PDF 모드: 사진 여러 장 → PDF 한 파일로 합치기 ─────
+      const { PDFDocument } = PDFLib;
+      const outPdf = await PDFDocument.create();
 
-      const canvas = composePhoto(photos[i]);
+      for (let i = 0; i < photos.length; i++){
+        fill.style.width = Math.round((i / photos.length) * 100) + '%';
+        text.textContent = `PDF 페이지 만드는 중... (${i+1}/${photos.length}장)`;
 
-      const blob = await new Promise((res, rej) => {
-        canvas.toBlob(
-          b => b ? res(b) : rej(new Error('이미지 변환 실패')),
-          mimeType,
-          quality
-        );
-      });
+        const canvas = composePhoto(photos[i]);   // 워터마크 합성된 캔버스
 
-      const baseName = photos[i].name.replace(/\.[^.]+$/, '');
-      zip.file('wm_' + baseName + ext, blob);
+        // 캔버스 → JPEG bytes (PDF에 이미지로 삽입하기 위해)
+        const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const jpegBytes   = await fetch(jpegDataUrl).then(r => r.arrayBuffer());
+        const jpegImage   = await outPdf.embedJpg(jpegBytes);
 
-      // 브라우저가 멈추지 않도록 잠깐 양보
-      await new Promise(r => setTimeout(r, 0));
+        // 사진 크기 그대로 PDF 페이지 크기로 사용 (1px = 1pt)
+        const pdfPage = outPdf.addPage([canvas.width, canvas.height]);
+        pdfPage.drawImage(jpegImage, { x: 0, y: 0, width: canvas.width, height: canvas.height });
+
+        await new Promise(r => setTimeout(r, 0)); // 브라우저 멈춤 방지
+      }
+
+      fill.style.width = '100%';
+      text.textContent = 'PDF 파일 만드는 중...';
+
+      const pdfBytes = await outPdf.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'watermarked_photos.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      text.textContent = `✅ 완료! ${photos.length}장이 담긴 PDF가 다운로드되었습니다.`;
+      text.classList.add('done');
+
+    } else {
+      // ── JPG/PNG 모드: 기존 ZIP 로직 ─────────────────────
+      const isJpg    = (outFormat === 'jpg');
+      const mimeType = isJpg ? 'image/jpeg' : 'image/png';
+      const ext      = isJpg ? '.jpg' : '.png';
+      const quality  = isJpg ? 0.92 : undefined;
+
+      const zip = new JSZip();
+
+      for (let i = 0; i < photos.length; i++){
+        fill.style.width = Math.round((i / photos.length) * 100) + '%';
+        text.textContent = `처리 중... (${i+1}/${photos.length}장)`;
+
+        const canvas = composePhoto(photos[i]);
+
+        const blob = await new Promise((res, rej) => {
+          canvas.toBlob(
+            b => b ? res(b) : rej(new Error('이미지 변환 실패')),
+            mimeType,
+            quality
+          );
+        });
+
+        const baseName = photos[i].name.replace(/\.[^.]+$/, '');
+        zip.file('wm_' + baseName + ext, blob);
+
+        await new Promise(r => setTimeout(r, 0));
+      }
+
+      fill.style.width = '100%';
+      text.textContent = 'ZIP 파일 만드는 중...';
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'watermarked_' + outFormat + '.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      text.textContent = '✅ 완료! ZIP 파일이 다운로드되었습니다.';
+      text.classList.add('done');
     }
-
-    fill.style.width = '100%';
-    text.textContent = 'ZIP 파일 만드는 중...';
-
-    const zipBlob = await zip.generateAsync({ type: 'blob' });
-    const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'watermarked_' + outFormat + '.zip';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    text.textContent = '✅ 완료! ZIP 파일이 다운로드되었습니다.';
-    text.classList.add('done');
 
   } catch(err){
     text.textContent = '❌ 오류: ' + err.message;
@@ -1358,7 +1408,8 @@ async function runPrint(){
   try {
     // 1) 모든 사진에 워터마크 적용 → DataURL 배열로 수집
     const dataURLs = [];
-    const isJpg    = (outFormat === 'jpg');
+    // 인쇄는 항상 이미지로 뽑으므로, PDF 형식이 선택돼 있어도 JPEG로 인쇄해요
+    const isJpg    = (outFormat === 'jpg' || outFormat === 'pdf');
     const mimeType = isJpg ? 'image/jpeg' : 'image/png';
     const quality  = isJpg ? 0.92 : undefined;
 
