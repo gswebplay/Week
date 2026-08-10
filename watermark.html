@@ -246,6 +246,35 @@ body{
 }
 .photo-thumb .btn-remove-photo:hover{background:rgba(46,75,69,.85)}
 
+/* ✅ 순서 번호 배지 — PDF 저장 시 페이지 순서를 한눈에 보여줘요 */
+.photo-thumb .order-badge{
+  position:absolute;bottom:3px;left:3px;
+  min-width:18px;height:18px;padding:0 4px;
+  background:rgba(0,0,0,.6);color:#fff;
+  border-radius:9px;font-size:10px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  pointer-events:none; /* 클릭이 썸네일로 통과되게 */
+}
+
+/* ✅ 드래그 핸들 — 여기를 잡고 끌면 순서를 바꿀 수 있어요 */
+.photo-thumb .drag-handle{
+  position:absolute;top:3px;left:3px;
+  width:20px;height:20px;
+  background:rgba(0,0,0,.5);color:#fff;
+  border-radius:5px;font-size:12px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:grab;
+}
+.photo-thumb .drag-handle:active{cursor:grabbing}
+
+/* 드래그 중인 썸네일: 반투명 처리 */
+.photo-thumb.dragging{opacity:.4}
+/* 드롭될 위치 강조: 테두리 전체를 강조 (선이 아니라 아웃라인) */
+.photo-thumb.drag-over-target{
+  outline:3px solid #3D6E62;outline-offset:-3px;
+  border-radius:8px;
+}
+
 .btn-add-photo{
   aspect-ratio:1/1;border:2px dashed #C3DED6;border-radius:8px;background:#F6FAF8;
   color:#71918C;font-size:20px;cursor:pointer;display:flex;flex-direction:column;
@@ -257,6 +286,12 @@ body{
 .count-badge{
   display:inline-flex;align-items:center;background:#C3DED6;color:#2E4B45;
   font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:6px;
+}
+
+/* 순서 변경 안내 문구 */
+.photo-order-hint{
+  font-size:11px;color:#71918C;margin-top:8px;padding:6px 10px;
+  background:#F6FAF8;border-radius:7px;text-align:center;
 }
 
 /* ==========================================================
@@ -510,6 +545,9 @@ body{
     </div>
     <input type="file" id="photoFileInput" accept="image/*" multiple style="display:none" />
 
+    <div class="photo-order-hint" id="photoOrderHint" style="display:none">
+      ⠿ 핸들을 드래그하면 순서를 바꿀 수 있어요 · PDF 저장 시 이 순서대로 페이지가 만들어져요
+    </div>
     <div class="photo-grid" id="photoGrid"></div>
   </div>
 
@@ -945,17 +983,28 @@ function addPhotos(files){
   const imgs = files.filter(f => f.type.startsWith('image/'));
   if (imgs.length === 0) return;
 
+  // ✅ 순서 보장: 비동기 로딩이 끝나는 순서가 아니라
+  //    파일을 "선택한 순서"대로 photos 배열에 들어가도록
+  //    미리 자리를 잡아둔 뒤(results 배열) 마지막에 한 번에 삽입해요
+  const results = new Array(imgs.length).fill(null);
   let done = 0;
-  const finish = () => { if (++done === imgs.length){ renderPhotoGrid(); updatePreview(); } };
 
-  imgs.forEach(file => {
+  const finish = () => {
+    if (++done !== imgs.length) return;
+    // 로딩 실패한(null) 항목은 걸러내고 원래 선택 순서 그대로 추가
+    results.filter(r => r !== null).forEach(r => photos.push(r));
+    renderPhotoGrid();
+    updatePreview();
+  };
+
+  imgs.forEach((file, i) => {
     readFileAsDataURL(file, dataURL => {
       const img = new Image();
       img.onload = () => {
-        photos.push({ id: Date.now()+Math.random(), name: file.name, dataURL, imgObj: img });
+        results[i] = { id: Date.now()+Math.random()+i, name: file.name, dataURL, imgObj: img };
         finish();
       };
-      img.onerror = finish;
+      img.onerror = finish; // 실패 시 results[i]는 null로 남고 건너뜀
       img.src = dataURL;
     });
   });
@@ -975,16 +1024,25 @@ function selectPreview(idx){
   updatePreview();
 }
 
+/* ==========================================================
+   ✅ 사진 순서 변경 (드래그앤드롭)
+   드래그 시작한 사진의 인덱스를 기억해뒀다가
+   드롭된 위치로 배열 순서를 옮겨요 (splice 사용)
+========================================================== */
+let dragFromIdx = null; // 드래그를 시작한 사진의 인덱스
+
 function renderPhotoGrid(){
   const grid  = document.getElementById('photoGrid');
   const badge = document.getElementById('photoCountBadge');
   const drop  = document.getElementById('photoDrop');
+  const hint  = document.getElementById('photoOrderHint');
 
   grid.innerHTML = '';
 
   if (photos.length === 0){
     drop.style.display = '';
     badge.style.display = 'none';
+    hint.style.display = 'none';
     checkRunnable();
     return;
   }
@@ -993,10 +1051,15 @@ function renderPhotoGrid(){
   badge.style.display = '';
   badge.textContent = photos.length + '장';
 
+  // 사진이 2장 이상일 때만 순서 변경 안내 표시 (1장이면 순서 의미 없음)
+  hint.style.display = (photos.length > 1) ? '' : 'none';
+
   photos.forEach((p, idx) => {
     const th = document.createElement('div');
     th.className = 'photo-thumb' + (idx === previewIdx ? ' selected' : '');
     th.title = '클릭하면 미리보기에 표시돼요';
+    th.draggable = true; // ✅ 드래그 가능하게
+
     th.onclick = () => selectPreview(idx);
 
     const im = document.createElement('img');
@@ -1006,10 +1069,65 @@ function renderPhotoGrid(){
     const rm = document.createElement('button');
     rm.className = 'btn-remove-photo';
     rm.textContent = '✕';
+    rm.draggable = false; // 삭제 버튼 자체는 드래그 대상이 아니도록
     rm.onclick = ev => removePhoto(p.id, ev);
+
+    // 순서 번호 배지 (1부터 시작 — PDF 페이지 번호와 동일)
+    const order = document.createElement('div');
+    order.className = 'order-badge';
+    order.textContent = (idx + 1);
+
+    // 드래그 핸들 (⠿)
+    const handle = document.createElement('div');
+    handle.className = 'drag-handle';
+    handle.textContent = '⠿';
+    handle.title = '드래그해서 순서 변경';
 
     th.appendChild(im);
     th.appendChild(rm);
+    th.appendChild(order);
+    th.appendChild(handle);
+
+    /* ── 드래그앤드롭 이벤트 ───────────────────────────── */
+    th.addEventListener('dragstart', (e) => {
+      dragFromIdx = idx;
+      th.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    th.addEventListener('dragend', () => {
+      th.classList.remove('dragging');
+      // 혹시 남아있는 강조 표시 전부 제거
+      grid.querySelectorAll('.drag-over-target').forEach(el => el.classList.remove('drag-over-target'));
+    });
+
+    th.addEventListener('dragover', (e) => {
+      e.preventDefault(); // 드롭을 허용하기 위해 필수
+      if (idx !== dragFromIdx) th.classList.add('drag-over-target');
+    });
+
+    th.addEventListener('dragleave', () => {
+      th.classList.remove('drag-over-target');
+    });
+
+    th.addEventListener('drop', (e) => {
+      e.preventDefault();
+      th.classList.remove('drag-over-target');
+      if (dragFromIdx === null || dragFromIdx === idx) return;
+
+      // 배열에서 순서 이동: 꺼내서(splice 제거) 새 위치에 삽입(splice 삽입)
+      const moved = photos.splice(dragFromIdx, 1)[0];
+      photos.splice(idx, 0, moved);
+
+      // 미리보기 인덱스도 이동된 사진을 계속 따라가도록 보정
+      if (previewIdx === dragFromIdx) previewIdx = idx;
+
+      dragFromIdx = null;
+      renderPhotoGrid();
+      updatePreview();
+    });
+    /* ─────────────────────────────────────────────────── */
+
     grid.appendChild(th);
   });
 
