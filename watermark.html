@@ -639,6 +639,22 @@ body{
       <div class="opt-desc">높을수록 선명하지만 처리 시간이 길어지고 파일이 커져요.</div>
     </div>
 
+    <!-- PDF 출력 형식 선택 (새로 추가) -->
+    <div class="card">
+      <div class="card-title"><span class="icon">💾</span> 저장 형식</div>
+      <div class="opt-row">
+        <span class="opt-label">형식</span>
+        <div class="opt-group">
+          <button class="opt-btn active" id="pdfFmtPdf" onclick="setPdfFormat('pdf')">PDF</button>
+          <button class="opt-btn"        id="pdfFmtJpg" onclick="setPdfFormat('jpg')">JPG</button>
+          <button class="opt-btn"        id="pdfFmtPng" onclick="setPdfFormat('png')">PNG</button>
+        </div>
+      </div>
+      <div class="opt-desc" id="pdfFmtDesc">
+        각 PDF가 워터마크 적용된 PDF 파일로 그대로 저장돼요.
+      </div>
+    </div>
+
     <!-- PDF 파일 업로드 -->
     <div class="card">
       <div class="card-title">
@@ -670,7 +686,7 @@ body{
     <!-- PDF 실행 버튼 -->
     <div class="pdf-btn-row">
       <button class="btn-pdf-save"  id="btnPdfSave"  disabled onclick="runPdfWatermark('save')">
-        💾 PDF 저장
+        <span id="btnPdfSaveLabel">💾 PDF 저장</span>
       </button>
       <button class="btn-pdf-print" id="btnPdfPrint" disabled onclick="runPdfWatermark('print')">
         🖨️ 인쇄
@@ -703,7 +719,8 @@ let resizeBasis = 'width';  // 'width' 또는 'height'
 
 // PDF 전용 변수
 let pdfFiles       = [];    // [{id, name, arrayBuffer, pageCount}]
-let pdfDpi         = 200;   // 렌더링 해상도 (150/200/300 dpi)
+let pdfDpi          = 200;  // 렌더링 해상도 (150/200/300 dpi)
+let pdfOutFormat    = 'pdf';// 'pdf' | 'jpg' | 'png' — PDF 탭 저장 형식
 let currentTab     = 'img'; // 현재 활성 탭 ('img' 또는 'pdf')
 let pdfPreviewIdx  = 0;     // PDF 미리보기에 표시할 파일 번호
 let pdfPreviewTimer = null; // 슬라이더 조작 시 PDF 미리보기 갱신 지연용
@@ -1752,6 +1769,33 @@ function setPdfDpi(dpi){
 
 
 /* ==========================================================
+   ✅ PDF 저장 형식 선택 (PDF / JPG / PNG)
+   PDF를 그대로 저장할지, 페이지별 이미지로 뽑아 ZIP으로 저장할지 결정해요
+========================================================== */
+function setPdfFormat(fmt){
+  pdfOutFormat = fmt;
+
+  document.getElementById('pdfFmtPdf').classList.toggle('active', fmt === 'pdf');
+  document.getElementById('pdfFmtJpg').classList.toggle('active', fmt === 'jpg');
+  document.getElementById('pdfFmtPng').classList.toggle('active', fmt === 'png');
+
+  const desc = document.getElementById('pdfFmtDesc');
+  const saveLabel = document.getElementById('btnPdfSaveLabel');
+
+  if (fmt === 'pdf'){
+    desc.innerHTML = '각 PDF가 워터마크 적용된 PDF 파일로 그대로 저장돼요.';
+    saveLabel.textContent = '💾 PDF 저장';
+  } else if (fmt === 'jpg'){
+    desc.innerHTML = 'PDF의 각 페이지를 <strong>JPG 이미지</strong>로 뽑아서 ZIP으로 저장해요. 흰 배경으로 저장됩니다.';
+    saveLabel.textContent = '🖼️ 이미지(JPG)로 저장';
+  } else {
+    desc.innerHTML = 'PDF의 각 페이지를 <strong>PNG 이미지</strong>로 뽑아서 ZIP으로 저장해요.';
+    saveLabel.textContent = '🖼️ 이미지(PNG)로 저장';
+  }
+}
+
+
+/* ==========================================================
    ✅ PDF 파일 추가 (드롭 or 파일 선택)
 ========================================================== */
 function handlePdfDrop(files){
@@ -2017,29 +2061,102 @@ async function runPdfWatermark(mode){
 
   try {
     if (mode === 'save'){
-      // ── 저장 모드 ─────────────────────────────────────────
-      for (let fi = 0; fi < pdfFiles.length; fi++){
-        const pf = pdfFiles[fi];
-        text.textContent = `처리 중... PDF ${fi+1}/${pdfFiles.length} — ${pf.name}`;
 
-        const pdfBytes = await processPdf(pf, (pg, total) => {
-          fill.style.width   = Math.round(((fi + pg/total) / pdfFiles.length) * 100) + '%';
-          detail.textContent = `페이지 ${pg} / ${total}`;
-        });
+      if (pdfOutFormat === 'pdf'){
+        // ── 저장 모드: PDF 형식 (기존 로직) ────────────────
+        for (let fi = 0; fi < pdfFiles.length; fi++){
+          const pf = pdfFiles[fi];
+          text.textContent = `처리 중... PDF ${fi+1}/${pdfFiles.length} — ${pf.name}`;
 
-        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = 'wm_' + pf.name;
+          const pdfBytes = await processPdf(pf, (pg, total) => {
+            fill.style.width   = Math.round(((fi + pg/total) / pdfFiles.length) * 100) + '%';
+            detail.textContent = `페이지 ${pg} / ${total}`;
+          });
+
+          const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+          const url  = URL.createObjectURL(blob);
+          const a    = document.createElement('a');
+          a.href     = url;
+          a.download = 'wm_' + pf.name;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+
+        fill.style.width = '100%';
+        text.textContent = `✅ 완료! ${pdfFiles.length}개 PDF가 다운로드되었습니다.`;
+
+      } else {
+        // ── 저장 모드: 이미지(JPG/PNG) 형식 — 페이지별로 뽑아서 ZIP 하나로 묶기 ──
+        const mimeType = (pdfOutFormat === 'jpg') ? 'image/jpeg' : 'image/png';
+        const ext      = (pdfOutFormat === 'jpg') ? '.jpg' : '.png';
+        const quality  = (pdfOutFormat === 'jpg') ? 0.92 : undefined;
+
+        const zip = new JSZip();
+        let totalPagesDone = 0;
+        // 진행률 계산을 위해 전체 페이지 수를 먼저 파악
+        let totalPagesAll = 0;
+        for (const pf of pdfFiles) totalPagesAll += (typeof pf.pageCount === 'number' ? pf.pageCount : 1);
+
+        for (let fi = 0; fi < pdfFiles.length; fi++){
+          const pf = pdfFiles[fi];
+          text.textContent = `이미지 변환 중... PDF ${fi+1}/${pdfFiles.length} — ${pf.name}`;
+
+          const scale  = pdfDpi / 72;
+          const pdfDoc = await pdfjsLib.getDocument({ data: pf.arrayBuffer.slice(0) }).promise;
+          const totalPages = pdfDoc.numPages;
+
+          // 파일이 여러 개일 때 헷갈리지 않도록 PDF 이름 기준 폴더로 구분
+          const baseName = pf.name.replace(/\.[^.]+$/, '');
+          const folder = pdfFiles.length > 1 ? zip.folder(baseName) : zip;
+
+          for (let pageNum = 1; pageNum <= totalPages; pageNum++){
+            detail.textContent = `${pf.name} — 페이지 ${pageNum}/${totalPages}`;
+
+            const page     = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale });
+            const canvas   = document.createElement('canvas');
+            canvas.width   = Math.round(viewport.width);
+            canvas.height  = Math.round(viewport.height);
+            const ctx = canvas.getContext('2d');
+
+            // JPG는 투명 배경이 없으니 흰 배경을 먼저 칠해요 (PNG는 원본 렌더링 그대로)
+            if (pdfOutFormat === 'jpg'){
+              ctx.fillStyle = '#FFFFFF';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            await page.render({ canvasContext: ctx, viewport }).promise;
+            ctx.drawImage(buildOverlay(canvas.width, canvas.height), 0, 0);
+
+            const blob = await new Promise((res, rej) => {
+              canvas.toBlob(b => b ? res(b) : rej(new Error('이미지 변환 실패')), mimeType, quality);
+            });
+
+            const pageLabel = String(pageNum).padStart(totalPages >= 100 ? 3 : 2, '0');
+            folder.file(`${baseName}_p${pageLabel}${ext}`, blob);
+
+            totalPagesDone++;
+            fill.style.width = Math.round((totalPagesDone / totalPagesAll) * 100) + '%';
+
+            await new Promise(r => setTimeout(r, 0)); // 브라우저 멈춤 방지
+          }
+        }
+
+        text.textContent = 'ZIP 파일 만드는 중...';
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `watermarked_pdf_${pdfOutFormat}.zip`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-      }
 
-      fill.style.width = '100%';
-      text.textContent = `✅ 완료! ${pdfFiles.length}개 PDF가 다운로드되었습니다.`;
+        text.textContent = `✅ 완료! 총 ${totalPagesAll}페이지가 ${pdfOutFormat.toUpperCase()} 이미지 ZIP으로 다운로드되었습니다.`;
+      }
 
     } else {
       // ── 인쇄 모드 ─────────────────────────────────────────
