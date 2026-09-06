@@ -1503,10 +1503,14 @@ function renderBody(){
 
     body.appendChild(tr);
 
-    // 그 날이 일요일이거나, 이번 달의 마지막 날이면 -> 그 주의 "주간정리" 줄을 바로 아래에 추가
+    // ★ [수정됨] 예전엔 "일요일이거나 이번 달의 마지막 날"이면 주간정리를 추가했는데,
+    // 이러면 말일이 월요일 같은 경우(예: 2026년 8월 31일) 그 주(8/31~9/6)가 사실상 거의 다음 달인데도
+    // 억지로 이번 달 끝에 주간정리를 붙여버려서, 다음 달 데이터가 이번 달 주간정리에 섞여 보이는 문제가 있었음.
+    // 이제는 "그 주가 진짜로 끝났을 때(일요일)"만 주간정리를 추가함. 그래서 달이 주 중간에 끝나면,
+    // 그 주의 주간정리/차주계획은 이번 달에는 안 보이고, 다음 달 달력에서 그 주의 일요일을 만날 때 표시됨
+    // (예: 8월 31일(월)이 마지막 날이면, 그 주 정리는 9월 달력의 9월 6일(일) 아래에 나타남).
     const isLastDayOfWeek = dowIdx === 6;
-    const isLastDayOfMonth = d === totalDays;
-    if(isLastDayOfWeek || isLastDayOfMonth){
+    if(isLastDayOfWeek){
       appendSummaryRow(weekStartOfCurrentRun);
       appendPlanRow(weekStartOfCurrentRun); // 주간정리 바로 아래에 차주계획 줄도 이어서 추가
       weekStartOfCurrentRun = null;
@@ -1915,14 +1919,21 @@ function switchTab(tab){
    진행률이 자연스럽게 이어지도록 함.
    ============================================================ */
 function computeMonthlySummary(empId){
-  const first = monthFirstDate(currentYear, currentMonth);
-  const last  = monthLastDate(currentYear, currentMonth);
-  const rangeEnd = weekEnd(startOfWeek(last));    // 말일이 속한 주의 일요일 (이번 달 계산 범위의 끝)
+  const first = monthFirstDate(currentYear, currentMonth); // 이번 달 1일
+  const last  = monthLastDate(currentYear, currentMonth);  // 이번 달 말일
 
-  // (1) "이번 달에 실제로 입력한 게 있는지"는 예전처럼 이번 달(+월 경계 걸친 주) 범위만 보고 판단함
+  // ★ [수정됨] 예전엔 1일/말일이 "속한 주" 전체(월~일)까지 넓혀서 계산 범위를 잡았는데,
+  // 이러면 말일이 월요일인 달(예: 2026년 8월 31일)처럼 그 주의 나머지 6일이 전부 다음 달로
+  // 넘어가는 경우, 사실상 다음 달 한 주 전체가 이번 달 월간정리에 잘못 포함돼버림
+  // (반대쪽 1일이 속한 주도 마찬가지로 지난달 날짜가 섞여 들어옴).
+  // 그래서 이제는 "이번 달에 손댄 항목" 판단 범위와 진행률(%) 계산 범위 모두, 주 단위로 넓히지 않고
+  // 달력상 진짜 1일~말일로만 엄격하게 제한함. (주간정리 행 자체의 표시 방식은 이것과 무관하게 그대로 유지됨)
+  const rangeEnd = last;
+
+  // (1) "이번 달에 실제로 입력한 게 있는지"는 이번 달 1일~말일 범위만 보고 판단함
   //     ★ 이때 모아둔 항목들(monthOwnItems)을 아래 buildProgressSummaryLines에도 넘겨서
   //        "이번 달에 실제로 손댄 프로젝트"만 줄로 표시하는 데 사용함 (지난달 항목 반복 출력 방지)
-  const ownRangeStart = startOfWeek(first); // 1일이 속한 주의 월요일 (예: 6월 29일)
+  const ownRangeStart = first;
   const ownRangeDays = Math.round((rangeEnd - ownRangeStart) / 86400000) + 1;
   let totalCount = 0;
   const monthOwnItems = [];
