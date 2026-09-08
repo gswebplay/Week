@@ -1459,6 +1459,13 @@ function renderBody(){
             if(renderedTitles.has(title)) return ''; // 이미 이 프로젝트는 한 줄로 합쳐서 출력했으므로 건너뜀
             renderedTitles.add(title);
             const group = stageGroups.get(title);
+            // ★ [추가됨] 내용이 있는 단계 행이 1개 이하면 "통합내용"(개별내용 모드가 아닌 경우)으로 보고,
+            // 특정 단계 옆이 아니라 전체 줄 맨 끝(마지막 단계 % 뒤)에 한 번만 붙여서 보여줌.
+            // 내용이 2개 이상 단계에 각각 있으면 "개별내용" 모드이므로, 예전처럼 그 단계 옆에 각각 붙여서 보여줌.
+            const contentsInGroup = group.map(g => (g.content || '').trim()).filter(Boolean);
+            const isCombinedContent = contentsInGroup.length <= 1;
+            const combinedContentText = isCombinedContent ? (contentsInGroup[0] || '') : '';
+
             // 이 프로젝트의 단계들을 "단계명 진행률%" 형태로 각각 만듦.
             // ★ [수정됨] % 숫자는 <span class="pct">로 감싸서, 원래 스타일(작은 회색 모노스페이스 글꼴)이
             // 그대로 유지되도록 함. (합치기 전에는 각 항목마다 .pct가 따로 있었는데, 한 줄로 합치면서
@@ -1466,7 +1473,8 @@ function renderBody(){
             const htmlSegments = group.map(g => {
               const gStages = g.stage ? String(g.stage).split(STAGE_SEP).map(s => s.trim()).filter(Boolean) : [];
               const stageLabel = escapeHtml(gStages.join(' / '));
-              const contentPart = (g.content || '').trim() ? `(${escapeHtml(g.content.trim())})` : ''; // 내용이 있으면 괄호로 덧붙임
+              // 통합내용 모드면 여기서는 내용을 붙이지 않음(맨 끝에 따로 붙임). 개별내용 모드일 때만 그 단계 옆에 붙임.
+              const contentPart = (!isCombinedContent && (g.content || '').trim()) ? `(${escapeHtml(g.content.trim())})` : '';
               const pctHtml = (g.progress !== null && g.progress !== undefined) ? `<span class="pct">${g.progress}%</span>` : '';
               return `${stageLabel}${contentPart}${pctHtml}`;
             });
@@ -1474,12 +1482,14 @@ function renderBody(){
             const plainSegments = group.map(g => {
               const gStages = g.stage ? String(g.stage).split(STAGE_SEP).map(s => s.trim()).filter(Boolean) : [];
               const stageLabel = gStages.join(' / ');
-              const contentPart = (g.content || '').trim() ? `(${g.content.trim()})` : '';
+              const contentPart = (!isCombinedContent && (g.content || '').trim()) ? `(${g.content.trim()})` : '';
               const pct = (g.progress !== null && g.progress !== undefined) ? ` ${g.progress}%` : '';
               return `${stageLabel}${contentPart}${pct}`;
             });
-            const htmlLabel = `${escapeHtml(title)} - ${htmlSegments.join(', ')}`;
-            const plainLabel = `${title} - ${plainSegments.join(', ')}`;
+            const combinedSuffixHtml = combinedContentText ? ` (${escapeHtml(combinedContentText)})` : '';
+            const combinedSuffixPlain = combinedContentText ? ` (${combinedContentText})` : '';
+            const htmlLabel = `${escapeHtml(title)} - ${htmlSegments.join(', ')}${combinedSuffixHtml}`;
+            const plainLabel = `${title} - ${plainSegments.join(', ')}${combinedSuffixPlain}`;
             return `
           <div class="log-item">
             <span class="dot">·</span>
@@ -2152,22 +2162,33 @@ function openDayModal(emp, date){
       // 프로젝트명이 있고 단계도 있는 행 -> 같은 프로젝트명끼리 하나의 카드로 묶음
       if(!groupIndexByTitle.has(t)){
         groupIndexByTitle.set(t, items.length);
-        items.push({ title: t, stages: [], stageProgress: {}, content: '', progress: null, _isNew: false, _autoFilledStages: {} });
+        items.push({ title: t, stages: [], stageProgress: {}, content: '', stageContent: {}, perStageContent: false, progress: null, _isNew: false, _autoFilledStages: {} });
       }
       const g = items[groupIndexByTitle.get(t)];
       rowStages.forEach(s => {
         if(!g.stages.includes(s)) g.stages.push(s);
         g.stageProgress[s] = (row.progress !== null && row.progress !== undefined) ? row.progress : null;
+        if(row.content) g.stageContent[s] = row.content; // ★ [추가됨] 이 단계 행에 붙어있던 내용을 단계별로 그대로 보존해둠
       });
-      if(!g.content && row.content) g.content = row.content; // 내용(메모)은 여러 행 중 하나에만 저장돼있어도 카드에 반영되도록 함
     } else {
       // 단계가 없는 행(자유 메모, 또는 제목만 있는 경우)은 예전처럼 카드 하나 = 행 하나로 유지
-      items.push({ title: t, stages: [], stageProgress: {}, content: row.content || '', progress: (row.progress ?? null), _isNew: false, _autoFilledStages: {} });
+      items.push({ title: t, stages: [], stageProgress: {}, content: row.content || '', stageContent: {}, perStageContent: false, progress: (row.progress ?? null), _isNew: false, _autoFilledStages: {} });
+    }
+  });
+  // ★ [추가됨] 단계가 있는 카드마다, 내용이 "몇 개 단계에" 들어있었는지로 통합/개별 모드를 자동 판별함
+  items.forEach(g => {
+    if(!g.stages || g.stages.length === 0) return;
+    const stagesWithContent = Object.keys(g.stageContent || {}).filter(s => (g.stageContent[s] || '').trim() !== '');
+    if(stagesWithContent.length > 1){
+      g.perStageContent = true;
+    } else {
+      g.perStageContent = false;
+      g.content = stagesWithContent.length === 1 ? g.stageContent[stagesWithContent[0]] : '';
     }
   });
   if(items.length === 0){
     // 항목이 하나도 없으면, 버튼을 또 누를 필요 없이 바로 빈 입력창을 하나 보여줌
-    items.push({ title: '', stages: [], stageProgress: {}, content: '', progress: null, _isNew: true, _autoFilledStages: {} });
+    items.push({ title: '', stages: [], stageProgress: {}, content: '', stageContent: {}, perStageContent: false, progress: null, _isNew: true, _autoFilledStages: {} });
   }
 
   // 항목별로 "작업단계 관리 모드"가 켜져있는지 기억해두는 곳 (idx -> true/false). 평소엔 꺼져있음.
@@ -2209,14 +2230,22 @@ function openDayModal(emp, date){
           <div class="tag-wrap" id="stagePicker-${idx}"></div>
         </div>
 
-        <div class="field" style="margin-bottom:20px;">
-          <label>내용 (선택)</label>
-          <textarea data-field="content" data-idx="${idx}">${escapeHtml(it.content || '')}</textarea>
+        <div class="field" style="margin-bottom:16px;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; margin-bottom:0;">
+            <input type="checkbox" data-content-mode-toggle="${idx}" ${it.perStageContent ? 'checked' : ''} style="width:auto;" />
+            개별내용
+          </label>
+          <div class="hint-text" style="margin-top:3px;">체크하면 단계마다 내용을 따로 적을 수 있습니다</div>
         </div>
+
+        <!-- ★ [추가됨] "개별내용"이 꺼져있을 때만(기본값) 여기에 통합 내용 칸이 하나 보임.
+             켜져있으면 이 칸은 비어있고, 대신 아래 stageProgressList-${idx} 안에서 단계마다 내용 칸이 따로 생김. -->
+        <div id="contentField-${idx}"></div>
 
         <!-- ★ [수정됨] 예전엔 "진행률(%)" 입력칸이 항목당 딱 하나였는데, 이제는 위에서 선택한 단계
              개수만큼 입력칸이 여기 자동으로 생깁니다 (예: 모델링/도면/랜더링 3개를 선택했으면
-             진행률 입력칸도 3개). 단계를 하나도 안 골랐으면(자유 메모 등) 예전처럼 칸 하나만 보여줌. -->
+             진행률 입력칸도 3개). "개별내용"이 켜져있으면 진행률 입력칸 옆에 그 단계 전용 내용 칸도 같이 생김.
+             단계를 하나도 안 골랐으면(자유 메모 등) 예전처럼 칸 하나만 보여줌. -->
         <div id="stageProgressList-${idx}"></div>
       </div>
     `).join('');
@@ -2240,7 +2269,7 @@ function openDayModal(emp, date){
     onMount: (close) => {
       bindItemEvents();
       document.getElementById('addItemBtn').addEventListener('click', () => {
-        items.push({ title: '', stages: [], stageProgress: {}, content: '', progress: null, _isNew: true, _autoFilledStages: {} });
+        items.push({ title: '', stages: [], stageProgress: {}, content: '', stageContent: {}, perStageContent: false, progress: null, _isNew: true, _autoFilledStages: {} });
         refreshItemsContainer();
       });
       // "최근 자동완성 기록 지우기" - 이 인원의 최근 프로젝트명 기록만 지움 (실제 업무 기록은 안 지워짐)
@@ -2381,6 +2410,7 @@ function openDayModal(emp, date){
         }
 
         renderStagePicker(idx);
+        renderContentField(idx); // ★ [추가됨] 단계가 0개로 바뀌면 통합 내용칸으로 되돌아가야 하므로 같이 다시 그림
         renderStageProgressList(idx); // 선택된 단계 개수가 바뀌었으니 진행률 입력칸 목록도 다시 그림
       });
     });
@@ -2419,13 +2449,20 @@ function openDayModal(emp, date){
           </div>`;
       }
     } else {
+      const perStage = !!items[idx].perStageContent; // ★ [추가됨] "개별내용"이 켜져있으면 단계마다 내용 칸도 같이 그려줌
+      const stageContent = items[idx].stageContent || {};
       wrap.innerHTML = stages.map(s => {
         const v = (stageProgress[s] !== null && stageProgress[s] !== undefined) ? stageProgress[s] : '';
+        const contentHtml = perStage ? `
+        <div class="field" style="margin:4px 0 14px 0;">
+          <label style="font-weight:400;">${escapeHtml(s)} 내용 (선택)</label>
+          <textarea data-field="stageContent" data-idx="${idx}" data-stage="${escapeHtml(s)}">${escapeHtml(stageContent[s] || '')}</textarea>
+        </div>` : '';
         return `
         <div class="stage-progress-row">
           <input type="number" min="0" max="100" data-field="stageProgress" data-idx="${idx}" data-stage="${escapeHtml(s)}" value="${v}" placeholder="선택입력" />
           <label>${escapeHtml(s)} 진행률(%)</label>
-        </div>`;
+        </div>${contentHtml}`;
       }).join('');
     }
 
@@ -2448,6 +2485,35 @@ function openDayModal(emp, date){
         items[idx]._autoFilledStages[stageName] = false;
       });
     });
+    // ★ [추가됨] "개별내용" 모드에서 단계마다 생긴 내용 칸에 타이핑하면, stageContent[단계명]에 저장됨
+    wrap.querySelectorAll('[data-field="stageContent"]').forEach(el => {
+      el.addEventListener('input', () => {
+        const stageName = el.dataset.stage;
+        if(!items[idx].stageContent) items[idx].stageContent = {};
+        items[idx].stageContent[stageName] = el.value;
+      });
+    });
+  }
+
+  // ★ [추가됨] "내용" 칸을 그려주는 함수 - "개별내용"이 꺼져있거나(기본값) 단계가 하나도 없으면
+  // 통합 내용 칸 하나를 보여주고, 켜져있으면 여긴 비워둠(대신 renderStageProgressList가 단계마다 그려줌)
+  function renderContentField(idx){
+    const wrap = document.getElementById(`contentField-${idx}`);
+    if(!wrap) return;
+    const hasStages = (items[idx].stages || []).length > 0;
+    const showCombined = !items[idx].perStageContent || !hasStages;
+    if(showCombined){
+      wrap.innerHTML = `
+        <div class="field" style="margin-bottom:20px;">
+          <label>내용 (선택)</label>
+          <textarea data-field="content" data-idx="${idx}">${escapeHtml(items[idx].content || '')}</textarea>
+        </div>`;
+      wrap.querySelector('[data-field="content"]').addEventListener('input', (e) => {
+        items[idx].content = e.target.value;
+      });
+    } else {
+      wrap.innerHTML = '';
+    }
   }
 
   // "프로젝트 진행 구성" - 이 프로젝트가 쓸 전체 단계 목록. 항상 보이고, ×를 누르면 바로 삭제됨(부서 목록엔 남음).
@@ -2569,8 +2635,16 @@ function openDayModal(emp, date){
         refreshItemsContainer(); // "프로젝트 진행 구성" 영역을 새 프로젝트명 기준으로 다시 그림
       });
     });
-    document.querySelectorAll('[data-field="content"]').forEach(el => {
-      el.addEventListener('input', () => { items[el.dataset.idx].content = el.value; });
+    // ★ [수정됨] "내용" 입력칸은 이제 항상 정적으로 존재하지 않고(개별내용 모드일 땐 아예 안 뜰 수도 있음),
+    // renderContentField(idx)가 그때그때 그리면서 자체적으로 이벤트를 연결하므로 여기서는 따로 안 함.
+    // ★ [추가됨] "개별내용" 체크박스 - 켜고 끌 때마다 내용 칸(통합/단계별)을 다시 그림
+    document.querySelectorAll('[data-content-mode-toggle]').forEach(el => {
+      const idx = el.dataset.contentModeToggle;
+      el.addEventListener('change', () => {
+        items[idx].perStageContent = el.checked;
+        renderContentField(idx);
+        renderStageProgressList(idx);
+      });
     });
     // ★ [수정됨] "진행률(%)" 입력칸들은 이제 stageProgressList-${idx} 안에서 동적으로 만들어지고,
     // renderStageProgressList(idx) 함수 안에서 자체적으로 이벤트를 연결하므로 여기서는 따로 안 함
@@ -2596,6 +2670,7 @@ function openDayModal(emp, date){
     items.forEach((it, idx) => {
       renderStageConfigPicker(idx);
       renderStagePicker(idx);
+      renderContentField(idx);     // ★ [추가됨] 통합/개별 내용 칸을 상태에 맞게 그림
       renderStageProgressList(idx); // 선택된 단계 개수만큼 진행률 입력칸을 그려줌
     });
   }
@@ -2633,13 +2708,18 @@ function openDayModal(emp, date){
           if(it.stages && it.stages.length > 0){
             it.stages.forEach((stageName, sIdx) => {
               const pct = (it.stageProgress && it.stageProgress[stageName] !== undefined) ? it.stageProgress[stageName] : null;
+              // ★ [수정됨] "개별내용"이 켜져있으면 단계마다 따로 적은 내용을 그 단계 행에 그대로 저장.
+              // 꺼져있으면(기본값) 예전처럼 통합 내용을 첫 단계 행에만 붙임.
+              const rowContent = it.perStageContent
+                ? (((it.stageContent && it.stageContent[stageName]) || '').trim() || null)
+                : (sIdx === 0 ? ((it.content || '').trim() || null) : null);
               payload.push({
                 employee_id: emp.id,
                 log_date: dateStr,
                 department: DEPARTMENT_ID,
                 title: t,
                 stage: stageName, // 이 행에는 단계 하나만 저장 (기존 계산 로직과 동일한 모양)
-                content: sIdx === 0 ? ((it.content || '').trim() || null) : null, // 내용은 첫 단계 행에만
+                content: rowContent,
                 progress: pct,
                 sort_order: sortOrder++
               });
