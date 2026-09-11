@@ -1228,6 +1228,12 @@ body{
     font-weight:500;         /* "(수)" 글자 굵기 = 보통보다 약간만 굵게 */
     margin-top:1px;          /* 날짜 숫자와 요일 글자 사이의 위아래 간격 */
   }
+  /* ★ [수정됨] 공휴일 이름표는 날짜 칸이 아니라 각 인원의 "항목" 칸(.day-cell) 맨 위에 작은 태그 형태로 표시됨 */
+  .holiday-tag{
+    display:inline-block; font-size:10.5px; font-weight:700; color:var(--amber);
+    background:#FFF3CD; border:1px solid #FCE8A8; border-radius:5px;
+    padding:1px 7px; margin-bottom:6px;
+  }
 
   /* 토요일/일요일에 해당하는 행(줄) 전체에 적용되는 스타일 - 주말 행은 살구색 배경으로 구분됨 */
   #logGrid tr.weekend .day-cell-label{ color:var(--muted); }     /* 주말 날짜 숫자는 좀 더 흐린 회색으로 */
@@ -3027,6 +3033,9 @@ const BUILTIN_HOLIDAYS = {
 };
 
 let HOLIDAYS = new Set(Object.keys(BUILTIN_HOLIDAYS));
+// ★ [추가됨] "날짜 -> 공휴일 이름" 조회용 맵. 내장 공휴일은 처음부터 이름이 있고,
+// 📅 버튼으로 직접 등록한 공휴일의 이름(label)은 loadHolidays()가 불러올 때 여기 합쳐줌.
+let HOLIDAY_NAMES = { ...BUILTIN_HOLIDAYS };
 
 /* DB에서 공휴일 로드 → BUILTIN_HOLIDAYS + DB 추가분 합산
    실패해도 내장 공휴일은 그대로 유지 */
@@ -3042,6 +3051,9 @@ async function loadHolidays(){
     /* 내장 + DB 추가분 합산 */
     const dbDates = rows.map(r => r.value).filter(Boolean);
     HOLIDAYS = new Set([...Object.keys(BUILTIN_HOLIDAYS), ...dbDates]);
+    // ★ [추가됨] 직접 등록한 공휴일의 이름(label)도 HOLIDAY_NAMES에 합쳐줌 (내장 공휴일 이름은 유지, 겹치면 직접 등록한 이름으로 덮어씀)
+    HOLIDAY_NAMES = { ...BUILTIN_HOLIDAYS };
+    rows.forEach(r => { if(r.value) HOLIDAY_NAMES[r.value] = r.label || '공휴일'; });
     if(taskData.length) renderTask();
   }catch(e){
     console.warn('공휴일 로드 실패(무시):', e);
@@ -4008,6 +4020,10 @@ function renderBody(){
     const dateStr = toDateStr(date);
     const dowIdx = (date.getDay()+6) % 7; // 자바스크립트 기본 요일번호(0=일)를 0=월 기준으로 바꿈
     const isWeekend = dowIdx >= 5;         // 5=토, 6=일 이면 주말
+    // ★ [수정됨] 예전엔 주말(토/일)만 배경색이 바뀌고, 평일에 걸리는 공휴일(예: 2026년 추석 9/24목~9/25금)은
+    // 아무 표시가 안 됐음. HOLIDAYS Set(내장 공휴일+직접 등록한 공휴일)에 이 날짜가 있으면
+    // 평일이어도 주말과 똑같이 흐린 배경으로 표시되도록 함.
+    const isHoliday = typeof HOLIDAYS !== 'undefined' && HOLIDAYS.has(dateStr);
     const isToday = isSameDate(date, TODAY);
 
     if(weekStartOfCurrentRun === null) weekStartOfCurrentRun = startOfWeek(date);
@@ -4015,7 +4031,7 @@ function renderBody(){
     const tr = document.createElement('tr');
     // 아래 className 에 'weekend' 또는 'is-today' 글자가 들어가면,
     // 위쪽 CSS의 tr.weekend / tr.is-today 규칙이 자동으로 적용되어 배경색 등이 바뀜
-    tr.className = (isWeekend ? 'weekend' : '') + (isToday ? ' is-today' : '');
+    tr.className = ((isWeekend || isHoliday) ? 'weekend' : '') + (isToday ? ' is-today' : '');
     tr.dataset.date = dateStr;
 
     // ★ 여기가 바로 "1(수)" 같은 날짜 라벨을 실제로 만들어내는 부분입니다.
@@ -4025,6 +4041,9 @@ function renderBody(){
     //   위쪽 style(스타일) 안의 .day-cell-label 과 .day-cell-label .dow 규칙을 수정하면 됩니다.
     const labelTd = document.createElement('td');
     labelTd.className = 'day-label-col';
+    // ★ [수정됨] 공휴일 이름은 날짜 칸이 아니라, 아래에서 각 인원의 "항목" 칸 위에 표시함 (요청에 따라 위치 변경)
+    const holidayName = (typeof HOLIDAY_NAMES !== 'undefined' && HOLIDAY_NAMES[dateStr]) ? HOLIDAY_NAMES[dateStr] : '';
+    const holidayTagHtml = holidayName ? `<div class="holiday-tag">${escapeHtml(holidayName)}</div>` : '';
     labelTd.innerHTML = `<div class="day-cell-label">${date.getDate()}<span class="dow">(${DOW_LABELS[dowIdx]})</span></div>`;
     tr.appendChild(labelTd);
 
@@ -4041,7 +4060,8 @@ function renderBody(){
 
       if(items.length === 0){
         // 아직 아무것도 입력 안 된 칸에는 흐린 "+ 항목 추가" 안내 글자를 보여줌 (CSS: .empty-hint)
-        td.innerHTML = `<div class="empty-hint">+ 항목 추가</div>`;
+        // ★ [추가됨] 공휴일이면 "+ 항목 추가" 위에 공휴일 이름표(holiday-tag)도 같이 보여줌
+        td.innerHTML = `${holidayTagHtml}<div class="empty-hint">+ 항목 추가</div>`;
       } else {
         // ★ [수정됨] 예전엔 최대 2개까지만 미리보기로 보여주고 나머지는 "+N개 더보기" 버튼으로 숨겼는데,
         // 이제는 항목이 몇 개든 전부 다 보여줌. 항목이 많으면 그만큼 이 칸(td)의 세로 높이가 자연스럽게
@@ -4124,7 +4144,7 @@ function renderBody(){
             ${it.progress !== null && it.progress !== undefined ? `<span class="pct">${it.progress}%</span>` : ''}
           </div>`;
         }).filter(Boolean).join('');
-        td.innerHTML = html;
+        td.innerHTML = holidayTagHtml + html; // ★ [추가됨] 항목이 있어도 맨 위에 공휴일 이름표를 같이 보여줌
       }
       tr.appendChild(td);
     });
