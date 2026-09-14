@@ -870,7 +870,7 @@ function setFormat(fmt, save = true){
 
   // 다운로드 버튼 라벨도 형식에 맞춰 바꾸기
   const btnRun = document.getElementById('btnRun');
-  btnRun.innerHTML = (fmt === 'pdf') ? '💾 PDF로 저장' : '💾 ZIP 다운로드';
+  btnRun.innerHTML = (fmt === 'pdf') ? '💾 PDF로 저장' : '💾 다운로드';
 
   if (save) localStorage.setItem(LS_FORMAT, fmt);
   updatePreview();
