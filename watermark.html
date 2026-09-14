@@ -796,6 +796,7 @@ window.addEventListener('load', () => {
   const savedTarget = localStorage.getItem(LS_TARGET);
   if (savedTarget) document.getElementById('targetPx').value = savedTarget;
 
+
   onResizeToggle(false);  // 체크 상태에 맞춰 화면 활성/비활성 처리
 
   setupDropZone(document.getElementById('logoDrop'),  handleLogoDrop);
@@ -819,6 +820,33 @@ function restoreSlider(sliderId, valId, lsKey, unit){
 /* ==========================================================
    ✅ 저장 형식 선택 (JPG / PNG)
 ========================================================== */
+/* ==========================================================
+   ✅ 저장 파일명 만들기 — 항상 원본 파일명을 그대로 사용해요
+========================================================== */
+
+/* 원본 파일명에서 확장자를 뗀 이름을 돌려줘요 (예: "사진1.jpg" → "사진1") */
+function stripExt(filename){
+  return filename.replace(/\.[^.]+$/, '');
+}
+
+/* 최종 저장 파일명 (baseName + 확장자) */
+function makeFileName(baseName, ext){
+  return baseName + ext;
+}
+
+/* Blob을 지정한 이름으로 다운로드시키는 공통 함수 */
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href    = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
 function setFormat(fmt, save = true){
   outFormat = fmt;
 
@@ -1516,26 +1544,24 @@ async function runWatermark(){
 
       const pdfBytes = await outPdf.save();
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href     = url;
-      a.download = 'watermarked_photos.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // 사진이 1장이면 그 사진의 원본 이름을, 여러 장이면 첫 사진 이름 기준으로 만들어요
+      const pdfBase = (photos.length === 1)
+        ? stripExt(photos[0].name)
+        : stripExt(photos[0].name) + `_외${photos.length - 1}장`;
+      downloadBlob(blob, makeFileName(pdfBase, '.pdf'));
 
       text.textContent = `✅ 완료! ${photos.length}장이 담긴 PDF가 다운로드되었습니다.`;
       text.classList.add('done');
 
     } else {
-      // ── JPG/PNG 모드: 기존 ZIP 로직 ─────────────────────
+      // ── JPG/PNG 모드 ─────────────────────────────────────
       const isJpg    = (outFormat === 'jpg');
       const mimeType = isJpg ? 'image/jpeg' : 'image/png';
       const ext      = isJpg ? '.jpg' : '.png';
       const quality  = isJpg ? 0.92 : undefined;
 
-      const zip = new JSZip();
+      // 워터마크 합성해서 Blob 목록 만들기
+      const results = []; // [{name, blob}]
 
       for (let i = 0; i < photos.length; i++){
         fill.style.width = Math.round((i / photos.length) * 100) + '%';
@@ -1551,26 +1577,27 @@ async function runWatermark(){
           );
         });
 
-        const baseName = photos[i].name.replace(/\.[^.]+$/, '');
-        zip.file('wm_' + baseName + ext, blob);
+        results.push({ name: makeFileName(stripExt(photos[i].name), ext), blob });
 
         await new Promise(r => setTimeout(r, 0));
       }
 
       fill.style.width = '100%';
-      text.textContent = 'ZIP 파일 만드는 중...';
 
-      const zipBlob = await zip.generateAsync({ type: 'blob' });
-      const url = URL.createObjectURL(zipBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'watermarked_' + outFormat + '.zip';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      if (results.length === 1){
+        // ✅ 사진이 1장이면 압축하지 않고 이미지 파일 그대로 다운로드
+        downloadBlob(results[0].blob, results[0].name);
+        text.textContent = `✅ 완료! ${results[0].name} 파일이 다운로드되었습니다.`;
+      } else {
+        // 여러 장이면 ZIP으로 묶어서 다운로드
+        text.textContent = 'ZIP 파일 만드는 중...';
+        const zip = new JSZip();
+        results.forEach(r => zip.file(r.name, r.blob));
+        const zipBlob = await zip.generateAsync({ type: 'blob' });
+        downloadBlob(zipBlob, 'watermarked_' + outFormat + '.zip');
+        text.textContent = `✅ 완료! ${results.length}장이 ZIP 파일로 다운로드되었습니다.`;
+      }
 
-      text.textContent = '✅ 완료! ZIP 파일이 다운로드되었습니다.';
       text.classList.add('done');
     }
 
@@ -2150,14 +2177,9 @@ async function runPdfWatermark(mode){
         text.textContent = 'PDF 파일 만드는 중...';
         const mergedBytes = await mergedPdf.save();
         const blob = new Blob([mergedBytes], { type: 'application/pdf' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = 'watermarked_merged.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        // 합친 PDF는 첫 번째 파일 이름 기준으로 저장해요
+        const mergedBase = stripExt(pdfFiles[0].name) + `_외${pdfFiles.length - 1}개`;
+        downloadBlob(blob, makeFileName(mergedBase, '.pdf'));
 
         fill.style.width = '100%';
         text.textContent = `✅ 완료! ${pdfFiles.length}개 PDF(총 ${totalPagesAll}페이지)가 1개의 PDF로 합쳐져 다운로드되었습니다.`;
@@ -2174,28 +2196,20 @@ async function runPdfWatermark(mode){
           });
 
           const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-          const url  = URL.createObjectURL(blob);
-          const a    = document.createElement('a');
-          a.href     = url;
-          a.download = 'wm_' + pf.name;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
+          downloadBlob(blob, makeFileName(stripExt(pf.name), '.pdf'));
         }
 
         fill.style.width = '100%';
         text.textContent = `✅ 완료! ${pdfFiles.length}개 PDF가 다운로드되었습니다.`;
 
       } else {
-        // ── 저장 모드: 이미지(JPG/PNG) 형식 — 페이지별로 뽑아서 ZIP 하나로 묶기 ──
+        // ── 저장 모드: 이미지(JPG/PNG) 형식 — 페이지별로 이미지 추출 ──
         const mimeType = (pdfOutFormat === 'jpg') ? 'image/jpeg' : 'image/png';
         const ext      = (pdfOutFormat === 'jpg') ? '.jpg' : '.png';
         const quality  = (pdfOutFormat === 'jpg') ? 0.92 : undefined;
 
-        const zip = new JSZip();
+        const results = []; // [{path, blob}] — path는 ZIP 내부 경로
         let totalPagesDone = 0;
-        // 진행률 계산을 위해 전체 페이지 수를 먼저 파악
         let totalPagesAll = 0;
         for (const pf of pdfFiles) totalPagesAll += (typeof pf.pageCount === 'number' ? pf.pageCount : 1);
 
@@ -2206,10 +2220,7 @@ async function runPdfWatermark(mode){
           const scale  = pdfDpi / 72;
           const pdfDoc = await pdfjsLib.getDocument({ data: pf.arrayBuffer.slice(0) }).promise;
           const totalPages = pdfDoc.numPages;
-
-          // 파일이 여러 개일 때 헷갈리지 않도록 PDF 이름 기준 폴더로 구분
-          const baseName = pf.name.replace(/\.[^.]+$/, '');
-          const folder = pdfFiles.length > 1 ? zip.folder(baseName) : zip;
+          const baseName = stripExt(pf.name);
 
           for (let pageNum = 1; pageNum <= totalPages; pageNum++){
             detail.textContent = `${pf.name} — 페이지 ${pageNum}/${totalPages}`;
@@ -2234,8 +2245,14 @@ async function runPdfWatermark(mode){
               canvas.toBlob(b => b ? res(b) : rej(new Error('이미지 변환 실패')), mimeType, quality);
             });
 
-            const pageLabel = String(pageNum).padStart(totalPages >= 100 ? 3 : 2, '0');
-            folder.file(`${baseName}_p${pageLabel}${ext}`, blob);
+            // 페이지가 1장뿐인 PDF면 페이지 번호를 붙이지 않아요
+            const fileName = (totalPages === 1)
+              ? makeFileName(baseName, ext)
+              : makeFileName(`${baseName}_p${String(pageNum).padStart(totalPages >= 100 ? 3 : 2, '0')}`, ext);
+
+            // PDF가 여러 개면 PDF 이름 폴더로 구분
+            const path = (pdfFiles.length > 1) ? `${baseName}/${fileName}` : fileName;
+            results.push({ path, name: fileName, blob });
 
             totalPagesDone++;
             fill.style.width = Math.round((totalPagesDone / totalPagesAll) * 100) + '%';
@@ -2244,18 +2261,18 @@ async function runPdfWatermark(mode){
           }
         }
 
-        text.textContent = 'ZIP 파일 만드는 중...';
-        const zipBlob = await zip.generateAsync({ type: 'blob' });
-        const url = URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `watermarked_pdf_${pdfOutFormat}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        text.textContent = `✅ 완료! 총 ${totalPagesAll}페이지가 ${pdfOutFormat.toUpperCase()} 이미지 ZIP으로 다운로드되었습니다.`;
+        if (results.length === 1){
+          // ✅ 결과 이미지가 1장뿐이면 압축하지 않고 바로 다운로드
+          downloadBlob(results[0].blob, results[0].name);
+          text.textContent = `✅ 완료! ${results[0].name} 파일이 다운로드되었습니다.`;
+        } else {
+          text.textContent = 'ZIP 파일 만드는 중...';
+          const zip = new JSZip();
+          results.forEach(r => zip.file(r.path, r.blob));
+          const zipBlob = await zip.generateAsync({ type: 'blob' });
+          downloadBlob(zipBlob, `watermarked_pdf_${pdfOutFormat}.zip`);
+          text.textContent = `✅ 완료! 총 ${results.length}페이지가 ${pdfOutFormat.toUpperCase()} 이미지 ZIP으로 다운로드되었습니다.`;
+        }
       }
 
     } else {
